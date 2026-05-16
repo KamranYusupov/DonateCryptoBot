@@ -6,3 +6,4 @@ from app.models.donate import Donate, DonateTransaction
 from app.models.withdrawal_request import WithdrawalRequest
 from app.models.contest import SponsorsContest, SponsorsContestPoint
 from app.models.transfer import Transfer
+from app.models.statistic import AdminStatistic
