@@ -11,6 +11,7 @@ from app.repositories.transaction import RepositoryTransaction
 from app.repositories.withdrawal_request import RepositoryWithdrawalRequest
 from app.repositories.contest import RepositorySponsorsContest, RepositorySponsorsContestPoint
 from app.repositories.transfer import RepositoryTransfer
+from app.repositories.statistic import RepositoryAdminStatistic
 
 from app.models.telegram_user import TelegramUser
 from app.models.admin_user import AdminUser
@@ -20,6 +21,7 @@ from app.models.transaction import Transaction
 from app.models.withdrawal_request import WithdrawalRequest
 from app.models.contest import SponsorsContest, SponsorsContestPoint
 from app.models.transfer import Transfer
+from app.models.statistic import AdminStatistic
 
 from app.services.donate_confirm_service import DonateConfirmService
 from app.services.telegram_user_service import TelegramUserService
@@ -103,6 +105,9 @@ class Container(containers.DeclarativeContainer):
     )
     repository_transfer = providers.Factory(
         RepositoryTransfer, model=Transfer, session=session
+    )
+    repository_admin_statistic = providers.Factory(
+        RepositoryAdminStatistic, model=AdminStatistic, session=session
     )
     # endregion
 
