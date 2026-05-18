@@ -417,11 +417,13 @@ async def send_donations_menu(
         users_count_with_bill_for_withdraw_gte_10 = (
             await telegram_user_service.get_count(
                 TelegramUser.bill_for_withdraw >= 10,
+                TelegramUser.is_bot == False,
             )
         )
         bills_for_withdraw_gte_10_sum = (
             await telegram_user_service.get_bills_for_withdraw_sum(
                 TelegramUser.bill_for_withdraw >= 10,
+                TelegramUser.is_bot == False,
             )
         ) - current_user.bill_for_withdraw
 
