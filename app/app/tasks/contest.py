@@ -17,9 +17,6 @@ async def update_contest_task(
     current_contest, created = await sponsors_contests_service.get_or_create_current_contest()
     await sponsors_contests_service.update_results(current_contest.id)
 
-    if not created:
-        return
-
     previous_contest = await sponsors_contests_service.get_last_contest(
         SponsorsContest.id != current_contest.id,
         is_archived=False,
