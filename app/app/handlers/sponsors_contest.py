@@ -57,7 +57,7 @@ async def current_contest_callback_handler(
 
         telegram_method = callback.message.edit_text
     except ValueError:
-        contest = await sponsors_contests_service.get_current_contest()
+        contest, _ = await sponsors_contests_service.get_or_create_current_contest()
         archive_exists = await sponsors_contests_service.contest_exists(is_archived=True)
         if archive_exists:
             buttons.update({"АРХИВ 🗄": "archive_sponsors_contests_1"})
