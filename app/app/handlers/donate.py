@@ -352,6 +352,9 @@ async def send_donations_menu(
         sponsors_contests_service: SponsorsContestService = Provide[
             Container.sponsors_contests_service
         ],
+        admin_statistic_service: AdminStatisticService = Provide[
+            Container.admin_statistic_service
+        ],
 ) -> None:
     telegram_method_kwargs = {}
     if telegram_method == bot.send_message:
@@ -390,6 +393,8 @@ async def send_donations_menu(
     default_buttons.update({"Внутренний перевод 💸": "start_transfer",})
 
     if current_user.is_admin:
+        admin_statistic = admin_statistic_service.get_statistic()
+
         users_count = await telegram_user_service.get_count(is_bot=False)
         users_count_with_not_active_status = await telegram_user_service.get_count(
             status=DonateStatus.NOT_ACTIVE,
@@ -400,9 +405,7 @@ async def send_donations_menu(
         matrix_statuses_statistic_message = get_matrices_statuses_statistic_message(
             matrices,
         )
-
         donates_sum = await donate_confirm_service.get_donates_sum()
-        system_bill = await donate_confirm_service.get_system_bill()
 
         bills_for_activation_sum = (
             await telegram_user_service.get_bills_for_activation_sum()
@@ -429,7 +432,9 @@ async def send_donations_menu(
             "Всего подарили: "
             f"<b>${donates_sum}</b>\n"
             "Системный баланс: "
-            f"<b>${system_bill}</b>\n"
+            f"<b>${admin_statistic.system_bill}</b>\n"
+            "Число отправленных $ за регистрацию: "
+            f"<b>${admin_statistic.donates_sum_for_registration}</b>\n"
             "Общий баланс для активации: "
             f"<b>${bills_for_activation_sum}</b>\n"
             "Общий баланс для вывода: "
