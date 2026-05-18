@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, text, CheckConstraint, Integer
+from sqlalchemy import Column, Float, text, CheckConstraint, Integer
 
 from app.db.base import Base
 
@@ -12,5 +12,5 @@ class AdminStatistic(Base):
         CheckConstraint("id = 1", name="admin_statistic_singleton"),
     )
 
-    system_bill = Column(BigInteger, default=0, server_default=text("0"))
-    donates_for_registration = Column(BigInteger, default=0, server_default=text("0"))
+    system_bill = Column(Float, default=0.0)
+    donates_sum_for_registration = Column(Float, default=0.0)
