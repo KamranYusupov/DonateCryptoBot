@@ -34,6 +34,7 @@ from app.repositories.matrix import RepositoryAddBotToMatrixTaskModel
 from app.services.matrix_service import AddBotToMatrixTaskModelService
 from app.services.sponsors_contest_service import SponsorsContestService
 from app.services.transfer_service import TransferService
+from app.services.statistic_service import AdminStatisticService
 
 
 class Container(containers.DeclarativeContainer):
@@ -156,5 +157,9 @@ class Container(containers.DeclarativeContainer):
         TransferService,
         repository_transfer=repository_transfer,
         repository_telegram_user=repository_telegram_user,
+    )
+    admin_statistic_service = providers.Factory(
+        AdminStatisticService,
+        repository_admin_statistic=repository_admin_statistic,
     )
     # endregion
