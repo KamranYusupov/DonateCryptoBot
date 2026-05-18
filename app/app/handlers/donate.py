@@ -56,6 +56,7 @@ from app.models.telegram_user import DonateStatus
 from app.utils.captcha import generate_math_captcha
 from app.utils.bot import send_message_or_pass, delete_message_or_pass
 from app.utils.bot import get_schema_from_user
+from app.services.statistic_service import AdminStatisticService
 
 donate_router = Router()
 
@@ -158,7 +159,7 @@ async def captcha_handler(
     await state.set_state(CaptchaState.option)
 
 
-@donate_router.callback_query(F.data.startswith("register_"), CaptchaState.option)
+@donate_router.callback_query(F.data.startswith("register_"))
 @inject
 @commit_and_close_session
 async def register_handler(
@@ -166,6 +167,9 @@ async def register_handler(
         state: FSMContext,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
+        ],
+        admin_statistic_service: AdminStatisticService = Provide[
+            Container.admin_statistic_service
         ],
 ) -> None:
     current_user = await telegram_user_service.get_telegram_user(
@@ -250,11 +254,32 @@ async def register_handler(
         sponsor=sponsor,
     )
     await send_subscription_menu(callback, sponsor_user_id)
+
     await send_message_or_pass(
         bot=callback.bot,
         chat_id=sponsor.user_id,
         text=f"По вашей ссылке зарегистрировался пользователь @{current_user.username}."
     )
+
+    if not settings.send_donate_for_registration or sponsor.status == DonateStatus.NOT_ACTIVE:
+        return
+
+    if (int(DonateStatus.BRONZE.get_status_donate_value())
+                <= int(sponsor.status.get_status_donate_value())):
+        await telegram_user_service.update(
+            obj_id=sponsor.id,
+            obj_in={"bill_for_activation": sponsor.bill_for_activation + settings.donate_for_registration},
+        )
+        admin_statistic = admin_statistic_service.get_statistic()
+        admin_statistic_service.update(
+            donates_sum_for_registration=admin_statistic.donates_sum_for_registration + 1
+        )
+        await send_message_or_pass(
+            bot=callback.bot,
+            chat_id=sponsor.user_id,
+            text=f"На баланс зачислено ${settings.donate_for_registration}."
+        )
+
 
 
 @donate_router.callback_query(F.data.startswith("menu_"))

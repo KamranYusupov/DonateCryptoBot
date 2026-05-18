@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     support_username: str = Field(title="Username аккаунта поддержки")
     log_level: LogLevel = Field(title="Уровень логирования", default=LogLevel.INFO)
     timezone: str = Field(default="Europe/Moscow")
+    send_donate_for_registration: bool = Field(default=False)
+    donate_for_registration: int = Field(default=1)
     # endregion
 
     # region API
