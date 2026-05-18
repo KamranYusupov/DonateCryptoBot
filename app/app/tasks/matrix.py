@@ -25,6 +25,7 @@ from app.core.container import Container
 from app.models.matrix import AddBotToMatrixTaskModel
 from app.models.donate import DonateTransactionType
 from app.utils.bot import send_message_or_pass, send_transaction_messages
+from app.services.statistic_service import AdminStatisticService
 
 
 @inject
@@ -36,6 +37,9 @@ async def add_bot_to_matrix(
         telegram_user_service: TelegramUserService = Provide[Container.telegram_user_service],
         donate_service: DonateService = Provide[Container.donate_service],
         donate_confirm_service: DonateConfirmService = Provide[Container.donate_confirm_service],
+        admin_statistic_service: AdminStatisticService = Provide[
+            Container.admin_statistic_service
+        ],
 ) -> None:
 
     matrix = await matrix_service.get_matrix(id=matrix_id)
@@ -84,19 +88,29 @@ async def add_bot_to_matrix(
         donate_id=donate.id, return_data=True,
     )
 
+    add_to_system_bill_value = 0
     for transaction in transactions_data:
+        quantity = transaction["quantity"]
         if transaction["type_"] == DonateTransactionType.SYSTEM:
+            add_to_system_bill_value += quantity
             continue
 
+        add_to_system_bill_value -= quantity
         sponsor = await telegram_user_service.get_telegram_user(
             id=transaction["sponsor_id"]
         )
         await telegram_user_service.update(
             obj_id=sponsor.id,
             obj_in={
-                "donates_sum": sponsor.donates_sum + transaction["quantity"],
-                "bill_for_withdraw": sponsor.bill_for_withdraw + transaction["quantity"]
+                "donates_sum": sponsor.donates_sum + quantity,
+                "bill_for_withdraw": sponsor.bill_for_withdraw + quantity
             },
+        )
+
+    if add_to_system_bill_value != 0:
+        admin_statistic = admin_statistic_service.get_statistic()
+        admin_statistic_service.update(
+            system_bill=admin_statistic.system_bill + add_to_system_bill_value
         )
 
     admin_user = await telegram_user_service.get_telegram_user(is_admin=True)

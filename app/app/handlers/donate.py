@@ -599,6 +599,9 @@ async def donate_handler(
         sponsors_contests_service: SponsorsContestService = Provide[
             Container.sponsors_contests_service
         ],
+        admin_statistic_service: AdminStatisticService = Provide[
+            Container.admin_statistic_service
+        ],
 ) -> None:
     bill_type = callback.data.split("_")[-1]
     donate_sum = int(callback.data.split("_")[-2])
@@ -695,8 +698,10 @@ async def donate_handler(
     transactions_data = await donate_confirm_service.get_donate_transactions_by_donate_id(
         donate_id=donate.id, return_data=True,
     )
+    system_bill_donate = 0
     for transaction in transactions_data:
         if transaction["type_"] == DonateTransactionType.SYSTEM:
+            system_bill_donate += transaction["quantity"]
             continue
 
         sponsor = await telegram_user_service.get_telegram_user(
@@ -708,6 +713,12 @@ async def donate_handler(
                 "donates_sum": sponsor.donates_sum + transaction["quantity"],
                 "bill_for_withdraw": sponsor.bill_for_withdraw + transaction["quantity"]
             },
+        )
+
+    if system_bill_donate:
+        admin_statistic = admin_statistic_service.get_statistic()
+        admin_statistic_service.update(
+            system_bill=admin_statistic.system_bill + system_bill_donate
         )
 
     await callback.message.delete()
