@@ -198,16 +198,12 @@ class DonateService:
             parents: list[Matrix],
     ) -> Matrix:
         current_time = datetime.now()
-        created_matrix_dict = {
-            "owner_id": current_user.id,
-            "status": matrix_to_add.status,
-        }
-        created_matrix_entity = MatrixEntity(**created_matrix_dict)
+        created_matrix_entity = MatrixEntity(
+            owner_id=current_user.id,
+            status=matrix_to_add.status,
+        )
         created_matrix = self._repository_matrix.create(obj_in=created_matrix_entity.model_dump())
         created_matrix.created_at = current_time
-
-        matrix_owner = self._repository_telegram_user.get(id=matrix_to_add.owner_id)
-
 
         matrix_to_add_path_matrices = self._repository_matrix.get_matrices_by_ids_list(
             free_place_path, mapping=True
