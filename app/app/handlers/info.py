@@ -144,14 +144,26 @@ async def team_inline_handler(
 
 
 @info_router.message(F.text == "🚀 Продвижение")
-async def referral_message_handler(message: Message):
+@inject
+async def referral_message_handler(
+        message: Message,
+        telegram_user_service: TelegramUserService = Provide[
+            Container.telegram_user_service
+        ],
+):
+    current_user = await telegram_user_service.get_telegram_user(
+        user_id=message.from_user.id
+    )
+    if not current_user:
+        return
+
+    referral_url = current_user.referral_url
     keyboard = InlineKeyboardBuilder()
-    registration_link = f"{settings.bot_link}?start={message.from_user.id}"
 
     keyboard.add(
         InlineKeyboardButton(
             text="🔑 Получить доступ",
-            url=registration_link
+            url=referral_url
         )
     )
     await message.answer_photo(
@@ -212,7 +224,7 @@ async def referral_message_handler(message: Message):
         )
 
     await message.answer(
-        f"Ваша реферальная ссылка: {registration_link}",
+        f"Ваша реферальная ссылка: {referral_url}",
     )
 
     if msg.video:

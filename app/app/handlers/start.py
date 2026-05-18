@@ -155,6 +155,6 @@ async def admin(
         )
 
     await message.answer(
-        f"✅ Готово - {settings.bot_link}?start={message.from_user.id}",
+        f"✅ Готово - {admin_user.referral_url}",
         reply_markup=get_reply_keyboard(admin_user),
     )
