@@ -258,7 +258,12 @@ async def register_handler(
     await send_message_or_pass(
         bot=callback.bot,
         chat_id=sponsor.user_id,
-        text=f"По вашей ссылке зарегистрировался пользователь @{current_user.username}."
+        text=(
+            f"🎉 Поздравляем! По вашей ссылке зарегистрировался {current_user.full_username}\n\n"
+            "👥 Свяжитесь с ним, узнайте, всё ли понятно, и при необходимости окажите поддержку.\n\n"
+            "🔥 Ваше внимание = его быстрый старт\n\n"
+            "🌀 Состояние → Действие → Результат"
+        )
     )
 
     if not settings.send_donate_for_registration or sponsor.status == DonateStatus.NOT_ACTIVE:

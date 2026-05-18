@@ -53,9 +53,6 @@ class AbstractTelegramUser:
         ):
             return "Ссылка на бота или имя бота не заданы в настройках."
 
-        if "{}" not in settings.bot_link:
-            return "Ссылка на бота не может быть отформатирована."
-
         if self.user_id is None:
             return "User ID не задан."
 
