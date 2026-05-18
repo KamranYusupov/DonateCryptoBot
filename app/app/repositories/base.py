@@ -44,7 +44,7 @@ class RepositoryBase(Generic[ModelType,]):
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
-            update_data = obj_in.dict(exclude_unset=True)
+            update_data = obj_in.model_dump(exclude_unset=True)
 
         statement = (
             update(self._model).where(self._model.id == obj_id).values(**update_data)
