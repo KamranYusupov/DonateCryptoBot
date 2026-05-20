@@ -105,6 +105,8 @@ class TelegramUser(UUIDMixin, TimestampedMixin, AbstractTelegramUser, Base):
     depth_level = Column(Integer, default=0)
     is_banned = Column(Boolean, default=False)
     is_bot = Column(Boolean, default=False)
+    captcha_verified = Column(Boolean, default=False)
+    is_donate_for_registration_sent = Column(Boolean, default=False)
 
     sponsor = relationship(
         "TelegramUser",

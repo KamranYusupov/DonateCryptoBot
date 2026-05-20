@@ -9,6 +9,9 @@ from app.services.telegram_user_service import TelegramUserService
 from app.db.commit_decorator import commit_and_close_session
 from app.core.config import settings
 from app.keyboards.donate import get_donate_keyboard
+from app.keyboards.inline import get_subscriptions_keyboard
+from app.loader import bot
+from app.utils.bot import send_subscription_menu
 
 
 @inject
@@ -26,36 +29,21 @@ async def subscription_checker_middleware(
     current_user = await telegram_user_service.get_telegram_user(
         user_id=event.from_user.id
     )
-    if not current_user:
+    if not current_user or not current_user.captcha_verified:
         return await handler(event, data)
-    chat_result = await event.bot.get_chat_member(
-        chat_id=settings.chat_id, user_id=event.from_user.id
+
+    reply_markup = await get_subscriptions_keyboard(
+        bot=bot,
+        user_id=event.from_user.id,
+        sponsor_user_id=current_user.sponsor_user_id,
     )
-    channel_result = await event.bot.get_chat_member(
-        chat_id=settings.channel_id, user_id=event.from_user.id
+    if not reply_markup:
+        return await handler(event, data)
+
+    await event.answer(
+        "🔑 Для доступа к основным ресурсам бота, подпишитесь на "
+        "ЧАТ, КАНАЛ и KOD💵DENEG ⚡️ АКТИВАЦИИ ⤵️",
+        reply_markup=reply_markup
     )
+    return
 
-    not_subscribed_statuses = (ChatMemberStatus.LEFT, ChatMemberStatus.KICKED)
-    if channel_result.status in not_subscribed_statuses or chat_result.status in not_subscribed_statuses:
-        buttons = [
-            InlineKeyboardButton(
-                text="📌 КАНАЛ 📌",
-                url=settings.channel_link),
-            InlineKeyboardButton(
-                text="💬 ЧАТ 💬",
-                url=settings.chat_link),
-            InlineKeyboardButton(
-                text="Проверить подписку ✅",
-                callback_data=f"menu_{current_user.sponsor_user_id}",
-            )
-        ]
-        keyboard = InlineKeyboardBuilder()
-        keyboard.add(*buttons)
-
-        await event.answer(
-            f"🔑 Для доступа к основным функциям бота, подпишитесь на чат и канал сообщества ⤵️",
-            reply_markup=keyboard.adjust(1, 1).as_markup()
-        )
-        return
-
-    return await handler(event, data)

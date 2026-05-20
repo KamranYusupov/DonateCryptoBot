@@ -26,6 +26,11 @@ class TelegramUserEntity(BaseModel):
     is_admin: bool = Field(title="Супер пользователь", default=False)
     depth_level: int = Field(title="Уровень глубины")
     is_banned: bool = Field(title="Заблокирован", default=False)
+    captcha_verified: bool = Field(title="Пройдена Captcha", default=False)
+    is_donate_for_registration_sent: bool = Field(
+        title="Отправлен донат пригласителю за регистрацию",
+        default=False,
+    )
 
 
 class BillType(enum.Enum):

@@ -32,7 +32,7 @@ class TelegramUserService:
     async def get_sponsors_chain(self, user_id):
         return self._repository_telegram_user.get_sponsors_chain(user_id)
 
-    async def exist(self, **kwargs) -> TelegramUser:
+    async def exists(self, **kwargs) -> TelegramUser:
         return self._repository_telegram_user.exists(**kwargs)
 
     async def get_admin(self) -> TelegramUser:

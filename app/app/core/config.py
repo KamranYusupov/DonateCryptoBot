@@ -30,7 +30,6 @@ class Settings(BaseSettings):
     chat_link: str = Field(title="Ссылка на чат")
     channel_id: str = Field(title="ID канала")
     channel_link: str = Field(title="Ссылка на канал")
-    group_link: str = Field(title="Ссылка на чат")
     presentation_link: str = Field(title="Ссылка на презентацию")
     donates_channel_id: int = Field(title="ID канала с донатами")
     donates_channel_link: str = Field(title="Ссылка на канал с донатами")

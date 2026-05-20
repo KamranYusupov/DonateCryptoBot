@@ -29,6 +29,7 @@ from app.utils.matrix import get_matrices_length
 from app.services.donate_confirm_service import DonateConfirmService
 from app.keyboards.donate import get_start_inline_keyboard
 from app.utils.bot import get_schema_from_user
+from app.states.captcha import CaptchaState
 
 start_router = Router()
 
@@ -46,7 +47,33 @@ async def command_start(
 
     sponsor_user_id = current_user.sponsor_user_id if current_user else command.args
     sponsor = await telegram_user_service.get_telegram_user(user_id=sponsor_user_id)
-    if current_user:
+    if not sponsor:
+        await message.answer("Неправильная ссылка")
+        return
+
+    if not current_user:
+        await message.answer(
+            f"Вы регистрируетесь по рекомендации {sponsor.first_name}"
+            f" {sponsor.last_name if sponsor.last_name else ''}"
+            f" - Продолжить регистрацию?",
+            reply_markup=get_donate_keyboard(
+                buttons={
+                    "Да": f"yes_{sponsor_user_id}",
+                    "Нет": "delete_msg",
+                },
+                sizes=(2, 1),
+            ),
+        )
+
+    if not current_user.captcha_verified:
+        await send_captcha(
+            callback=callback,
+            state=state,
+            sponsor_user_id=sponsor_user_id,
+        )
+        await state.set_state(CaptchaState.option)
+
+    if current_user and current_user.captcha_verified:
         await message.answer(
             f"👋 Приветствую, {current_user.first_name}!\n\n",
             reply_markup=get_reply_keyboard(None)
@@ -64,23 +91,6 @@ async def command_start(
                 reply_markup=get_start_inline_keyboard(),
             )
         return
-
-    if not sponsor:
-        await message.answer("Неправильная ссылка")
-        return
-
-    await message.answer(
-        f"Вы регистрируетесь по рекомендации {sponsor.first_name}"
-        f" {sponsor.last_name if sponsor.last_name else ''}"
-        f" - Продолжить регистрацию?",
-        reply_markup=get_donate_keyboard(
-            buttons={
-                "Да": f"yes_{sponsor_user_id}",
-                "Нет": "delete_msg",
-            },
-            sizes=(2, 1),
-        ),
-    )
 
 
 @start_router.callback_query(F.data == "delete_msg")
@@ -141,6 +151,7 @@ async def admin(
         status=DonateStatus.get_status_list()[-1],
         depth_level=0,
         is_admin=True,
+        captcha_verified=True,
     )
     admin_user = await telegram_user_service.create_telegram_user(user=user_schema)
 

@@ -1,18 +1,30 @@
+import copy
+import math
+import uuid
+from datetime import timedelta, datetime
 from typing import Dict, Any, Optional
 
 from aiogram import Bot
+from aiogram.enums import ChatMemberStatus
 from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
+from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     Message,
     InlineKeyboardMarkup,
-    InlineKeyboardButton, User
+    InlineKeyboardButton, User, CallbackQuery
 )
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.loader import bot
 from app.core.config import settings
 from app.models.donate import DonateTransactionType
 from app.models.telegram_user import DonateStatus, status_emoji_list, statuses_colors_data
 from app.schemas.telegram_user import TelegramUserEntity
+from app.keyboards.inline import links_buttons
+
+from app.utils.captcha import generate_math_captcha
+
+from app.keyboards.donate import get_donate_keyboard
 
 
 async def echo_message_with_media(
@@ -339,3 +351,66 @@ def get_schema_from_user(
     user_dict["depth_level"] = depth_level
 
     return TelegramUserEntity(**user_dict, **kwargs)
+
+
+async def send_subscription_menu(
+        callback: CallbackQuery,
+        sponsor_user_id: int,
+) -> None:
+    buttons = copy.copy(links_buttons)
+    buttons.append(
+        InlineKeyboardButton(
+            text="Проверить подписку ✅",
+            callback_data=f"menu_{sponsor_user_id}",
+        )
+    )
+    keyboard = InlineKeyboardBuilder()
+    keyboard.add(*buttons)
+    sizes = (1,) * len(buttons)
+    await callback.message.answer(
+        "🔑 Для доступа к основным ресурсам бота, подпишитесь на "
+        "ЧАТ, КАНАЛ и KOD💵DENEG ⚡️ АКТИВАЦИИ ⤵️",
+        reply_markup=keyboard.adjust(*sizes).as_markup(),
+    )
+
+async def send_captcha(
+        callback: CallbackQuery,
+        state: FSMContext,
+        sponsor_user_id: int,
+        attempt: int = 1,
+        exception_text: str = "",
+) -> None:
+    text, answer, options = generate_math_captcha(
+        options_count=settings.math_captcha_options_count
+    )
+
+    captcha_id = str(uuid.uuid4())
+    buttons = {
+        str(option): f"register_{captcha_id}_{option}_{attempt}_{sponsor_user_id}"
+        for option in options
+    }
+
+    sizes = (min(len(options), 3),) * math.ceil(len(options) / 3)
+
+    await delete_message_or_pass(callback.message)
+
+    message_text = f"<b>{text}</b>"
+
+    if exception_text:
+        message_text = f"{exception_text}\n\n{message_text}"
+
+    await callback.message.answer(
+        message_text,
+        reply_markup=get_donate_keyboard(
+            buttons=buttons,
+            sizes=sizes,
+        ),
+    )
+    await state.update_data(
+        captcha_id=captcha_id,
+        answer=answer,
+        expires_at=(
+                datetime.now() + timedelta(seconds=settings.captcha_seconds_interval)
+        ).timestamp(),
+
+    )

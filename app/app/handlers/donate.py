@@ -2,6 +2,7 @@ import math
 import os
 from datetime import datetime, timedelta
 import uuid
+from typing import Optional
 
 import loguru
 from aiogram import Router, F, Bot
@@ -44,7 +45,7 @@ from app.utils.texts import (
 from app.models.donate import DonateTransactionType
 from app.models.donate import DonateTransactionType
 from app.loader import bot
-from app.utils.bot import send_transaction_messages
+from app.utils.bot import send_transaction_messages, send_captcha
 from app.models.telegram_user import TelegramUser
 from app.models.matrix import Matrix
 from app.utils.matrix import get_main_matrices
@@ -57,89 +58,29 @@ from app.utils.captcha import generate_math_captcha
 from app.utils.bot import send_message_or_pass, delete_message_or_pass
 from app.utils.bot import get_schema_from_user
 from app.services.statistic_service import AdminStatisticService
+from app.keyboards.inline import get_subscriptions_keyboard, links_buttons
+from app.utils.bot import send_subscription_menu
+from app.states.captcha import CaptchaState
 
 donate_router = Router()
 
 
-class CaptchaState(StatesGroup):
-    option = State()
-
-
-async def send_captcha(
-    callback: CallbackQuery,
-    state: FSMContext,
-    sponsor_user_id: int,
-    attempt: int = 1,
-    exception_text: str = "",
-) -> None:
-    text, answer, options = generate_math_captcha(
-        options_count=settings.math_captcha_options_count
-    )
-
-    captcha_id = str(uuid.uuid4())
-    buttons = {
-        str(option): f"register_{captcha_id}_{option}_{attempt}_{sponsor_user_id}"
-        for option in options
-    }
-
-    sizes = (min(len(options), 3),) * math.ceil(len(options) / 3)
-
-    await delete_message_or_pass(callback.message)
-
-    message_text = f"<b>{text}</b>"
-
-    if exception_text:
-        message_text = f"{exception_text}\n\n{message_text}"
-
-    await callback.message.answer(
-        message_text,
-        reply_markup=get_donate_keyboard(
-            buttons=buttons,
-            sizes=sizes,
-        ),
-    )
-    await state.update_data(
-        captcha_id=captcha_id,
-        answer=answer,
-        created_at=datetime.now().timestamp(),
-    )
-
-
-async def send_subscription_menu(
-    callback: CallbackQuery,
-    sponsor_user_id: int,
-) -> None:
-    buttons = [
-        InlineKeyboardButton(
-            text="📌 КАНАЛ 📌",
-            url=settings.channel_link,
-        ),
-        InlineKeyboardButton(
-            text="💬 ЧАТ 💬",
-            url=settings.chat_link,
-        ),
-        InlineKeyboardButton(
-            text="Проверить подписку ✅",
-            callback_data=f"menu_{sponsor_user_id}",
-        ),
-    ]
-
-    keyboard = InlineKeyboardBuilder()
-    keyboard.add(*buttons)
-
-    await callback.message.answer(
-        "🔑 Для доступа к основным функциям бота, "
-        "подпишитесь на чат и канал сообщества ⤵️",
-        reply_markup=keyboard.adjust(1, 1).as_markup(),
-    )
-
-
 @donate_router.callback_query(F.data.startswith("yes_"))
 @inject
+@commit_and_close_session
 async def captcha_handler(
         callback: CallbackQuery,
         state: FSMContext,
+        telegram_user_service: TelegramUserService = Provide[
+            Container.telegram_user_service
+        ],
 ) -> None:
+    current_user_exists = await telegram_user_service.exists(
+        user_id=callback.from_user.id,
+    )
+    if current_user_exists:
+        return
+
     await state.clear()
     if not callback.from_user.username:
         await callback.message.answer(
@@ -151,12 +92,36 @@ async def captcha_handler(
         return
 
     sponsor_user_id = int(callback.data.split("_")[-1])
+    sponsor = await telegram_user_service.get_telegram_user(
+        user_id=sponsor_user_id
+    )
+    user_schema = get_schema_from_user(
+        callback.from_user,
+        depth_level=sponsor.depth_level + 1,
+        sponsor_user_id=sponsor_user_id,
+    )
+
+    current_user = await telegram_user_service.create_telegram_user(
+        user=user_schema,
+        sponsor=sponsor,
+    )
+
     await send_captcha(
         callback=callback,
         state=state,
         sponsor_user_id=sponsor_user_id,
     )
     await state.set_state(CaptchaState.option)
+    await send_message_or_pass(
+        bot=callback.bot,
+        chat_id=sponsor.user_id,
+        text=(
+            f"🎉 Поздравляем! По вашей ссылке зарегистрировался {current_user.full_username}\n\n"
+            "👥 Свяжитесь с ним, узнайте, всё ли понятно, и при необходимости окажите поддержку.\n\n"
+            "🔥 Ваше внимание = его быстрый старт\n\n"
+            "🌀 Состояние → Действие → Результат"
+        )
+    )
 
 
 @donate_router.callback_query(F.data.startswith("register_"))
@@ -168,9 +133,6 @@ async def register_handler(
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
-        admin_statistic_service: AdminStatisticService = Provide[
-            Container.admin_statistic_service
-        ],
 ) -> None:
     current_user = await telegram_user_service.get_telegram_user(
         user_id=callback.from_user.id
@@ -178,9 +140,12 @@ async def register_handler(
     captcha_id = callback.data.split("_")[-4]
     option, attempt, sponsor_user_id = map(int, callback.data.split("_")[-3:])
 
-    if current_user:
+    if current_user.captcha_verified:
         await state.clear()
-        await send_subscription_menu(callback, sponsor_user_id)
+        await send_donations_menu(
+            from_user_id=current_user.user_id,
+            telegram_method=bot.send_message,
+        )
         return
 
     now = datetime.now()
@@ -190,15 +155,11 @@ async def register_handler(
         await callback.message.edit_text("Проверка устарела.")
         return
 
-    captcha_created_at = datetime.fromtimestamp(
-        state_data["created_at"]
+    captcha_expires_at = datetime.fromtimestamp(
+        state_data["expires_at"]
     )
 
-    captcha_expired = (
-        captcha_created_at + timedelta(seconds=settings.captcha_seconds_interval)
-    ) < now
-
-    if captcha_expired:
+    if captcha_expires_at <= now:
         await send_captcha(
             callback=callback,
             state=state,
@@ -212,21 +173,10 @@ async def register_handler(
         return
 
     answer = int(state_data["answer"])
-
-    sponsor = await telegram_user_service.get_telegram_user(
-        user_id=sponsor_user_id
-    )
-    user_schema = get_schema_from_user(
-        callback.from_user,
-        depth_level=sponsor.depth_level + 1,
-        sponsor_user_id=sponsor_user_id,
-    )
-
     if option != answer and attempt >= settings.math_captcha_max_attempts_count:
-        user_schema.is_banned = True
-        await telegram_user_service.create_telegram_user(
-            user=user_schema,
-            sponsor=sponsor,
+        await telegram_user_service.update(
+            obj_id=current_user.id,
+            obj_in=dict(is_banned=True),
         )
         await delete_message_or_pass(callback.message)
         await callback.message.answer(
@@ -249,42 +199,13 @@ async def register_handler(
     await delete_message_or_pass(callback.message)
     await state.clear()
 
-    current_user = await telegram_user_service.create_telegram_user(
-        user=user_schema,
-        sponsor=sponsor,
-    )
-    await send_subscription_menu(callback, sponsor_user_id)
-
-    await send_message_or_pass(
-        bot=callback.bot,
-        chat_id=sponsor.user_id,
-        text=(
-            f"🎉 Поздравляем! По вашей ссылке зарегистрировался {current_user.full_username}\n\n"
-            "👥 Свяжитесь с ним, узнайте, всё ли понятно, и при необходимости окажите поддержку.\n\n"
-            "🔥 Ваше внимание = его быстрый старт\n\n"
-            "🌀 Состояние → Действие → Результат"
-        )
-    )
-
-    if not settings.send_donate_for_registration or sponsor.status == DonateStatus.NOT_ACTIVE:
-        return
-
-    if (int(DonateStatus.BRONZE.get_status_donate_value())
-                <= int(sponsor.status.get_status_donate_value())):
+    if not current_user.captcha_verified:
         await telegram_user_service.update(
-            obj_id=sponsor.id,
-            obj_in={"bill_for_activation": sponsor.bill_for_activation + settings.donate_for_registration},
-        )
-        admin_statistic = admin_statistic_service.get_statistic()
-        admin_statistic_service.update(
-            donates_sum_for_registration=admin_statistic.donates_sum_for_registration + 1
-        )
-        await send_message_or_pass(
-            bot=callback.bot,
-            chat_id=sponsor.user_id,
-            text=f"На баланс зачислено ${settings.donate_for_registration}."
+            obj_id=current_user.id,
+            obj_in=dict(captcha_verified=True),
         )
 
+    await send_subscription_menu(callback, sponsor_user_id)
 
 
 @donate_router.callback_query(F.data.startswith("menu_"))
@@ -295,25 +216,22 @@ async def subscription_checker(
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
+        admin_statistic_service: AdminStatisticService = Provide[
+            Container.admin_statistic_service
+        ],
 ):
-    chat_result = await callback.bot.get_chat_member(
-        chat_id=settings.chat_id, user_id=callback.from_user.id
+    sponsor_user_id = int(callback.data.split("_")[-1])
+    reply_markup = await get_subscriptions_keyboard(
+        bot=bot,
+        user_id=callback.from_user.id,
+        sponsor_user_id=sponsor_user_id,
     )
-    channel_result = await callback.bot.get_chat_member(
-        chat_id=settings.channel_id, user_id=callback.from_user.id
-    )
-
-    not_subscribed_statuses = (ChatMemberStatus.LEFT, ChatMemberStatus.KICKED)
-    if channel_result.status in not_subscribed_statuses or chat_result.status in not_subscribed_statuses:
-        await callback.answer("Ты не подписался ❌", show_alert=True)
-        return
-
-    if not callback.from_user.username:
+    if reply_markup:
+        await delete_message_or_pass(callback.message)
         await callback.message.answer(
-            "Для регистрации добавьте пожалуйста <em>username</em> в свой telegram аккаунт",
-            reply_markup=get_donate_keyboard(
-                buttons={"Попробовать ещё раз": callback.data}
-            )
+            "🔑 Для доступа к основным ресурсам бота, подпишитесь на "
+            "ЧАТ, КАНАЛ и KOD💵DENEG ⚡️ АКТИВАЦИИ ⤵️",
+            reply_markup=reply_markup
         )
         return
 
@@ -325,7 +243,7 @@ async def subscription_checker(
         user_id=current_user.sponsor_user_id
     )
 
-    await callback.message.delete()
+    await delete_message_or_pass(callback.message)
     await callback.message.answer(
         f"👋 Приветствую, {current_user.first_name}!\n\n",
         reply_markup=get_reply_keyboard(current_user)
@@ -341,6 +259,50 @@ async def subscription_checker(
         ,
         reply_markup=get_start_inline_keyboard(),
     )
+
+    if not settings.send_donate_for_registration:
+        await callback.message.answer(
+            f"Я твой куратор — @{sponsor.username}\n\n")
+        return
+
+    if (int(DonateStatus.BRONZE.get_status_donate_value())
+                <= int(sponsor.status.get_status_donate_value())):
+        await telegram_user_service.update(
+            obj_id=sponsor.id,
+            obj_in=dict(
+                donates_sum=(
+                    sponsor.donates_sum + settings.donate_for_registration
+                ),
+                bill_for_activation=(
+                    sponsor.bill_for_activation + settings.donate_for_registration
+                ),
+            ),
+        )
+        admin_statistic = admin_statistic_service.get_statistic()
+        admin_statistic_service.update(
+            donates_sum_for_registration=admin_statistic.donates_sum_for_registration + 1
+        )
+        await telegram_user_service.update(
+            obj_id=current_user.id,
+            obj_in=dict(is_donate_for_registration_sent=True)
+        )
+
+        donate_text = (
+            "🎁 ПРОМО: БОНУС ЗА КАЖДОГО\n\n"
+            "💸 +1$ уже на счёте\n\n"
+            "🔥 Больше первых линий = больше бонусов"
+        )
+        await send_message_or_pass(
+            bot=callback.bot,
+            chat_id=sponsor.user_id,
+            text=donate_text,
+        )
+        await send_message_or_pass(
+            bot=callback.bot,
+            chat_id=settings.donates_channel_id,
+            text=donate_text,
+        )
+
 
 
 @inject
