@@ -260,7 +260,7 @@ async def subscription_checker(
         reply_markup=get_start_inline_keyboard(),
     )
 
-    if not settings.send_donate_for_registration or not current_user.is_donate_for_registration_sent:
+    if not settings.send_donate_for_registration or current_user.is_donate_for_registration_sent:
         return
 
     if (int(DonateStatus.BRONZE.get_status_donate_value())
