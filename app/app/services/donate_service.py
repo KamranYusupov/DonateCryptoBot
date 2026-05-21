@@ -20,7 +20,6 @@ from app.utils.matrix import find_first_level_matrix_id
 from app.utils.sort import get_reversed_dict
 from app.core.config import settings
 from app.utils.matrix import find_free_place_in_matrix, insert_into_matrices
-from app.utils.matrix import get_matrix_telegram_usernames_key
 from app.repositories.matrix import RepositoryAddBotToMatrixTaskModel
 from app.schemas.matrix import AddBotToMatrixTaskEntity
 from app.models.donate import DonateTransactionType
@@ -304,9 +303,7 @@ class DonateService:
                     status=status,
                 )
                 matrix = self._repository_matrix.create(obj_in=matrix_entity)
-                (matrix.matrices,
-                 matrix.matrix_telegram_usernames,
-                 matrix.telegram_users) = {}, {}, []
+                matrix.matrices, matrix.telegram_users = {},  []
                 await self._handle_insertion_to_free_matrix(
                     matrix,
                     current_user,
@@ -433,9 +430,7 @@ class DonateService:
                     status=status,
                 )
                 matrix = self._repository_matrix.create(obj_in=matrix_entity)
-                (matrix.matrices,
-                 matrix.matrix_telegram_usernames,
-                 matrix.telegram_users) = {}, {}, []
+                matrix.matrices, matrix.telegram_users = {}, []
                 await self._handle_insertion_to_free_matrix(
                     matrix,
                     current_user,

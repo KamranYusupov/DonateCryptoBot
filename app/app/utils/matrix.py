@@ -142,10 +142,6 @@ def insert_into_matrices(matrices: dict, path, level, value):
         target_level[value] = {} if level < 4 else []
 
 
-def get_matrix_telegram_usernames_key(matrix: Matrix) -> str:
-    return f"{matrix.owner_id.hex} {matrix.id} {matrix.created_at}"
-
-
 def get_matrix_levels(data, level=1, levels_dict=None):
     def process_matrices_value(value):
         if isinstance(value, str) and value.startswith("none_"):

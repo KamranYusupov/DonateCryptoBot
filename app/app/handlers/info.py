@@ -20,7 +20,6 @@ from app.utils.matrix import get_active_matrices, get_archived_matrices
 from app.models.telegram_user import status_list, status_emoji_list
 from app.db.commit_decorator import commit_and_close_session
 from app.utils.texts import get_my_team_message, get_matrix_info_message
-from app.models.telegram_user import MatrixBuildType
 from app.models.telegram_user import TelegramUser
 
 info_router = Router()
