@@ -22,7 +22,7 @@ from app.models.telegram_user import status_list
 from app.services.matrix_service import MatrixService
 from app.utils.sponsor import get_callback_value
 from app.services.donate_service import DonateService
-from app.models.telegram_user import DonateStatus, MatrixBuildType
+from app.models.telegram_user import DonateStatus
 from app.db.commit_decorator import commit_and_close_session
 from app.keyboards.reply import get_reply_keyboard
 from app.utils.matrix import get_matrices_length

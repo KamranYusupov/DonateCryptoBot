@@ -5,7 +5,6 @@ from typing import List
 import loguru
 from app.models.matrix import Matrix
 from app.models.telegram_user import TelegramUser
-from app.models.telegram_user import MatrixBuildType
 from app.core.config import settings
 from app.models.matrix import Matrix
 

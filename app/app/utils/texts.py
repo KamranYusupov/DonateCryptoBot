@@ -17,7 +17,6 @@ from app.models.telegram_user import TelegramUser
 from app.models.matrix import Matrix
 from app.utils.matrix import find_free_place_in_matrix, get_matrix_levels, get_sorted_matrices, insert_into_matrices
 from app.utils.pagination import Paginator
-from app.models.telegram_user import MatrixBuildType
 from app.core.config import Settings, settings
 from app.models.matrix import Matrix
 from app.core.config import Settings

@@ -4,7 +4,7 @@ from typing import List
 from sqlalchemy import select, delete, update, func
 from sqlalchemy.orm import selectinload
 
-from app.models.telegram_user import TelegramUser, DonateStatus,  MatrixBuildType
+from app.models.telegram_user import TelegramUser, DonateStatus
 from .base import RepositoryBase
 from app.models.donate import Donate, DonateTransaction, DonateTransactionType
 

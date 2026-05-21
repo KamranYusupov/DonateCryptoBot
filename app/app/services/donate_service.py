@@ -10,7 +10,7 @@ from dependency_injector.wiring import inject
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.repositories.matrix import RepositoryMatrix
 from app.repositories.donate import RepositoryDonate
-from app.models.telegram_user import TelegramUser, DonateStatus, MatrixBuildType
+from app.models.telegram_user import TelegramUser, DonateStatus
 from app.models.matrix import Matrix
 from app.services.matrix_service import MatrixService
 from app.services.telegram_user_service import TelegramUserService

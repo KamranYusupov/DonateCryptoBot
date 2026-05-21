@@ -12,7 +12,7 @@ from app.services.donate_confirm_service import DonateConfirmService
 from app.services.telegram_user_service import TelegramUserService
 from app.keyboards.donate import get_donate_keyboard
 from app.loader import bot
-from app.models.telegram_user import DonateStatus, MatrixBuildType
+from app.models.telegram_user import DonateStatus
 from app.core.config import settings
 from app.models.matrix import Matrix
 from app.schemas.telegram_user import generate_random_user

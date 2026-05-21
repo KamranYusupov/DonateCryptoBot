@@ -1,7 +1,7 @@
 import loguru
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 
-from app.models.telegram_user import DonateStatus, MatrixBuildType, TelegramUser
+from app.models.telegram_user import DonateStatus, TelegramUser
 from app.models.telegram_user import status_list, statuses_colors_data
 from app.utils.sort import get_reversed_dict
 

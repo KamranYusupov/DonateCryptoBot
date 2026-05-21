@@ -8,7 +8,6 @@ from app.repositories.donate import RepositoryDonate, RepositoryDonateTransactio
 from app.models.telegram_user import TelegramUser
 from app.schemas.donate import DonateEntity, DonateTransactionEntity
 from app.schemas.telegram_user import TelegramUserEntity
-from app.models.telegram_user import MatrixBuildType
 from app.models.donate import DonateTransactionType
 
 

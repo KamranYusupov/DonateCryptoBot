@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.models.telegram_user import DonateStatus, MatrixBuildType
+from app.models.telegram_user import DonateStatus
 
 
 class MatrixEntity(BaseModel):

@@ -8,8 +8,6 @@ from app.models.telegram_user import TelegramUser, DonateStatus
 from .base import RepositoryBase
 from app.models.matrix import Matrix, AddBotToMatrixTaskModel
 
-from ..models.telegram_user import MatrixBuildType
-
 
 class RepositoryMatrix(RepositoryBase[Matrix]):
     """Репозиторий матрицы"""

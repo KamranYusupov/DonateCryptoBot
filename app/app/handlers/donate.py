@@ -25,7 +25,6 @@ from app.services.donate_service import DonateService
 from app.schemas.telegram_user import TelegramUserEntity
 from app.keyboards.donate import get_donate_keyboard
 from app.utils.sponsor import get_callback_value
-from app.models.telegram_user import DonateStatus, MatrixBuildType
 from app.core.config import settings
 from app.services.matrix_service import MatrixService
 from app.schemas.matrix import MatrixEntity

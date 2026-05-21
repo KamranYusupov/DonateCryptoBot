@@ -18,7 +18,6 @@ from app.utils.matrix import (
 )
 from app.utils.sort import get_sorted_objects_by_ids
 from app.utils.matrix import find_first_level_matrix_id
-from app.models.telegram_user import MatrixBuildType
 from app.schemas.telegram_user import generate_random_user
 
 

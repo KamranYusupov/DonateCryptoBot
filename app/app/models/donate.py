@@ -17,7 +17,6 @@ from sqlalchemy.orm import relationship
 
 from app.db.base import Base
 from app.models.mixins import TimestampedMixin, UUIDMixin, AbstractTelegramUser
-from app.models.telegram_user import MatrixBuildType
 
 
 class Donate(UUIDMixin, TimestampedMixin, Base):

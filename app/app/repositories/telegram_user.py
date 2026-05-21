@@ -4,7 +4,7 @@ from sqlalchemy import select, text, func
 from sqlalchemy.orm import joinedload, aliased
 
 from .base import RepositoryBase
-from app.models.telegram_user import TelegramUser, MatrixBuildType, DonateStatus
+from app.models.telegram_user import TelegramUser, DonateStatus
 from app.schemas.telegram_user import BillType
 
 

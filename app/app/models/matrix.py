@@ -9,7 +9,7 @@ from sqlalchemy_json import mutable_json_type
 
 from .mixins import UUIDMixin, TimestampedMixin
 from app.db.base import Base
-from app.models.telegram_user import DonateStatus, MatrixBuildType
+from app.models.telegram_user import DonateStatus
 
 
 class Matrix(UUIDMixin, TimestampedMixin, Base):

@@ -18,11 +18,6 @@ from app.db.base import Base
 from app.models.mixins import TimestampedMixin, UUIDMixin, AbstractTelegramUser
 
 
-class MatrixBuildType(enum.Enum):
-    BINARY = "Бинар"
-    TRINARY = "Тринар"
-
-
 class DonateStatus(enum.Enum):
     NOT_ACTIVE = "не активирован"
     TEST = "Тест"

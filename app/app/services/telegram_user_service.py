@@ -5,7 +5,6 @@ from app.repositories.telegram_user import RepositoryTelegramUser
 from app.models.telegram_user import TelegramUser
 from app.schemas.telegram_user import TelegramUserEntity
 from app.models.matrix import Matrix
-from app.models.telegram_user import MatrixBuildType
 from app.schemas.telegram_user import BillType
 
 
