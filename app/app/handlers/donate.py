@@ -107,7 +107,7 @@ async def captcha_handler(
     )
 
     await send_captcha(
-        callback=callback,
+        message=callback.message,
         state=state,
         sponsor_user_id=sponsor_user_id,
     )
@@ -161,7 +161,7 @@ async def register_handler(
 
     if captcha_expires_at <= now:
         await send_captcha(
-            callback=callback,
+            message=callback.message,
             state=state,
             sponsor_user_id=sponsor_user_id,
             attempt=attempt,
@@ -188,7 +188,7 @@ async def register_handler(
         return
     elif option != answer:
         await send_captcha(
-            callback=callback,
+            message=callback.message,
             state=state,
             sponsor_user_id=sponsor_user_id,
             attempt=attempt + 1,

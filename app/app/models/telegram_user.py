@@ -49,7 +49,7 @@ class DonateStatus(enum.Enum):
             self,
     ) -> int:
         """Получение суммы доната"""
-        return self.get_donations_data().get(self)
+        return self.get_donations_data().get(self, 0)
 
     @classmethod
     def get_status_list(cls) -> list:

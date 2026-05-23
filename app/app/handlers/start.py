@@ -28,7 +28,7 @@ from app.keyboards.reply import get_reply_keyboard
 from app.utils.matrix import get_matrices_length
 from app.services.donate_confirm_service import DonateConfirmService
 from app.keyboards.donate import get_start_inline_keyboard
-from app.utils.bot import get_schema_from_user
+from app.utils.bot import get_schema_from_user, send_captcha
 from app.states.captcha import CaptchaState
 
 start_router = Router()
@@ -39,6 +39,7 @@ start_router = Router()
 async def command_start(
         message: Message,
         command: CommandObject,
+        state: FSMContext,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -64,14 +65,16 @@ async def command_start(
                 sizes=(2, 1),
             ),
         )
+        return
 
     if not current_user.captcha_verified:
         await send_captcha(
-            callback=callback,
+            message=message,
             state=state,
             sponsor_user_id=sponsor_user_id,
         )
         await state.set_state(CaptchaState.option)
+        return
 
     if current_user and current_user.captcha_verified:
         await message.answer(
