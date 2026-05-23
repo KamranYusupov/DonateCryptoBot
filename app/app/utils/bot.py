@@ -11,7 +11,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     Message,
     InlineKeyboardMarkup,
-    InlineKeyboardButton, User, CallbackQuery
+    InlineKeyboardButton,
+    User,
+    CallbackQuery
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -21,9 +23,7 @@ from app.models.donate import DonateTransactionType
 from app.models.telegram_user import DonateStatus, status_emoji_list, statuses_colors_data
 from app.schemas.telegram_user import TelegramUserEntity
 from app.keyboards.inline import links_buttons
-
 from app.utils.captcha import generate_math_captcha
-
 from app.keyboards.donate import get_donate_keyboard
 
 
@@ -374,7 +374,7 @@ async def send_subscription_menu(
     )
 
 async def send_captcha(
-        callback: CallbackQuery,
+        message: Message,
         state: FSMContext,
         sponsor_user_id: int,
         attempt: int = 1,
@@ -392,14 +392,14 @@ async def send_captcha(
 
     sizes = (min(len(options), 3),) * math.ceil(len(options) / 3)
 
-    await delete_message_or_pass(callback.message)
+    await delete_message_or_pass(message)
 
     message_text = f"<b>{text}</b>"
 
     if exception_text:
         message_text = f"{exception_text}\n\n{message_text}"
 
-    await callback.message.answer(
+    await message.answer(
         message_text,
         reply_markup=get_donate_keyboard(
             buttons=buttons,
