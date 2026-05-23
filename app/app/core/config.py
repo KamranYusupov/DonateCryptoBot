@@ -63,6 +63,13 @@ class Settings(BaseSettings):
     postgres_port: int = Field(title="Порт ДБ", default="5432")
     postgres_db: str = Field(title="Название БД")
     database_url: PostgresDsn | None = Field(title="Ссылка БД", default=None)
+    metadata_naming_convention: dict = {
+        "ix": "ix_%(column_0_label)s",
+        "uq": "uq_%(table_name)s_%(column_0_name)s",
+        "ck": "ck_%(table_name)s_%(constraint_name)s",
+        "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+        "pk": "pk_%(table_name)s"
+    }
     # endregion
 
     # region Настройки CryptoBot
