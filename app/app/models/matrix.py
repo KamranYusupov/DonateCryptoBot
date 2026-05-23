@@ -122,6 +122,10 @@ class MatrixNode(UUIDMixin, TimestampedMixin, Base):
         BigInteger,
         default=0,
     )
+    downline_count = Column(
+        BigInteger,
+        default=0,
+    )
     is_full = Column(
         Boolean,
         default=False,
