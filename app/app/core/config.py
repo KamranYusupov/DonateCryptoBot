@@ -87,13 +87,24 @@ class Settings(BaseSettings):
     matrix_donate_percent: int = Field(title="Процент доната для матрицы", default=10)
     # endregion
 
-    # region Настройки длины бинарной матрицы в 4ой степени (2⁴)
+    # region Настройки длины бинарной матрицы с 4 уровнями глубины
     level_length: int = Field(title="Длина первого уровня матрицы", default=2)
     second_level_length: int = Field(title="Длина второго уровня матрицы", default=4)
     third_level_length: int = Field(title="Длина третьего уровня матрицы", default=8)
     fourth_level_length: int = Field(title="Длина четвертого уровня матрицы", default=16)
     matrix_max_length: int = Field(title="Максимальная длина матрицы", default=30)
     matrix_max_level: int = Field(title="Максимальный уровень матрицы", default=4)
+
+    # region Настройки длины бинарной матрицы с 13 уровнями глубины
+    triumph_matrix_max_level: int = Field(default=13)
+    triumph_matrix_max_length: int = Field(
+        title="Максимальная длина матрицы триумф",
+        default=16382,
+    )
+    triumph_matrix_donate_amount: int = Field(
+        title="Сумма доната по матрице Триумф",
+        default=20,
+    )
     # endregion
 
     # region Настройки Telegram server

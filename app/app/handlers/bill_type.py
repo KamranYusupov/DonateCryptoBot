@@ -6,6 +6,7 @@ from dependency_injector.wiring import Provide, inject
 from app.keyboards.donate import get_donate_keyboard
 from app.schemas.telegram_user import BillType
 from app.core.container import Container
+from app.services.donate_confirm_service import DonateConfirmService
 from app.services.telegram_user_service import TelegramUserService
 from app.models.telegram_user import status_list
 from app.services.donate_service import DonateService
@@ -22,7 +23,9 @@ async def bill_type_handler(
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
-        donate_service: DonateService = Provide[Container.donate_service],
+        donate_confirm_service: DonateConfirmService = Provide[
+            Container.donate_confirm_service
+        ],
 ) -> None:
     async def send_bill_type_choice(add_back_button: bool = True):
         current_user = await telegram_user_service.get_telegram_user(
@@ -57,7 +60,7 @@ async def bill_type_handler(
 
     if callback.data.startswith("confirm_donate_"):
         donate_sum = float(callback_data[-1])
-        status = donate_service.get_donate_status(donate_sum)
+        status = donate_confirm_service.get_donate_status(donate_sum)
         callback_data = "send_" + "_".join(callback_data[1:])
 
     elif callback.data.startswith("start_transfer"):

@@ -1,12 +1,12 @@
 import uuid
+from typing import Optional, Sequence, List
 
 import loguru
-from sqlalchemy import select, cast, func, BigInteger, any_, update
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import select, func, update
 
 from app.models.telegram_user import TelegramUser, DonateStatus
 from .base import RepositoryBase
-from app.models.matrix import Matrix, AddBotToMatrixTaskModel
+from app.models.matrix import Matrix, AddBotToMatrixTaskModel, MatrixNode
 
 
 class RepositoryMatrix(RepositoryBase[Matrix]):
@@ -87,6 +87,78 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
         mapping = {str(row.id): row.owner_id for row in rows}
 
         return [mapping[str(i)] for i in matrices_ids]
+
+
+class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
+
+    def get(
+            self,
+            *args,
+            status: Optional[DonateStatus] = None,
+            **kwargs
+    ):
+        if not status:
+            return super().get(*args, **kwargs)
+
+        statement = (
+            select(MatrixNode)
+            .where(*args)
+            .filter_by(**kwargs)
+            .join(Matrix, onclause=MatrixNode.matrix)
+            .where(Matrix.status == status)
+            .limit(1)
+        )
+        result = self._session.execute(statement)
+        return result.scalars().first()
+
+
+    def get_available_node(
+            self,
+            matrix_id: uuid.UUID,
+            position: int,
+            level: int,
+            max_level: int,
+    ):
+        power_calc = func.power(2, MatrixNode.level - level)
+        statement = (
+            select(MatrixNode)
+            .where(
+                MatrixNode.children_count < 2,
+                MatrixNode.matrix_id == matrix_id,
+                MatrixNode.level > level,
+                MatrixNode.level <= level + max_level,
+                MatrixNode.position >= position * power_calc,
+                MatrixNode.position < (position + 1) * power_calc,
+            )
+            .order_by(
+                MatrixNode.level,
+                MatrixNode.position,
+            )
+            .with_for_update(skip_locked=True)
+            .limit(1)
+        )
+
+        result = self._session.execute(statement)
+        return result.scalars().first()
+
+    def get_nodes_by_positions(
+            self,
+            *args,
+            positions: Sequence[int],
+            **kwargs
+    ) -> List[MatrixNode]:
+        statement = (
+            select(MatrixNode)
+            .where(
+                *args,
+                MatrixNode.position.in_(positions),
+            )
+            .filter_by(**kwargs)
+
+        )
+
+        result = self._session.execute(statement)
+        return result.scalars().all()
 
 
 class RepositoryAddBotToMatrixTaskModel(RepositoryBase[AddBotToMatrixTaskModel]):

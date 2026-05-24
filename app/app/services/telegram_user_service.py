@@ -1,9 +1,9 @@
 import uuid
-from typing import Tuple, Any, List
+from typing import Tuple, Any, List, Optional
 
 from app.repositories.telegram_user import RepositoryTelegramUser
-from app.models.telegram_user import TelegramUser
-from app.schemas.telegram_user import TelegramUserEntity
+from app.models.telegram_user import TelegramUser, DonateStatus
+from app.schemas.telegram_user import TelegramUserEntity, generate_random_user
 from app.models.matrix import Matrix
 from app.schemas.telegram_user import BillType
 
@@ -28,9 +28,6 @@ class TelegramUserService:
     async def get_telegram_user(self, **kwargs) -> TelegramUser:
         return self._repository_telegram_user.get(**kwargs)
 
-    async def get_sponsors_chain(self, user_id):
-        return self._repository_telegram_user.get_sponsors_chain(user_id)
-
     async def exists(self, **kwargs) -> TelegramUser:
         return self._repository_telegram_user.exists(**kwargs)
 
@@ -49,6 +46,34 @@ class TelegramUserService:
             user.sponsor_user_id = sponsor.user_id
             sponsor.invites_count += 1 if not user.is_bot else 0
         return self._repository_telegram_user.create(obj_in=user.model_dump())
+
+
+    async def create_bot_user(
+            self,
+            status: DonateStatus,
+            depth_level: int = 0,
+            sponsor_user_id: Optional[int] = None,
+    ) -> TelegramUser:
+        bot_user = None
+        bot_user_schema = generate_random_user()
+        bot_user_schema.status = status
+
+        while not bot_user:
+            try:
+                bot_user = await self.create_telegram_user(
+                    user=bot_user_schema,
+                )
+            except Exception:
+                bot_user_schema = generate_random_user()
+                bot_user_schema.sponsor_user_id = sponsor_user_id
+                bot_user_schema.depth_level = depth_level
+                bot_user_schema.is_bot = True
+                continue
+
+            if bot_user:
+                break
+
+        return bot_user
 
     async def get_telegram_user_with_sponsors(
         self, user_id: int
@@ -126,3 +151,4 @@ class TelegramUserService:
                 **kwargs,
             )
         )
+

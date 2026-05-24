@@ -1,24 +1,14 @@
 import datetime
 import uuid
-from typing import Tuple, Any
+from typing import Tuple, Any, Optional
 
 import loguru
 
-from app.models.telegram_user import DonateStatus, status_list
+from app.models.telegram_user import DonateStatus
 from app.repositories.matrix import RepositoryMatrix, RepositoryAddBotToMatrixTaskModel
 from app.models import Matrix, AddBotToMatrixTaskModel
-from app.schemas.matrix import MatrixEntity, AddBotToMatrixTaskEntity
-from app.utils.matrix import get_sorted_matrices
-from app.utils.pagination import Paginator
-from app.models.telegram_user import TelegramUser
+from app.schemas.matrix import MatrixEntity, AddBotToMatrixTaskSchema
 from app.repositories.telegram_user import RepositoryTelegramUser
-from app.utils.matrix import (
-    get_matrices_length,
-    get_matrices_list,
-)
-from app.utils.sort import get_sorted_objects_by_ids
-from app.utils.matrix import find_first_level_matrix_id
-from app.schemas.telegram_user import generate_random_user
 
 
 class MatrixService:
@@ -85,13 +75,16 @@ class AddBotToMatrixTaskModelService:
     ) -> None:
         self._repository_add_bot_to_matrix_task = repository_add_bot_to_matrix_task
 
-    async def get_list(self, *args, **kwargs) -> list[Matrix]:
+    async def get_list(self, *args, **kwargs) -> list[AddBotToMatrixTaskModel]:
         return self._repository_add_bot_to_matrix_task.list(*args, **kwargs)
 
     async def get_task(self, **kwargs) -> Matrix:
         return self._repository_add_bot_to_matrix_task.get(**kwargs)
 
-    async def create_task(self, add_bot_to_matrix_task_model: AddBotToMatrixTaskEntity) -> Matrix:
+    async def create_task(
+            self,
+            add_bot_to_matrix_task_model: AddBotToMatrixTaskSchema
+    ) -> AddBotToMatrixTaskModel:
         return self._repository_add_bot_to_matrix_task.create(
             obj_in=add_bot_to_matrix_task_model.model_dump()
         )

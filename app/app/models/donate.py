@@ -77,6 +77,11 @@ class DonateTransaction(UUIDMixin, TimestampedMixin, Base):
         default=0,
     )
     type_ = Column(Enum(DonateTransactionType, name="donate_transaction_enum"))
+    sponsor_depth = Column(
+        Integer,
+        default=None,
+        server_default=None,
+    )
 
     donate = relationship(
         "Donate",

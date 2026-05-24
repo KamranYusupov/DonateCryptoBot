@@ -12,6 +12,8 @@ from sqlalchemy import (
     BigInteger,
     Index,
     text,
+    UniqueConstraint,
+    func,
 
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -28,7 +30,17 @@ class MatrixEngineType(enum.Enum):
     JSON = "legacy_json"
     NODES = "nodes"
 
-class Matrix(UUIDMixin, TimestampedMixin, Base):
+
+class MatrixEngineTypeMixin:
+    engine_type = Column(
+        Enum(MatrixEngineType),
+        nullable=False,
+        default=MatrixEngineType.JSON,
+        server_default=text("'JSON'"),
+        index=True,
+    )
+
+class Matrix(Base, UUIDMixin, TimestampedMixin, MatrixEngineTypeMixin):
     __tablename__ = "matrices"
 
     owner_id = Column(
@@ -85,27 +97,15 @@ class Matrix(UUIDMixin, TimestampedMixin, Base):
 class MatrixNode(UUIDMixin, TimestampedMixin, Base):
     __tablename__ = "matrix_nodes"
 
-    id = Column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-    )
-
     matrix_id = Column(
         UUID(as_uuid=True),
         ForeignKey("matrices.id", ondelete="CASCADE"),
         nullable=False,
     )
-    telegram_user_id = Column(
+    owner_id = Column(
         UUID(as_uuid=True),
         ForeignKey("telegram_users.id"),
         nullable=False,
-    )
-    parent_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("matrix_nodes.id", ondelete="CASCADE"),
-        nullable=True,
-        index=True,
     )
 
     level = Column(
@@ -126,10 +126,9 @@ class MatrixNode(UUIDMixin, TimestampedMixin, Base):
         BigInteger,
         default=0,
     )
-    is_full = Column(
-        Boolean,
-        default=False,
-        index=True,
+    last_activation = Column(
+        DateTime,
+        default=func.now(),
     )
 
     matrix = relationship(
@@ -137,33 +136,32 @@ class MatrixNode(UUIDMixin, TimestampedMixin, Base):
         foreign_keys=[matrix_id],
         back_populates="nodes",
     )
-    parent = relationship(
-        "MatrixNode",
-        remote_side=[id],
-        backref="children",
-        foreign_keys=[parent_id],
-    )
-    telegram_user = relationship(
+    owner = relationship(
         "TelegramUser",
-        foreign_keys=[telegram_user_id],
+        foreign_keys=[owner_id],
     )
 
     __table_args__ = (
-        Index("idx_matrix_free", matrix_id, is_full, level, position),
-        Index("idx_user_matrix", telegram_user_id, matrix_id),
+        Index("idx_matrix_free", matrix_id, children_count, level, position),
+        Index("idx_user_matrix", owner_id, matrix_id),
+        UniqueConstraint("matrix_id", "position",),
     )
 
 
-class AddBotToMatrixTaskModel(UUIDMixin, TimestampedMixin, Base):
+class AddBotToMatrixTaskModel(
+    Base,
+    UUIDMixin,
+    MatrixEngineTypeMixin,
+    TimestampedMixin,
+):
     __tablename__ = "add_to_matrix_tasks"
 
     execute_at = Column(DateTime, index=True)
     is_executed = Column(Boolean, default=False, index=True)
 
     donate_sum = Column(Integer)
-    matrix_id = Column(
+    obj_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("matrices.id"),
         index=True,
     )
 

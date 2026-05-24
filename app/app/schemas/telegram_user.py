@@ -4,6 +4,7 @@ import uuid
 
 from pydantic import BaseModel, Field
 
+from app.core.config import settings
 from app.models.telegram_user import DonateStatus
 
 

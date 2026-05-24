@@ -6,7 +6,10 @@ from app.repositories.donate import RepositoryDonate, RepositoryDonateTransactio
 
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.repositories.admin_user import RepositoryAdminUser
-from app.repositories.matrix import RepositoryMatrix
+from app.repositories.matrix import (
+    RepositoryMatrix,
+    RepositoryMatrixNode,
+)
 from app.repositories.transaction import RepositoryTransaction
 from app.repositories.withdrawal_request import RepositoryWithdrawalRequest
 from app.repositories.contest import RepositorySponsorsContest, RepositorySponsorsContestPoint
@@ -16,7 +19,7 @@ from app.repositories.statistic import RepositoryAdminStatistic
 from app.models.telegram_user import TelegramUser
 from app.models.admin_user import AdminUser
 from app.models.donate import Donate, DonateTransaction
-from app.models.matrix import Matrix
+from app.models.matrix import Matrix, MatrixNode
 from app.models.transaction import Transaction
 from app.models.withdrawal_request import WithdrawalRequest
 from app.models.contest import SponsorsContest, SponsorsContestPoint
@@ -35,6 +38,7 @@ from app.services.matrix_service import AddBotToMatrixTaskModelService
 from app.services.sponsors_contest_service import SponsorsContestService
 from app.services.transfer_service import TransferService
 from app.services.statistic_service import AdminStatisticService
+from app.services.matrix_node_service import MatrixNodeService
 
 
 class Container(containers.DeclarativeContainer):
@@ -79,8 +83,8 @@ class Container(containers.DeclarativeContainer):
     repository_matrix = providers.Factory(
         RepositoryMatrix, model=Matrix, session=session
     )
-    repository_wallet_recharge = providers.Factory(
-        RepositoryTransaction, model=Transaction, session=session
+    repository_matrix_node = providers.Factory(
+        RepositoryMatrixNode, model=MatrixNode, session=session
     )
     repository_donate = providers.Factory(
         RepositoryDonate,
@@ -95,7 +99,7 @@ class Container(containers.DeclarativeContainer):
     repository_withdrawal_request = providers.Factory(
         RepositoryWithdrawalRequest, model=WithdrawalRequest, session=session
     )
-    repository_add_bot_to_matrix_task = providers.Factory(
+    repository_matrix_task = providers.Factory(
         RepositoryAddBotToMatrixTaskModel, model=AddBotToMatrixTaskModel, session=session
     )
     repository_sponsors_contest = providers.Factory(
@@ -121,18 +125,26 @@ class Container(containers.DeclarativeContainer):
         repository_matrix=repository_matrix,
         repository_telegram_user=repository_telegram_user,
     )
+    matrix_node_service = providers.Factory(
+        MatrixNodeService,
+        repository_matrix_node=repository_matrix_node,
+        repository_matrix=repository_matrix,
+        repository_telegram_user=repository_telegram_user,
+        repository_matrix_task=repository_matrix_task,
+    )
     donate_service = providers.Factory(
         DonateService,
         repository_telegram_user=repository_telegram_user,
         repository_matrix=repository_matrix,
         repository_donate=repository_donate,
-        repository_add_bot_to_matrix_task_model=repository_add_bot_to_matrix_task,
+        repository_matrix_task=repository_matrix_task,
     )
     donate_confirm_service = providers.Factory(
         DonateConfirmService,
         repository_donate=repository_donate,
         repository_donate_transaction=repository_donate_transaction,
         repository_telegram_user=repository_telegram_user,
+        repository_admin_statistic=repository_admin_statistic,
     )
     crypto_bot_api_service = providers.Factory(
         CryptoBotAPIService,
@@ -145,7 +157,7 @@ class Container(containers.DeclarativeContainer):
     )
     add_bot_to_matrix_task_service = providers.Factory(
         AddBotToMatrixTaskModelService,
-        repository_add_bot_to_matrix_task=repository_add_bot_to_matrix_task,
+        repository_add_bot_to_matrix_task=repository_matrix_task,
     )
     sponsors_contests_service = providers.Factory(
         SponsorsContestService,

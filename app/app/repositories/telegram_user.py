@@ -1,4 +1,5 @@
 from uuid import UUID
+from typing import Optional
 
 from sqlalchemy import select, text, func
 from sqlalchemy.orm import joinedload, aliased
@@ -122,28 +123,9 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
             **kwargs)
 
 
-
-    def get_sponsors_chain(self, user_id):
-        recursive_query = text(
-            """
-            WITH RECURSIVE sponsor_chain AS (
-            SELECT user_id, sponsor_user_id, username, first_name FROM telegram_users WHERE user_id = :user_id
-            UNION
-            SELECT tu.user_id, tu.sponsor_user_id, tu.username, tu.first_name FROM telegram_users tu 
-            JOIN sponsor_chain sc ON tu.user_id = sc.sponsor_user_id
-            )
-            SELECT sponsor_chain.user_id AS sponsor_user_id, sponsor_chain.sponsor_user_id AS sponsor_of_sponsor_user_id,
-            sponsor_chain.username AS sponsor_username, sponsor_chain.first_name AS sponsor_first_name
-            FROM sponsor_chain;
-            """
-        )
-
-        result = self._session.execute(recursive_query, {"user_id": user_id})
-        return result.fetchall()
-
-    def get_telegram_users_by_user_ids_list(
+    def get_telegram_users_by_ids(
             self,
-            telegram_users_ids: list[TelegramUser.user_id]
+            telegram_users_ids: list[UUID]
     ) -> list[TelegramUser]:
         statement = select(TelegramUser).filter(
             TelegramUser.id.in_(telegram_users_ids)

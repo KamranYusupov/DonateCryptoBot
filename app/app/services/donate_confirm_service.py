@@ -3,11 +3,16 @@ import uuid
 from typing import Tuple, Any, Optional, List
 
 import loguru
+
+from app.repositories.statistic import RepositoryAdminStatistic
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.repositories.donate import RepositoryDonate, RepositoryDonateTransaction
-from app.models.telegram_user import TelegramUser
-from app.schemas.donate import DonateEntity, DonateTransactionEntity
-from app.schemas.telegram_user import TelegramUserEntity
+from app.models.telegram_user import TelegramUser, DonateStatus
+from app.schemas.donate import (
+    DonateEntity,
+    CreateDonateTransactionSchema,
+    DonateTransactionSchema,
+)
 from app.models.donate import DonateTransactionType
 
 
@@ -18,10 +23,34 @@ class DonateConfirmService:
         repository_donate: RepositoryDonate,
         repository_donate_transaction: RepositoryDonateTransaction,
         repository_telegram_user: RepositoryTelegramUser,
+        repository_admin_statistic: RepositoryAdminStatistic,
+
     ):
         self._repository_donate = repository_donate
         self._repository_donate_transaction = repository_donate_transaction
         self._repository_telegram_user = repository_telegram_user
+        self._repository_admin_statistic = repository_admin_statistic
+
+    @staticmethod
+    def get_donate_status(
+            donate_sum: int,
+    ) -> DonateStatus | None:
+        if donate_sum == 10:
+            return DonateStatus.TEST
+        elif donate_sum == 25:
+            return DonateStatus.BASE
+        elif donate_sum == 50:
+            return DonateStatus.BRONZE
+        elif donate_sum == 100:
+            return DonateStatus.SILVER
+        elif donate_sum == 250:
+            return DonateStatus.GOLD
+        elif donate_sum == 500:
+            return DonateStatus.PLATINUM
+        elif donate_sum == 1000:
+            return DonateStatus.BRILLIANT
+
+        return None
 
     async def create_donate(
         self,
@@ -59,7 +88,7 @@ class DonateConfirmService:
             if sponsor.is_banned:
                 sponsor = self._repository_telegram_user.get(is_admin=True)
 
-            donate_transaction_dict_obj = DonateTransactionEntity(
+            donate_transaction_dict_obj = CreateDonateTransactionSchema(
                 sponsor_id=sponsor.id,
                 donate_id=donate_id,
                 quantity=transaction_data["quantity"],
@@ -109,30 +138,52 @@ class DonateConfirmService:
     async def get_donate_transactions_by_donate_id(
             self,
             donate_id: uuid.UUID,
-            return_data: bool = False,
-    ):
+            return_schemas: bool = False,
+    ) -> List[DonateTransactionSchema]:
         transactions = self._repository_donate_transaction.list(
             donate_id=donate_id,
         )
 
-        if not return_data:
+        if not return_schemas:
             return transactions
 
         if not transactions:
             return []
 
         return [
-            {
-                "id": transaction.id,
-                "sponsor_id": transaction.sponsor_id,
-                "donate_id": transaction.donate_id,
-                "quantity": transaction.quantity,
-                "type_": transaction.type_,
-                "created_at": transaction.created_at,
-                "updated_at": transaction.updated_at,
-            }
+            DonateTransactionSchema.model_validate(transaction)
             for transaction in transactions
         ]
+
+    async def update_bills_by_donate_id(self, donate_id: uuid.UUID):
+        transactions = self._repository_donate_transaction.list(
+            donate_id=donate_id,
+        )
+        system_bill_donate = 0
+        for transaction in transactions:
+            if transaction.type_ == DonateTransactionType.SYSTEM:
+                system_bill_donate += transaction.quantity
+                continue
+
+            sponsor = self._repository_telegram_user.get(
+                id=transaction.sponsor_id
+            )
+            self._repository_telegram_user.update(
+                obj_id=sponsor.id,
+                obj_in={
+                    "donates_sum": sponsor.donates_sum + transaction.quantity,
+                    "bill_for_withdraw": sponsor.bill_for_withdraw + transaction.quantity,
+                },
+            )
+
+        if system_bill_donate:
+            admin_statistic = self._repository_admin_statistic.get()
+            updated_system_bill = admin_statistic.system_bill + system_bill_donate
+            self._repository_admin_statistic.update(
+                obj_id=admin_statistic.id,
+                obj_in={"system_bill": updated_system_bill},
+            )
+
 
     async def get_all_donates_and_transactions(
             self,

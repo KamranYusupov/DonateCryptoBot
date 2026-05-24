@@ -11,7 +11,7 @@ from app.repositories.telegram_user import RepositoryTelegramUser
 from app.repositories.matrix import RepositoryMatrix
 from app.repositories.donate import RepositoryDonate
 from app.models.telegram_user import TelegramUser, DonateStatus
-from app.models.matrix import Matrix
+from app.models.matrix import Matrix, MatrixNode, MatrixEngineType
 from app.services.matrix_service import MatrixService
 from app.services.telegram_user_service import TelegramUserService
 from app.schemas.matrix import MatrixEntity
@@ -21,7 +21,7 @@ from app.utils.sort import get_reversed_dict
 from app.core.config import settings
 from app.utils.matrix import find_free_place_in_matrix, insert_into_matrices
 from app.repositories.matrix import RepositoryAddBotToMatrixTaskModel
-from app.schemas.matrix import AddBotToMatrixTaskEntity
+from app.schemas.matrix import AddBotToMatrixTaskSchema
 from app.models.donate import DonateTransactionType
 
 
@@ -31,33 +31,13 @@ class DonateService:
             repository_telegram_user: RepositoryTelegramUser,
             repository_matrix: RepositoryMatrix,
             repository_donate: RepositoryDonate,
-            repository_add_bot_to_matrix_task_model: RepositoryAddBotToMatrixTaskModel,
+            repository_matrix_task: RepositoryAddBotToMatrixTaskModel,
     ) -> None:
         self._repository_telegram_user = repository_telegram_user
         self._repository_matrix = repository_matrix
         self._repository_donate = repository_donate
-        self._repository_add_bot_to_matrix_task_model = repository_add_bot_to_matrix_task_model
+        self._repository_matrix_task = repository_matrix_task
 
-    @staticmethod
-    def get_donate_status(
-            donate_sum: int,
-    ) -> DonateStatus | None:
-        if donate_sum == 10:
-            return DonateStatus.TEST
-        elif donate_sum == 25:
-            return DonateStatus.BASE
-        elif donate_sum == 50:
-            return DonateStatus.BRONZE
-        elif donate_sum == 100:
-            return DonateStatus.SILVER
-        elif donate_sum == 250:
-            return DonateStatus.GOLD
-        elif donate_sum == 500:
-            return DonateStatus.PLATINUM
-        elif donate_sum == 1000:
-            return DonateStatus.BRILLIANT
-
-        return None
 
     @staticmethod
     def get_sponsor_depth(transaction_quantity: float | int, donate_quantity: int) -> int | None:
@@ -75,7 +55,6 @@ class DonateService:
 
     @staticmethod
     def _extend_donations_data(data: dict, sponsor: TelegramUser, donate: int | float):
-        loguru.logger.info(str(donate))
         if data.get(sponsor):
             data[sponsor] += donate
         else:
@@ -101,14 +80,15 @@ class DonateService:
 
         return parents
 
-    async def _update_donate_data_with_sponsors(
-            self,
+
+    @staticmethod
+    async def update_donate_data_with_sponsors(
             first_sponsor: Optional[TelegramUser],
             second_sponsor: Optional[TelegramUser],
             third_sponsor: Optional[TelegramUser],
             donate_sum: int | float,
-            donations_data: list,
     ) -> list[dict[str, Any]]:
+        donations_data = []
         sponsor_donate_percents = (
             (first_sponsor, settings.first_sponsor_donate_percent,),
             (second_sponsor, settings.second_sponsor_donate_percent,),
@@ -127,6 +107,46 @@ class DonateService:
                     "quantity": donate_sum * percent / 100,
                     "type_": DonateTransactionType.SPONSOR,
                  })
+
+        return donations_data
+
+    async def update_donate_data_with_nodes(
+            self,
+            nodes: list[MatrixNode],
+            donate_sum: int | float,
+            transaction_quantity: int | float,
+            is_bot: bool,
+    ) -> list[dict[str, Any]]:
+        owner_ids_node_map = {node.owner_id: node for node in nodes}
+        receivers = self._repository_telegram_user.get_active_users_by_ids(
+            ids=list(owner_ids_node_map.keys()),
+            is_bot=False,
+        )
+        donations_data = [
+            {
+                "receiver": receiver,
+                "receiver_chat_id": receiver.user_id,
+                "quantity": transaction_quantity,
+                "type_": DonateTransactionType.MATRIX,
+                "matrix_length": owner_ids_node_map[receiver.id].downline_count
+            }
+            for receiver in receivers
+        ]
+
+        if is_bot:
+            return donations_data
+
+        transactions_sum = len(donations_data) * transaction_quantity
+        donate_reminder = donate_sum - transactions_sum
+
+        if donate_reminder:
+            admin_user = self._repository_telegram_user.get(is_admin=True)
+            donations_data.append({
+                "receiver": admin_user,
+                "receiver_chat_id": admin_user.user_id,
+                "quantity": donate_reminder,
+                "type_": DonateTransactionType.SYSTEM,
+            })
 
         return donations_data
 
@@ -156,26 +176,22 @@ class DonateService:
             is_bot=False,
         )
 
-        for receiver in donate_receivers:
-            if receiver.status == DonateStatus.NOT_ACTIVE:
-                continue
-
-            receiver_matrix = path_matrices_ids_map[receiver.id]
-
-            donations_data.append({
+        donations_data.extend([
+            {
                 "receiver": receiver,
                 "receiver_chat_id": receiver.user_id,
                 "quantity": matrix_donate_sum,
                 "type_": DonateTransactionType.MATRIX,
-                "matrix_length": len(receiver_matrix.telegram_users) + 1
-            })
+                "matrix_length": len(path_matrices_ids_map[receiver.id].telegram_users) + 1
+            }
+            for receiver in donate_receivers
+        ])
 
         if is_bot:
             return donations_data
 
-        quantities = [transaction["quantity"] for transaction in donations_data]
-        quantities_sum = sum(quantities)
-        donate_reminder = donate_sum - quantities_sum
+        transactions_sum = len(donations_data) * matrix_donate_sum
+        donate_reminder = donate_sum - transactions_sum
 
         if donate_reminder:
             admin_user = self._repository_telegram_user.get(is_admin=True)
@@ -252,8 +268,8 @@ class DonateService:
 
     async def handle_matrix_activation(
             self,
-            sponsors: Sequence[TelegramUser],
             current_user: TelegramUser,
+            sponsor: TelegramUser,
             donate_sum: int,
             donations_data: list,
             status: DonateStatus,
@@ -271,21 +287,12 @@ class DonateService:
             )
             return found_matrix
 
-        first_sponsor, second_sponsor, third_sponsor = sponsors
-        await self._update_donate_data_with_sponsors(
-            first_sponsor,
-            second_sponsor,
-            third_sponsor,
-            donate_sum,
-            donations_data,
-        )
-
-        first_sponsor_matrices = self._repository_matrix.get_user_matrices(
-            owner_id=first_sponsor.id,
+        sponsor_matrices = self._repository_matrix.get_user_matrices(
+            owner_id=sponsor.id,
             status=status,
         )
 
-        for matrix in first_sponsor_matrices:
+        for matrix in sponsor_matrices:
 
             if len(matrix.telegram_users) < settings.matrix_max_length:
                 await self._handle_insertion_to_free_matrix(
@@ -297,9 +304,9 @@ class DonateService:
                 )
                 return matrix
         else:
-            if first_sponsor.is_admin:
+            if sponsor.is_admin:
                 matrix_entity = MatrixEntity(
-                    owner_id=first_sponsor.id,
+                    owner_id=sponsor.id,
                     status=status,
                 )
                 matrix = self._repository_matrix.create(obj_in=matrix_entity)
@@ -355,29 +362,30 @@ class DonateService:
             parents,
         )
 
-        if start_bot_tasks:
-            now = datetime.now()
-            task_data = dict(
-                matrix_id=created_matrix.id,
-                donate_sum=donate_sum,
-            )
-            self._repository_add_bot_to_matrix_task_model.create(
-                AddBotToMatrixTaskEntity(
-                    execute_at=now + timedelta(
-                        minutes=settings.add_bot_to_matrix_1_countdown_minutes
-                    ),
-                    **task_data,
-                )
-            )
-            self._repository_add_bot_to_matrix_task_model.create(
-                AddBotToMatrixTaskEntity(
-                    execute_at=now + timedelta(
-                        minutes=settings.add_bot_to_matrix_2_countdown_minutes
-                    ),
-                    **task_data,
-                )
-            )
+        if not start_bot_tasks:
+            return
 
+        now = datetime.now()
+        self._repository_matrix_task.create(
+            obj_in=AddBotToMatrixTaskSchema(
+                obj_id=created_matrix.id,
+                donate_sum=donate_sum,
+                engine_type=MatrixEngineType.JSON,
+                execute_at=now + timedelta(
+                    minutes=settings.add_bot_to_matrix_1_countdown_minutes
+                ),
+            ).model_dump()
+        )
+        self._repository_matrix_task.create(
+            obj_in=AddBotToMatrixTaskSchema(
+                obj_id=created_matrix.id,
+                donate_sum=donate_sum,
+                engine_type=MatrixEngineType.JSON,
+                execute_at=now + timedelta(
+                    minutes=settings.add_bot_to_matrix_2_countdown_minutes
+                ),
+            ).model_dump()
+        )
 
     async def _find_free_matrix(
             self,

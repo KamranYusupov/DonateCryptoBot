@@ -13,6 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.sql import func
 
 from app.core.container import Container
+from app.services.matrix_node_service import MatrixNodeService
 from app.services.telegram_user_service import TelegramUserService
 from app.schemas.telegram_user import TelegramUserEntity, generate_random_user
 from app.schemas.matrix import MatrixEntity
@@ -143,6 +144,9 @@ async def admin(
             Container.telegram_user_service
         ],
         matrix_service: MatrixService = Provide[Container.matrix_service],
+        matrix_node_service: MatrixNodeService = Provide[
+            Container.matrix_node_service
+        ],
 ):
     """Создание системного аккаунта для тестов"""
     admin_user = await telegram_user_service.get_telegram_user(is_admin=True)
@@ -160,6 +164,12 @@ async def admin(
 
     for status in status_list:
         matrix_dict = {"owner_id": admin_user.id, "status": status}
+
+        if status == DonateStatus.BRILLIANT:
+            matrix_node_service.create_matrix_with_root_node(
+                **matrix_dict
+            )
+            continue
 
 
         await matrix_service.create_matrix(
