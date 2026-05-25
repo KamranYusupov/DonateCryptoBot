@@ -50,13 +50,6 @@ class Matrix(Base, UUIDMixin, TimestampedMixin, MatrixEngineTypeMixin):
         index=True,
     )
     status = Column(Enum(DonateStatus), default=DonateStatus.NOT_ACTIVE, index=True)
-    engine_type = Column(
-        Enum(MatrixEngineType),
-        nullable=False,
-        default=MatrixEngineType.JSON,
-        server_default=text("'JSON'"),
-        index=True,
-    )
     closed_places_count = Column(
         BigInteger,
         default=0,

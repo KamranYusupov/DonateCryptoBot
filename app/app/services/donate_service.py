@@ -110,17 +110,40 @@ class DonateService:
 
         return donations_data
 
+    def update_donate_data_with_system_transaction(
+            self,
+            donate_data: list[dict],
+            donate_sum: int | float,
+    ) -> list[dict[str, Any]]:
+        transactions_quantities = [
+            transaction["quantity"] for transaction in donate_data
+        ]
+        transactions_sum = sum(transactions_quantities)
+        donate_reminder = donate_sum - transactions_sum
+
+        if donate_reminder:
+            admin_user = self._repository_telegram_user.get(is_admin=True)
+            donate_data.append({
+                "receiver": admin_user,
+                "receiver_chat_id": admin_user.user_id,
+                "quantity": donate_reminder,
+                "type_": DonateTransactionType.SYSTEM,
+            })
+
+        return donate_data
+
+
     async def update_donate_data_with_nodes(
             self,
             nodes: list[MatrixNode],
             donate_sum: int | float,
-            transaction_quantity: int | float,
-            is_bot: bool,
+            transaction_percent: int = settings.triumph_matrix_transaction_percent,
     ) -> list[dict[str, Any]]:
+        transaction_quantity = donate_sum * transaction_percent / 100
+
         owner_ids_node_map = {node.owner_id: node for node in nodes}
         receivers = self._repository_telegram_user.get_active_users_by_ids(
             ids=list(owner_ids_node_map.keys()),
-            is_bot=False,
         )
         donations_data = [
             {
@@ -133,21 +156,6 @@ class DonateService:
             for receiver in receivers
         ]
 
-        if is_bot:
-            return donations_data
-
-        transactions_sum = len(donations_data) * transaction_quantity
-        donate_reminder = donate_sum - transactions_sum
-
-        if donate_reminder:
-            admin_user = self._repository_telegram_user.get(is_admin=True)
-            donations_data.append({
-                "receiver": admin_user,
-                "receiver_chat_id": admin_user.user_id,
-                "quantity": donate_reminder,
-                "type_": DonateTransactionType.SYSTEM,
-            })
-
         return donations_data
 
     async def _update_donate_data_with_matrix_receivers(
@@ -155,11 +163,11 @@ class DonateService:
             matrix: Matrix,
             donate_sum: int | float,
             donations_data: list,
-            free_place_path: list[uuid.UUID],
+            free_place_path: list[uuid.UUID | str],
             parents: list[Matrix],
-            is_bot: bool,
+            transaction_percent: int = settings.matrix_donate_transaction_percent,
     ) -> list[dict[str, Any]]:
-        matrix_donate_sum = donate_sum * settings.matrix_donate_percent / 100
+        transaction_quantity = donate_sum * transaction_percent / 100
 
         path_matrices = list(self._repository_matrix.get_matrices_by_ids_list(free_place_path))
         path_matrices.extend(parents)
@@ -180,28 +188,12 @@ class DonateService:
             {
                 "receiver": receiver,
                 "receiver_chat_id": receiver.user_id,
-                "quantity": matrix_donate_sum,
+                "quantity": transaction_quantity,
                 "type_": DonateTransactionType.MATRIX,
                 "matrix_length": len(path_matrices_ids_map[receiver.id].telegram_users) + 1
             }
             for receiver in donate_receivers
         ])
-
-        if is_bot:
-            return donations_data
-
-        transactions_sum = len(donations_data) * matrix_donate_sum
-        donate_reminder = donate_sum - transactions_sum
-
-        if donate_reminder:
-            admin_user = self._repository_telegram_user.get(is_admin=True)
-            donations_data.append({
-                "receiver": admin_user,
-                "receiver_chat_id": admin_user.user_id,
-                "quantity": donate_reminder,
-                "type_": DonateTransactionType.SYSTEM,
-            })
-
         return donations_data
 
     async def add_to_matrix(
@@ -351,9 +343,7 @@ class DonateService:
             donations_data,
             free_place_path,
             parents,
-            is_bot=current_user.is_bot,
         )
-
         created_matrix = await self.add_to_matrix(
             free_matrix,
             current_user,

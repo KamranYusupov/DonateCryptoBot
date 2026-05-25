@@ -2,6 +2,8 @@ from datetime import datetime, timedelta
 from typing import Optional, Sequence, List, Tuple
 from uuid import UUID
 
+import loguru
+
 from app.core.config import settings
 from app.models.matrix import MatrixEngineType, Matrix, MatrixNode
 from app.models.telegram_user import DonateStatus
@@ -120,13 +122,23 @@ class MatrixNodeService:
             sponsor_id=sponsor_id,
             status=status,
         )
-        upline_nodes = await self._get_upline_nodes(
-            matrix_id=inserted_node.matrix_id,
+        upline_positions = self.get_upline_node_positions(
             position=inserted_node.position,
+        )
+        self._repository_matrix_node.increment_downline_count_by_positions(
+            matrix_id=inserted_node.matrix_id,
+            positions=upline_positions,
+        )
+        active_upline_nodes = self._repository_matrix_node.get_nodes_by_positions(
+            MatrixNode.last_activation >= (
+                    datetime.now() - timedelta(days=365)
+            ),
+            matrix_id=inserted_node.matrix_id,
+            positions=upline_positions,
         )
 
         if not start_bot_tasks or not is_created:
-            return inserted_node, upline_nodes
+            return inserted_node, active_upline_nodes
 
         now = datetime.now()
         self._repository_matrix_task.create(
@@ -150,7 +162,7 @@ class MatrixNodeService:
             ).model_dump()
         )
 
-        return inserted_node, upline_nodes
+        return inserted_node, active_upline_nodes
 
     async def _get_or_create_node(
             self,
@@ -178,8 +190,6 @@ class MatrixNodeService:
             sponsor_id: UUID,
             status: DonateStatus
     ) -> MatrixNode:
-        """Чистая логика: найти свободное место и вставить ноду."""
-
         available_node = self._find_available_node(sponsor_id, status)
         new_position = (available_node.position * 2) + available_node.children_count
         available_node.children_count += 1
@@ -205,34 +215,15 @@ class MatrixNodeService:
 
         return upline_nodes
 
-    async def get_nodes_by_positions(
+    async def get_active_nodes_by_positions(
             self,
-            *args,
             matrix_id: UUID,
             positions: Sequence[int],
-            **kwargs,
-    ) -> List[MatrixNode]:
+    ):
         return self._repository_matrix_node.get_nodes_by_positions(
-            *args,
+            MatrixNode.last_activation >= (
+                    datetime.now() - timedelta(days=365)
+            ),
             matrix_id=matrix_id,
-            positions=list(set(positions)),
-            **kwargs
-        )
-
-    async def _get_upline_nodes(
-            self,
-            *args,
-            matrix_id: UUID,
-            position: Optional[int] = None,
-            **kwargs,
-    ) -> List[MatrixNode]:
-        if not position:
-            node = self._repository_matrix_node.get(*args, **kwargs)
-            position = node.position
-
-        upline_positions = self.get_upline_node_positions(position)
-        return await self.get_nodes_by_positions(
-            MatrixNode.last_activation >= datetime.now() - timedelta(days=365),
-            positions=upline_positions,
-            matrix_id=matrix_id,
+            positions=positions,
         )

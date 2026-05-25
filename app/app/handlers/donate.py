@@ -400,6 +400,8 @@ async def send_donations_menu(
             f"<b>${donates_sum}</b>\n"
             "Системный баланс: "
             f"<b>${admin_statistic.system_bill}</b>\n"
+            "Системный баланс Триумф: "
+            f"<b>${admin_statistic.triumph_system_bill}</b>\n"
             "Число отправленных $ за регистрацию: "
             f"<b>${admin_statistic.donates_sum_for_registration}</b>\n"
             "Общий баланс для активации: "
@@ -608,21 +610,23 @@ async def donate_handler(
     if callback.from_user.username != current_user.username:
         current_user.username = callback.from_user.username
 
-    donations_data = await donate_service.update_donate_data_with_sponsors(
+    donate_data = await donate_service.update_donate_data_with_sponsors(
         *sponsors,
         donate_sum=donate_sum,
     )
     first_sponsor = sponsors[0]
+    is_triumph = (status in (DonateStatus.BRILLIANT, ))
 
-    if status != DonateStatus.BRILLIANT:
+    if not is_triumph:
         matrix = await donate_service.handle_matrix_activation(
             current_user,
             first_sponsor,
             donate_sum,
-            donations_data,
+            donate_data,
             status,
         )
         matrix_id = matrix.id
+        matrix_max_length = settings.matrix_max_length
     else:
         inserted_node, upline_nodes = await matrix_node_service.activate_matrix_node(
             current_user_id=current_user.id,
@@ -630,18 +634,23 @@ async def donate_handler(
             status=status,
             donate_sum=donate_sum,
         )
-        matrix_donations_data = await donate_service.update_donate_data_with_nodes(
+        matrix_donate_data = await donate_service.update_donate_data_with_nodes(
             upline_nodes,
             donate_sum=donate_sum,
-            transaction_quantity=settings.triumph_matrix_donate_amount,
-            is_bot=False,
+            transaction_percent=settings.triumph_matrix_transaction_percent,
         )
-        donations_data.extend(matrix_donations_data)
+        donate_data.extend(matrix_donate_data)
+        matrix_max_length = settings.triumph_matrix_max_length
         matrix_id = inserted_node.matrix_id
+
+    donate_service.update_donate_data_with_system_transaction(
+        donate_data,
+        donate_sum=donate_sum,
+    )
 
     donate = await donate_confirm_service.create_donate(
         telegram_user_id=current_user.id,
-        donate_data=donations_data,
+        donate_data=donate_data,
         matrix_id=matrix_id,
         quantity=donate_sum,
     )
@@ -675,6 +684,9 @@ async def donate_handler(
         obj_id=current_user.id,
         obj_in={bill_field: bill_value - donate_sum},
     )
+    await donate_confirm_service.update_bills_by_donate_id(
+        donate_id=donate.id,
+    )
 
     if current_user.status == DonateStatus.NOT_ACTIVE or (
         int(status.get_status_donate_value())
@@ -682,11 +694,7 @@ async def donate_handler(
     ):
         current_user.status = status
 
-    await donate_confirm_service.update_bills_by_donate_id(
-        donate_id=donate.id,
-    )
     await callback.message.delete()
-
     await callback.message.answer("🎉")
     await callback.message.answer(
         "<b>Площадка успешно активирована, бот начал свою работу ✅</b>"
@@ -696,7 +704,7 @@ async def donate_handler(
         bot.send_message,
     )
 
-    for data in donations_data:
+    for data in donate_data:
         await send_transaction_messages(
             bot=bot,
             chat_id=data["receiver_chat_id"],
@@ -706,6 +714,7 @@ async def donate_handler(
             status=status,
             sponsor_depth=data.get("sponsor_depth"),
             matrix_length=data.get("matrix_length"),
+            matrix_max_length=matrix_max_length,
         )
 
 

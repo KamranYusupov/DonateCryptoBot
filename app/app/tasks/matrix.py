@@ -75,6 +75,8 @@ async def add_bot_to_matrix(
             obj.status,
             found_matrix=obj,
         )
+
+        matrix_max_length = settings.matrix_max_length
         matrix_id = matrix.id
     else:
         inserted_node, upline_nodes = await matrix_node_service.activate_matrix_node(
@@ -87,10 +89,11 @@ async def add_bot_to_matrix(
         matrix_donations_data = await donate_service.update_donate_data_with_nodes(
             upline_nodes,
             donate_sum=donate_sum,
-            transaction_quantity=settings.triumph_matrix_donate_amount,
-            is_bot=False,
+            transaction_percent=settings.triumph_matrix_transaction_percent,
         )
         donations_data.extend(matrix_donations_data)
+
+        matrix_max_length = settings.triumph_matrix_max_length
         matrix_id = inserted_node.matrix_id
 
     donate = await donate_confirm_service.create_donate(
@@ -101,7 +104,9 @@ async def add_bot_to_matrix(
     )
     await donate_confirm_service.update_bills_by_donate_id(
         donate_id=donate.id,
+        is_bot=True,
     )
+
     sender_username = bot_user.username
     admin_user = await telegram_user_service.get_telegram_user(is_admin=True)
     admin_telegram_id = admin_user.user_id
@@ -116,6 +121,7 @@ async def add_bot_to_matrix(
             status=status,
             sponsor_depth=data.get("sponsor_depth"),
             matrix_length=data.get("matrix_length"),
+            matrix_max_length=matrix_max_length,
         )
 
         await send_message_or_pass(

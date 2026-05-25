@@ -91,6 +91,29 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
 
 class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
 
+    def increment_downline_count_by_positions(
+            self,
+            matrix_id: uuid.UUID,
+            positions: Sequence[int],
+            returning: bool = False
+    ) -> List[MatrixNode] | int:
+        statement = (
+            update(MatrixNode)
+            .where(
+                MatrixNode.matrix_id == matrix_id,
+                MatrixNode.position.in_(positions)
+            )
+            .values(downline_count=MatrixNode.downline_count + 1)
+        )
+
+        if not returning:
+            result = self._session.execute(statement)
+            return result.rowcount
+
+        statement = statement.returning(MatrixNode)
+        result = self._session.execute(statement)
+        return result.scalars().all()
+
     def get(
             self,
             *args,

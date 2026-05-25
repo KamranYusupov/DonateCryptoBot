@@ -7,10 +7,24 @@ from sqlalchemy.orm import selectinload
 from app.models.telegram_user import TelegramUser, DonateStatus
 from .base import RepositoryBase
 from app.models.donate import Donate, DonateTransaction, DonateTransactionType
+from app.models.matrix import Matrix, MatrixEngineType
 
 
 class RepositoryDonate(RepositoryBase[Donate]):
     """Репозиторий доната"""
+
+    def get_matrix_engine_type(
+            self,
+            donate_id: uuid.UUID,
+    ) -> MatrixEngineType:
+        statement = (
+            select(Matrix.engine_type)
+            .join(Donate, Donate.matrix_id == Matrix.id)
+            .where(Donate.id == donate_id)
+        )
+
+        result = self._session.execute(statement)
+        return result.scalar()
 
     def get_donates_list(self, *args, **kwargs):
         statement = (

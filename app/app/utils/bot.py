@@ -284,6 +284,7 @@ async def send_transaction_messages(
         sponsor_depth: None | int,
         status: DonateStatus,
         matrix_length: int,
+        matrix_max_length: int = settings.matrix_max_length,
 ):
     if int(quantity) == quantity:
         quantity = str(int(quantity))
@@ -298,7 +299,7 @@ async def send_transaction_messages(
 
     if type_ == DonateTransactionType.SPONSOR:
         message_text = (
-            "<b>👥 {0} АКТИВИРОВАЛ "
+            "<b>👥 {0} АКТИВИРОВАЛ \n"
             f"<b>{statuses_colors_data.get(status)} "
             f"{status.value.upper()}</b>\n"
             f"🎁 Реф. бонус от {sponsor_depth} линии: +{quantity}$\n</b>"
@@ -323,7 +324,7 @@ async def send_transaction_messages(
             f"💰 <b>+{quantity}$</b> на счёт\n"
             f"🎯 Площадка: <b>{statuses_colors_data.get(status)} "
             f"{status.value.upper()}</b> \n"
-            f"📦 <b>{matrix_length} из {settings.matrix_max_length}</b> мест занято\n\n"
+            f"📦 <b>{matrix_length} из {matrix_max_length}</b> мест занято\n\n"
             "🔥 Делитесь фильмом — получайте бонусы."
         )
         await send_message_or_pass(

@@ -1,7 +1,7 @@
 from uuid import UUID
 from typing import Optional
 
-from sqlalchemy import select, text, func
+from sqlalchemy import select, text, func, update
 from sqlalchemy.orm import joinedload, aliased
 
 from .base import RepositoryBase
@@ -141,3 +141,21 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
         bill_field = getattr(TelegramUser, f"bill_for_{bill_type.value}")
         statement = select(bill_field).filter(*args).filter_by(**kwargs)
         return self._session.execute(statement).scalars().all()
+
+    def increment_bill(
+            self,
+            telegram_user_id: UUID,
+            bill_type: BillType,
+            quantity: int | float,
+    ) -> None:
+        bill_field_name = f"bill_for_{bill_type.value}"
+        bill_field = getattr(TelegramUser, bill_field_name)
+        update_values = {bill_field_name: bill_field + quantity}
+
+        statement = (
+            update(TelegramUser)
+            .where(TelegramUser.id == telegram_user_id)
+            .values(**update_values)
+        )
+
+        self._session.execute(statement)

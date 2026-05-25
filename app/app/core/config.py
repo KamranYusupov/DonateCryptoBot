@@ -84,7 +84,14 @@ class Settings(BaseSettings):
     first_sponsor_donate_percent: int = Field(title="Процент доната первому спонсору", default=20)
     second_sponsor_donate_percent: int = Field(title="Процент доната второму спонсору", default=10)
     third_sponsor_donate_percent: int = Field(title="Процент доната третьему спонсору", default=5)
-    matrix_donate_percent: int = Field(title="Процент доната для матрицы", default=10)
+    matrix_donate_transaction_percent: int = Field(
+        title="Процент транзакции от доната для матрицы",
+        default=10,
+    )
+    triumph_matrix_transaction_percent: int = Field(
+        title="Процент транзакции от доната для матрицы Триумф",
+        default=2,
+    )
     # endregion
 
     # region Настройки длины бинарной матрицы с 4 уровнями глубины
@@ -100,10 +107,6 @@ class Settings(BaseSettings):
     triumph_matrix_max_length: int = Field(
         title="Максимальная длина матрицы триумф",
         default=16382,
-    )
-    triumph_matrix_donate_amount: int = Field(
-        title="Сумма доната по матрице Триумф",
-        default=20,
     )
     # endregion
 

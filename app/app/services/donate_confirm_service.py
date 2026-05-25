@@ -14,6 +14,7 @@ from app.schemas.donate import (
     DonateTransactionSchema,
 )
 from app.models.donate import DonateTransactionType
+from app.schemas.telegram_user import BillType
 
 
 class DonateConfirmService:
@@ -155,34 +156,40 @@ class DonateConfirmService:
             for transaction in transactions
         ]
 
-    async def update_bills_by_donate_id(self, donate_id: uuid.UUID):
+    async def update_bills_by_donate_id(
+            self,
+            donate_id: uuid.UUID,
+            is_bot: bool = False
+    ):
         transactions = self._repository_donate_transaction.list(
             donate_id=donate_id,
         )
         system_bill_donate = 0
         for transaction in transactions:
+            # FIXME: N+1 проблема с repository_telegram_user.increment_bill
             if transaction.type_ == DonateTransactionType.SYSTEM:
                 system_bill_donate += transaction.quantity
                 continue
 
-            sponsor = self._repository_telegram_user.get(
-                id=transaction.sponsor_id
+            self._repository_telegram_user.increment_bill(
+                telegram_user_id=transaction.sponsor_id,
+                bill_type=BillType.WITHDRAW,
+                quantity=transaction.quantity,
             )
-            self._repository_telegram_user.update(
-                obj_id=sponsor.id,
-                obj_in={
-                    "donates_sum": sponsor.donates_sum + transaction.quantity,
-                    "bill_for_withdraw": sponsor.bill_for_withdraw + transaction.quantity,
-                },
-            )
+            if is_bot:
+                system_bill_donate -= transaction.quantity
 
-        if system_bill_donate:
-            admin_statistic = self._repository_admin_statistic.get()
-            updated_system_bill = admin_statistic.system_bill + system_bill_donate
-            self._repository_admin_statistic.update(
-                obj_id=admin_statistic.id,
-                obj_in={"system_bill": updated_system_bill},
-            )
+        if not system_bill_donate:
+            return
+
+        donate  = self._repository_donate.get(id=donate_id)
+        status = self.get_donate_status(int(donate.quantity))
+
+        is_triumph: bool = (status in (DonateStatus.BRILLIANT, ))
+        self._repository_admin_statistic.increment_system_bill(
+            quantity=system_bill_donate,
+            triumph=is_triumph
+        )
 
 
     async def get_all_donates_and_transactions(
