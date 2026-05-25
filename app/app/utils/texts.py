@@ -1,9 +1,10 @@
 import copy
 from datetime import date, timedelta
-from typing import Any
+from typing import Any, List
 from collections import deque
 import uuid
 
+import loguru
 from aiogram import html
 from dependency_injector.wiring import inject, Provide
 
@@ -14,7 +15,8 @@ from app.models.telegram_user import (
     statuses_colors_data,
 )
 from app.models.telegram_user import TelegramUser
-from app.models.matrix import Matrix
+from app.models.matrix import Matrix, MatrixNode
+from app.services.matrix_node_service import MatrixNodeService
 from app.utils.matrix import find_free_place_in_matrix, get_matrix_levels, get_sorted_matrices, insert_into_matrices
 from app.utils.pagination import Paginator
 from app.core.config import Settings, settings
@@ -143,17 +145,22 @@ def get_withdrawal_request_info_message(
     )
     return message
 
-
-def get_my_team_message(
+@inject
+async def get_my_team_message(
         matrices: list[Matrix],
+        matrix_node: MatrixNode,
         page_number: int,
         per_page: int = 1,
         callback_data_prefix: str = "team",
         previous_page_number: int | None = None,
-
+        matrix_node_service: MatrixNodeService = Provide[
+            Container.matrix_node_service
+        ],
 ):
     message = ""
     sorted_matrices = get_sorted_matrices(matrices, status_list)
+    sorted_matrices.append(matrix_node)
+
     paginator = Paginator(
         sorted_matrices,
         page_number=page_number,
@@ -162,12 +169,23 @@ def get_my_team_message(
     buttons = {}
     sizes = (1, 1)
 
-    if len(paginator.get_page()):
-        matrices = paginator.get_page()
-
-        for matrix in matrices:
+    if paginator.get_page():
+        matrix = paginator.get_page()[0]
+        if isinstance(matrix, Matrix):
             message += get_matrix_info_message(matrix)
-            message += "—————————\n\n" if matrix != matrices[-1] else ""
+        else:
+            matrix_node = matrix
+            downline_nodes = await matrix_node_service.get_downline_nodes(
+                matrix_id=matrix_node.matrix_id,
+                position=matrix_node.position,
+                level=matrix_node.level,
+            )
+            message += get_downline_nodes_message(
+                matrix_node,
+                status=DonateStatus.BRILLIANT,
+                downline_nodes=downline_nodes,
+                matrix_max_length=settings.triumph_matrix_max_length,
+            )
     else:
         message += "У вас нет активированных уровней"
 
@@ -187,6 +205,54 @@ def get_my_team_message(
 
     return message, page_number, buttons, sizes
 
+
+def get_downline_nodes_message(
+        matrix_node: MatrixNode,
+        status: DonateStatus,
+        downline_nodes: List[MatrixNode],
+        matrix_max_length: int,
+        matrix_max_level: int = 4
+):
+    """
+    Выводит бинарное дерево матрицы по нижестоящим nodes.
+    """
+
+    color = statuses_colors_data.get(status)
+    lines = [f"<b>{color} {status.value}: {matrix_node.id.hex[0:5]}</b>"]
+
+    if not downline_nodes:
+        lines.append(f"\nМест занято: <b>{0} из {matrix_max_length}\n</b>")
+
+        return "\n".join(lines)
+
+    levels_data = {
+        i: ["Свободно"] * (2 ** i)
+        for i in range(1, matrix_max_level + 1)
+    }
+
+    for node in downline_nodes:
+        rel_level = node.level - matrix_node.level
+
+        # Вычисляем глобальную позицию самого левого узла на этом уровне
+        level_start_position = matrix_node.position * (2 ** rel_level)
+
+        # Вычисляем индекс узла в нашем массиве (от 0 до 2^rel_level - 1)
+        index_on_level = node.position - level_start_position
+        levels_data[rel_level][index_on_level] = "Занято"
+
+    for level_number in range(1, matrix_max_level + 1):
+        lines.append(f"\n<b>{level_number}️⃣ Уровень:</b>")
+
+        for idx, status in enumerate(levels_data[level_number], start=1):
+            lines.append(f"{idx}) {status}")
+
+        lines.append("")
+
+    lines.append(
+        f"\nМест занято: <b>{matrix_node.downline_count} из {matrix_max_length}\n</b>"
+    )
+
+    return "\n".join(lines)
 
 def get_matrix_info_message(
         matrix: Matrix,

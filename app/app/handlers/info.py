@@ -9,6 +9,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 from dependency_injector.wiring import inject, Provide
 
 from app.core.container import Container
+from app.services.matrix_node_service import MatrixNodeService
 from app.services.telegram_user_service import TelegramUserService
 from app.keyboards.donate import get_donate_keyboard
 from app.core.config import settings
@@ -17,9 +18,9 @@ from app.utils.sponsor import get_callback_value
 from app.utils.pagination import Paginator
 from app.utils.matrix import get_matrices_length
 from app.utils.matrix import get_active_matrices, get_archived_matrices
-from app.models.telegram_user import status_list, status_emoji_list
+from app.models.telegram_user import status_list, status_emoji_list, DonateStatus
 from app.db.commit_decorator import commit_and_close_session
-from app.utils.texts import get_my_team_message, get_matrix_info_message
+from app.utils.texts import get_my_team_message, get_matrix_info_message, get_downline_nodes_message
 from app.models.telegram_user import TelegramUser
 
 info_router = Router()
@@ -76,6 +77,9 @@ async def team_inline_handler(
             Container.telegram_user_service
         ],
         matrix_service: MatrixService = Provide[Container.matrix_service],
+        matrix_node_service: MatrixNodeService = Provide[
+            Container.matrix_node_service
+        ],
 ) -> None:
     callback_data_list = callback.data.split("_")
     is_archive = callback_data_list[0] == "archive"
@@ -88,6 +92,7 @@ async def team_inline_handler(
         owner_id=current_user.id,
     )
     archived_matrices = get_archived_matrices(matrices)
+    get_my_team_message_kwargs = {}
 
     if is_archive:
         matrices = archived_matrices
@@ -101,15 +106,27 @@ async def team_inline_handler(
         title_text = "АКТИВНЫЕ ПЛОЩАДКИ:"
         page_number = int(callback.data.split("_")[-1])
         previous_page_number = None
-        callback_data_prefix = f"team"
         back_button_data = f"donations"
+        callback_data_prefix = f"team"
+        matrix_node = await matrix_node_service.get_node(
+            owner_id=current_user.id
+        )
+        get_my_team_message_kwargs["matrix_node"] = matrix_node
 
+    if current_user.is_admin:
+        for matrix in matrices:
+            if matrix.status == DonateStatus.BRILLIANT:
+                matrices.remove(matrix)
 
-    message, page_number, buttons, sizes = get_my_team_message(
+    get_my_team_message_kwargs.update(dict(
         matrices=matrices,
         page_number=page_number,
         previous_page_number=previous_page_number,
-        callback_data_prefix=callback_data_prefix
+        callback_data_prefix=callback_data_prefix,
+    ))
+
+    message, page_number, buttons, sizes = await get_my_team_message(
+        **get_my_team_message_kwargs,
     )
     message = f"<b>{title_text}</b>\n\n" + message
 
@@ -131,14 +148,36 @@ async def team_inline_handler(
 async def team_inline_handler(
         callback: CallbackQuery,
         matrix_service: MatrixService = Provide[Container.matrix_service],
+        matrix_node_service: MatrixNodeService = Provide[
+            Container.matrix_node_service
+        ],
 ) -> None:
-    matrix_id = callback.data.split("_")[-1]
+    obj_id = callback.data.split("_")[-1]
     matrix = await matrix_service.get_matrix(
-        id=matrix_id
+        id=obj_id
     )
+    if matrix:
+        message_text = get_matrix_info_message(matrix)
+        await callback.message.edit_text(text=message_text)
+        return
 
-    message_text = get_matrix_info_message(matrix)
+
+    matrix_node = await matrix_node_service.get(id=obj_id)
+    downline_nodes = await matrix_node_service.get_downline_nodes(
+        matrix_id=matrix_node.matrix_id,
+        position=matrix_node.position,
+        level=matrix_node.level,
+    )
+    message_text = get_downline_nodes_message(
+        matrix_node,
+        status=DonateStatus.BRILLIANT,
+        downline_nodes=downline_nodes,
+        matrix_max_length=settings.matrix_max_length,
+    )
     await callback.message.edit_text(text=message_text)
+    return
+
+
 
 
 

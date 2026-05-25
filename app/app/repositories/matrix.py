@@ -7,6 +7,7 @@ from sqlalchemy import select, func, update
 from app.models.telegram_user import TelegramUser, DonateStatus
 from .base import RepositoryBase
 from app.models.matrix import Matrix, AddBotToMatrixTaskModel, MatrixNode
+from ..core.config import Settings, settings
 
 
 class RepositoryMatrix(RepositoryBase[Matrix]):
@@ -163,6 +164,29 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
 
         result = self._session.execute(statement)
         return result.scalars().first()
+
+    def get_downline_nodes(
+            self,
+            matrix_id: uuid.UUID,
+            position: int,
+            level: int,
+            max_level: int = settings.matrix_max_level
+    ) -> list[MatrixNode]:
+        power_calc = func.power(2, MatrixNode.level - level)
+
+        statement = (
+            select(MatrixNode)
+            .where(
+                MatrixNode.matrix_id == matrix_id,
+                MatrixNode.level > level,
+                MatrixNode.level <= level + max_level,
+                MatrixNode.position >= position * power_calc,
+                MatrixNode.position < (position + 1) * power_calc,
+            )
+            .order_by(MatrixNode.level, MatrixNode.position)
+        )
+
+        return self._session.execute(statement).scalars().all()
 
     def get_nodes_by_positions(
             self,

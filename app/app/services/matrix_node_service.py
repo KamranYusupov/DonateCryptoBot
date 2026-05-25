@@ -227,3 +227,14 @@ class MatrixNodeService:
             matrix_id=matrix_id,
             positions=positions,
         )
+
+    async def get_downline_nodes(
+            self,
+            matrix_id: UUID,
+            position: int,
+            level: int,
+            max_level: int = settings.matrix_max_level
+    ) -> list[MatrixNode]:
+        return self._repository_matrix_node.get_downline_nodes(
+            matrix_id, position, level, max_level,
+        )
