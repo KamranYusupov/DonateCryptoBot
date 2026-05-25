@@ -13,4 +13,5 @@ class AdminStatistic(Base):
     )
 
     system_bill = Column(Float, default=0.0)
+    triumph_system_bill = Column(Float, default=0.0)
     donates_sum_for_registration = Column(Float, default=0.0)
