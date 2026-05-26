@@ -452,35 +452,37 @@ async def send_donations_menu(
     triumph_node = await matrix_node_service.get_node(
         owner_id=current_user.id,
     )
-    triumph_node_expires_in_days = 0
+    triumph_node_deadline_template = "{0} дней {1}"
+    triumph_node_deadline_str = ""
+
     if triumph_node:
         now = datetime.now(triumph_node.last_activation.tzinfo)
         triumph_node_expires_at = triumph_node.last_activation + timedelta(days=365)
         time_difference = triumph_node_expires_at - now
         triumph_node_expires_in_days = time_difference.days
 
-        triumph_node_deadline_template = "{0} дней {1}"
         triumph_node_deadline_additional_str = ""
 
-    if triumph_node_expires_in_days == 1:
-        remaining_seconds = time_difference.seconds
-        hours = remaining_seconds // 3600
-        minutes = (remaining_seconds % 3600) // 60
+        if triumph_node_expires_in_days == 1:
+            remaining_seconds = time_difference.seconds
+            hours = remaining_seconds // 3600
+            minutes = (remaining_seconds % 3600) // 60
 
-        triumph_node_deadline_additional_str = f" {hours} ч. {minutes} мин."
-    else:
-        triumph_node_expires_in_days += 1
+            triumph_node_deadline_additional_str = f" {hours} ч. {minutes} мин."
+        else:
+            triumph_node_expires_in_days += 1
 
-    triumph_node_deadline_str = triumph_node_deadline_template.format(
-        triumph_node_expires_in_days,
-        triumph_node_deadline_additional_str
-    )
+
+        triumph_node_deadline_str = triumph_node_deadline_template.format(
+            triumph_node_expires_in_days,
+            triumph_node_deadline_additional_str
+        )
 
     message_parts = [
         f"Активные площадки: {matrices_length_statistic_message}"
     ]
 
-    if triumph_node and triumph_node_expires_in_days is not None and triumph_node_expires_in_days >= 0:
+    if triumph_node:
         message_parts.append(f"Срок действия площадки <b>🏆 ТРИУМФ</b>: {triumph_node_deadline_str} дней")
 
     message_parts.append(f"\nМой куратор: {sponsor.full_username}")
