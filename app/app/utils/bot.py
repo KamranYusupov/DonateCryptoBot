@@ -304,7 +304,7 @@ async def send_transaction_messages(
             "<b>👥 {0} АКТИВИРОВАЛ \n"
             f"<b>{statuses_colors_data.get(status)} "
             f"{status.value.upper()}</b>\n"
-            f"🎁 Реф. бонус от {sponsor_depth} линии: +{quantity}$\n</b>"
+            f"🎁 Бонус от {sponsor_depth} линии: +{quantity}$\n</b>"
             "🤝 Команда растёт\n\n"
             "🔥 На Шаг ближе к Триумфу!"
         )
