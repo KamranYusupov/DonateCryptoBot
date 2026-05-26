@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     )
     # endregion
 
-    # region Настройки проценты донатов
+    # region Настройки донатов
     first_sponsor_donate_percent: int = Field(title="Процент доната первому спонсору", default=20)
     second_sponsor_donate_percent: int = Field(title="Процент доната второму спонсору", default=10)
     third_sponsor_donate_percent: int = Field(title="Процент доната третьему спонсору", default=5)
@@ -92,6 +92,7 @@ class Settings(BaseSettings):
         title="Процент транзакции от доната для матрицы Триумф",
         default=2,
     )
+    triumph_max_donates_sum_from_matrix: int = 327640
     # endregion
 
     # region Настройки длины бинарной матрицы с 4 уровнями глубины

@@ -283,8 +283,10 @@ async def send_transaction_messages(
         sender_username: str,
         sponsor_depth: None | int,
         status: DonateStatus,
-        matrix_length: int,
+        matrix_length: int | None = None,
         matrix_max_length: int = settings.matrix_max_length,
+        triumph: bool = False,
+        max_donates_sum_from_matrix: int = settings.triumph_max_donates_sum_from_matrix
 ):
     if int(quantity) == quantity:
         quantity = str(int(quantity))
@@ -321,12 +323,19 @@ async def send_transaction_messages(
     if type_ == DonateTransactionType.MATRIX:
         message_text = (
             "<b>🤖 БОТ ЗАКРЫЛ МЕСТО</b>\n"
-            f"💰 <b>+{quantity}$</b> на счёт\n"
+            f"💸 <b>+{quantity}$</b> на счёт\n"
             f"🎯 Площадка: <b>{statuses_colors_data.get(status)} "
             f"{status.value.upper()}</b> \n"
-            f"📦 <b>{matrix_length} из {matrix_max_length}</b> мест занято\n\n"
-            "🔥 Делитесь фильмом — получайте бонусы."
+            "{0}\n\n"
+            "🔥 Делитесь <b>KOD💵DENEG</b> — получайте бонусы."
         )
+        statistic_line = (
+            f"📦 <b>{matrix_length} из {matrix_max_length}</b> мест занято"
+            if not triumph else
+            f"🏦 Получено: <b>${quantity} из ${max_donates_sum_from_matrix}</b>"
+        )
+        message_text = message_text.format(statistic_line)
+
         await send_message_or_pass(
             bot=bot,
             text=message_text,

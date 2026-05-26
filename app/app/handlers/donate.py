@@ -311,6 +311,9 @@ async def send_donations_menu(
             Container.telegram_user_service
         ],
         matrix_service: MatrixService = Provide[Container.matrix_service],
+        matrix_node_service: MatrixNodeService = Provide[
+            Container.matrix_node_service
+        ],
         donate_confirm_service: DonateConfirmService = Provide[
             Container.donate_confirm_service
         ],
@@ -446,12 +449,43 @@ async def send_donations_menu(
     )
     buttons.update(get_donations_keyboard())
 
-    message_text = (
-        f"Активные площадки: {matrices_length_statistic_message}\n"
-        f"Мой куратор: "
-        + ("@" + sponsor.username if sponsor.username else sponsor.first_name)
-        + "\n"
-    ) + message_text
+    triumph_node = await matrix_node_service.get_node(
+        owner_id=current_user.id,
+    )
+    if not triumph_node:
+        pass
+
+    now = datetime.now(triumph_node.last_activation.tzinfo)
+    triumph_node_expires_at = triumph_node.last_activation + timedelta(days=365)
+    time_difference = triumph_node_expires_at - now
+    triumph_node_expires_in_days = time_difference.days
+
+    triumph_node_deadline_template = "{0} дней {1}"
+    triumph_node_deadline_additional_str = ""
+    if triumph_node_expires_in_days == 1:
+        remaining_seconds = time_difference.seconds
+        hours = remaining_seconds // 3600
+        minutes = (remaining_seconds % 3600) // 60
+
+        triumph_node_deadline_additional_str = f" {hours} ч. {minutes} мин."
+    else:
+        triumph_node_expires_in_days += 1
+
+    triumph_node_deadline_str = triumph_node_deadline_template.format(
+        triumph_node_expires_in_days,
+        triumph_node_deadline_additional_str
+    )
+
+    message_parts = [
+        f"Активные площадки: {matrices_length_statistic_message}"
+    ]
+
+    if triumph_node and triumph_node_expires_in_days is not None and triumph_node_expires_in_days >= 0:
+        message_parts.append(f"Срок действия площадки <b>🏆 ТРИУМФ</b>: {triumph_node_deadline_str} дней")
+
+    message_parts.append(f"\nМой куратор: {sponsor.full_username}")
+
+    message_text = "\n".join(message_parts) + "\n" + message_text
 
     buttons.update(default_buttons)
     buttons.update({
@@ -715,6 +749,7 @@ async def donate_handler(
             sponsor_depth=data.get("sponsor_depth"),
             matrix_length=data.get("matrix_length"),
             matrix_max_length=matrix_max_length,
+            triumph=is_triumph
         )
 
 

@@ -92,7 +92,7 @@ class MatrixNodeService:
                 matrix_id=target_node.matrix_id,
                 level=target_node.level,
                 position=target_node.position,
-                max_level=target_node.level + settings.triumph_matrix_max_level,
+                max_level=settings.triumph_matrix_max_level,
             )
 
             if available_node:

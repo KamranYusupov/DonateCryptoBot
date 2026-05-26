@@ -143,14 +143,18 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
             level: int,
             max_level: int,
     ):
+        absolute_max_level = level + max_level
         power_calc = func.power(2, MatrixNode.level - level)
+
         statement = (
             select(MatrixNode)
             .where(
-                MatrixNode.children_count < 2,
                 MatrixNode.matrix_id == matrix_id,
+
                 MatrixNode.level > level,
-                MatrixNode.level <= level + max_level,
+                MatrixNode.level <= absolute_max_level,
+
+                MatrixNode.children_count < 2,
                 MatrixNode.position >= position * power_calc,
                 MatrixNode.position < (position + 1) * power_calc,
             )

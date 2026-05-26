@@ -77,6 +77,7 @@ async def add_bot_to_matrix(
         )
 
         matrix_max_length = settings.matrix_max_length
+        is_triumph = False
         matrix_id = matrix.id
     else:
         inserted_node, upline_nodes = await matrix_node_service.activate_matrix_node(
@@ -93,6 +94,7 @@ async def add_bot_to_matrix(
         )
         donations_data.extend(matrix_donations_data)
 
+        is_triumph = True
         matrix_max_length = settings.triumph_matrix_max_length
         matrix_id = inserted_node.matrix_id
 
@@ -122,6 +124,7 @@ async def add_bot_to_matrix(
             sponsor_depth=data.get("sponsor_depth"),
             matrix_length=data.get("matrix_length"),
             matrix_max_length=matrix_max_length,
+            triumph=is_triumph
         )
 
         await send_message_or_pass(

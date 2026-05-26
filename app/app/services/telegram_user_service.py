@@ -57,6 +57,7 @@ class TelegramUserService:
         bot_user = None
         bot_user_schema = generate_random_user()
         bot_user_schema.status = status
+        bot_user_schema.is_bot = True
 
         while not bot_user:
             try:
