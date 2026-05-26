@@ -452,16 +452,15 @@ async def send_donations_menu(
     triumph_node = await matrix_node_service.get_node(
         owner_id=current_user.id,
     )
-    if not triumph_node:
-        pass
+    if triumph_node:
+        now = datetime.now(triumph_node.last_activation.tzinfo)
+        triumph_node_expires_at = triumph_node.last_activation + timedelta(days=365)
+        time_difference = triumph_node_expires_at - now
+        triumph_node_expires_in_days = time_difference.days
 
-    now = datetime.now(triumph_node.last_activation.tzinfo)
-    triumph_node_expires_at = triumph_node.last_activation + timedelta(days=365)
-    time_difference = triumph_node_expires_at - now
-    triumph_node_expires_in_days = time_difference.days
+        triumph_node_deadline_template = "{0} дней {1}"
+        triumph_node_deadline_additional_str = ""
 
-    triumph_node_deadline_template = "{0} дней {1}"
-    triumph_node_deadline_additional_str = ""
     if triumph_node_expires_in_days == 1:
         remaining_seconds = time_difference.seconds
         hours = remaining_seconds // 3600
