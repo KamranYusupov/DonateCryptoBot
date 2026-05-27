@@ -147,7 +147,7 @@ class MatrixNodeService:
                 donate_sum=donate_sum,
                 engine_type=MatrixEngineType.NODES,
                 execute_at=now + timedelta(
-                    seconds=settings.add_bot_to_matrix_1_countdown_minutes
+                    minutes=settings.add_bot_to_matrix_1_countdown_minutes
                 ),
             ).model_dump()
         )
@@ -157,7 +157,7 @@ class MatrixNodeService:
                 donate_sum=donate_sum,
                 engine_type=MatrixEngineType.NODES,
                 execute_at=now + timedelta(
-                    seconds=settings.add_bot_to_matrix_2_countdown_minutes
+                    minutes=settings.add_bot_to_matrix_2_countdown_minutes
                 ),
             ).model_dump()
         )
