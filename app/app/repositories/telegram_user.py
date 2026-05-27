@@ -149,8 +149,14 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
             quantity: int | float,
     ) -> None:
         bill_field_name = f"bill_for_{bill_type.value}"
-        bill_field = getattr(TelegramUser, bill_field_name)
-        update_values = {bill_field_name: bill_field + quantity}
+        donates_sum_field_name = "donates_sum"
+
+        bill = getattr(TelegramUser, bill_field_name)
+        donates_sum = getattr(TelegramUser, donates_sum_field_name)
+        update_values = {
+            bill_field_name: bill + quantity,
+            donates_sum_field_name: donates_sum + quantity,
+        }
 
         statement = (
             update(TelegramUser)

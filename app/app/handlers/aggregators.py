@@ -27,18 +27,21 @@ async def aggregate_donates_sum_handler(
         ],
 ):
     await message.answer("Start donates_sum aggregation.")
-    telegram_users_ids = await telegram_user_service.get_ids(
+    telegram_users = await telegram_user_service.get_list(
         is_bot=False,
         is_admin=False,
     )
-    for user_id in telegram_users_ids:
+    updated_count = 0
+    for user in telegram_users:
         donates_sum = await donate_confirm_service.get_transactions_sum(
-            sponsor_id=user_id,
+            sponsor_id=user.id,
         )
-        await telegram_user_service.update(
-            obj_id=user_id,
-            obj_in={"donates_sum": donates_sum},
-        )
+        if user.donates_sum != donates_sum:
+            await telegram_user_service.update(
+                obj_id=user.id,
+                obj_in={"donates_sum": donates_sum},
+            )
+            updated_count += 1
 
     admin = await telegram_user_service.get_admin()
     admin_donates_sum = await donate_confirm_service.get_transactions_sum(
@@ -50,6 +53,7 @@ async def aggregate_donates_sum_handler(
         obj_in={"donates_sum": admin_donates_sum},
     )
 
+    await message.answer(f"Users updated: {updated_count}")
     await message.answer("donates_sum aggregation completed.")
 
 
