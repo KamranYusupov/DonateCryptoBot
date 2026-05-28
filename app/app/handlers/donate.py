@@ -706,12 +706,12 @@ async def donate_handler(
             contest_point_user = await telegram_user_service.get_sponsor_recursively(
                 TelegramUser.status != DonateStatus.NOT_ACTIVE,
                 TelegramUser.status != DonateStatus.TEST,
-                sponsor_user_id=last_sponsor.user_id
+                user_id=last_sponsor.user_id
             )
             contest_point_user_id = contest_point_user.user_id
 
         await sponsors_contests_service.create_contest_point(
-            sponsor_user_id=contest_point_user_id
+            user_id=contest_point_user_id
         )
 
     bill_field = f"bill_for_{bill_type}"

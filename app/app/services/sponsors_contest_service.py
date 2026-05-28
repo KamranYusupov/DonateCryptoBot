@@ -6,6 +6,7 @@ import loguru
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.repositories.contest import RepositorySponsorsContest, RepositorySponsorsContestPoint
 from app.models.contest import SponsorsContest, SponsorsContestPoint
+from app.schemas.sponsors_contest import CreateContestPointSchema
 from app.utils.datetime import get_start_of_week
 from app.models.telegram_user import TelegramUser
 
@@ -53,12 +54,15 @@ class SponsorsContestService:
         )
         return current_contest, True
 
-    async def create_contest_point(self, sponsor_user_id: int) -> SponsorsContestPoint:
+    async def create_contest_point(self, user_id: int) -> SponsorsContestPoint:
         current_contest, _ = await self.get_or_create_current_contest()
-        return self._repository_sponsors_contest_point.create({
-            "sponsor_user_id": sponsor_user_id,
-            "contest_id": current_contest.id,
-        })
+        point_schema = CreateContestPointSchema(
+            user_id=user_id,
+            contest_id=current_contest.id,
+        )
+        return self._repository_sponsors_contest_point.create(
+            obj_in=point_schema.model_dump()
+        )
 
     async def get_contests_points(self, *args, **kwargs):
         return self._repository_sponsors_contest_point.list(*args, **kwargs)
@@ -72,16 +76,16 @@ class SponsorsContestService:
         if not points:
             return
 
-        sponsor_ids = {p.sponsor_user_id for p in points}
+        user_ids = {p.user_id for p in points}
         sponsors = self._repository_telegram_user.list(
-            TelegramUser.user_id.in_(sponsor_ids)
-        ) if sponsor_ids else []
+            TelegramUser.user_id.in_(user_ids)
+        ) if user_ids else []
         sponsors_map = {s.user_id: s for s in sponsors}
-        points_counts = Counter(p.sponsor_user_id for p in points)
+        points_counts = Counter(p.user_id for p in points)
 
         results = {}
-        for sponsor_user_id, points_count in points_counts.items():
-            sponsor = sponsors_map.get(sponsor_user_id)
+        for user_id, points_count in points_counts.items():
+            sponsor = sponsors_map.get(user_id)
             if not sponsor:
                 continue
             results[sponsor.user_id] = {
@@ -95,12 +99,12 @@ class SponsorsContestService:
             reverse=True
         )
         top_10_rating = []
-        for place, (sponsor_user_id, sponsor_result) in enumerate(sorted_items, start=1):
-            results[sponsor_user_id]["place"] = place
+        for place, (user_id, user_result) in enumerate(sorted_items, start=1):
+            results[user_id]["place"] = place
 
             if place <= 10:
                 top_10_rating.append(
-                    (sponsor_result["full_name"], sponsor_result["points"])
+                    (user_result["full_name"], user_result["points"])
                 )
 
         update_kwargs = {}
