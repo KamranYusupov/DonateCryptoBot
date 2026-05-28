@@ -42,21 +42,10 @@ class RegistrationContest(Base, AbstractContest, UUIDMixin):
     __tablename__ = "registration_contests"
 
 
-class RegistrationContestPoint(Base, UUIDMixin, TimestampedMixin):
-    sponsor_user_id = Column(
-        BigInteger,
-        ForeignKey("telegram_users.user_id"),
-        index=True,
-    )
-    contest_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("sponsors_contests.id"),
-        index=True,
-    )
-
-    contest = relationship(
-        "RegistrationContest",
-        remote_side="RegistrationContest.id",
-        backref="points"
-    )
+class RegistrationContestPoint(Base,
+    AbstractContestPoint[RegistrationContest],
+    TimestampedMixin,
+    UUIDMixin
+):
+    __tablename__ = "registration_contest_points"
 
