@@ -4,7 +4,10 @@ from collections import Counter
 import loguru
 
 from app.repositories.telegram_user import RepositoryTelegramUser
-from app.repositories.contest import RepositorySponsorsContest, RepositorySponsorsContestPoint
+from app.repositories.sponsors_contest import (
+    RepositorySponsorsContest,
+    RepositorySponsorsContestPoint,
+)
 from app.models.contest import SponsorsContest, SponsorsContestPoint
 from app.schemas.sponsors_contest import CreateContestPointSchema
 from app.utils.datetime import get_start_of_week
