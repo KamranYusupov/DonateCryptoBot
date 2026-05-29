@@ -67,7 +67,6 @@ class Container(containers.DeclarativeContainer):
             "app.handlers.worker",
             "app.handlers.bill_type",
             "app.handlers.aggregators",
-            "app.handlers.sponsors_contest",
 
 
             "app.middlewares.ban_user",

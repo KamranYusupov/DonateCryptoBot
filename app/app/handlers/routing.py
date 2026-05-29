@@ -28,18 +28,6 @@ def get_all_routers(
     """Функция для регистрации всех router"""
 
     router = Router()
-    router.include_router(start_router)
-    router.include_router(donate_router)
-    router.include_router(info_router)
-    router.include_router(ban_user_router)
-    router.include_router(referral_router)
-    router.include_router(payment_router)
-    router.include_router(withdrawal_requests_router)
-    router.include_router(transfer_router)
-    router.include_router(worker_router)
-    router.include_router(bill_type_router)
-    router.include_router(aggregators_router)
-    router.include_router(sponsors_contest_router)
     router.include_routers(
         start_router,
         donate_router,
