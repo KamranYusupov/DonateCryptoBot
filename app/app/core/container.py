@@ -3,6 +3,7 @@ from dependency_injector import containers, providers
 from app.core.config import Settings
 from app.db.session import SyncSession
 from app.repositories.donate import RepositoryDonate, RepositoryDonateTransaction
+from app.repositories.registration_contest import RepositoryRegistrationContest, RepositoryRegistrationContestPoint
 
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.repositories.admin_user import RepositoryAdminUser
@@ -12,7 +13,7 @@ from app.repositories.matrix import (
 )
 from app.repositories.transaction import RepositoryTransaction
 from app.repositories.withdrawal_request import RepositoryWithdrawalRequest
-from app.repositories.contest import RepositorySponsorsContest, RepositorySponsorsContestPoint
+from app.repositories.sponsors_contest import RepositorySponsorsContest, RepositorySponsorsContestPoint
 from app.repositories.transfer import RepositoryTransfer
 from app.repositories.statistic import RepositoryAdminStatistic
 
@@ -22,11 +23,17 @@ from app.models.donate import Donate, DonateTransaction
 from app.models.matrix import Matrix, MatrixNode
 from app.models.transaction import Transaction
 from app.models.withdrawal_request import WithdrawalRequest
-from app.models.contest import SponsorsContest, SponsorsContestPoint
+from app.models.contest import (
+    SponsorsContest,
+    SponsorsContestPoint,
+    RegistrationContest,
+    RegistrationContestPoint,
+)
 from app.models.transfer import Transfer
 from app.models.statistic import AdminStatistic
 
 from app.services.donate_confirm_service import DonateConfirmService
+from app.services.registration_contest_service import RegistrationContestService
 from app.services.telegram_user_service import TelegramUserService
 from app.services.matrix_service import MatrixService
 from app.services.donate_service import DonateService
@@ -108,6 +115,12 @@ class Container(containers.DeclarativeContainer):
     repository_sponsors_contest_point = providers.Factory(
         RepositorySponsorsContestPoint, model=SponsorsContestPoint, session=session
     )
+    repository_registration_contest = providers.Factory(
+        RepositoryRegistrationContest, model=RegistrationContest, session=session
+    )
+    repository_registration_contest_point = providers.Factory(
+        RepositoryRegistrationContestPoint, model=RegistrationContestPoint, session=session
+    )
     repository_transfer = providers.Factory(
         RepositoryTransfer, model=Transfer, session=session
     )
@@ -161,10 +174,17 @@ class Container(containers.DeclarativeContainer):
     )
     sponsors_contests_service = providers.Factory(
         SponsorsContestService,
-        repository_sponsors_contest=repository_sponsors_contest,
-        repository_sponsors_contest_point=repository_sponsors_contest_point,
+        repository_contest=repository_sponsors_contest,
+        repository_contest_point=repository_sponsors_contest_point,
         repository_telegram_user=repository_telegram_user,
     )
+    registration_contests_service = providers.Factory(
+        RegistrationContestService,
+        repository_contest=repository_registration_contest,
+        repository_contest_point=repository_registration_contest_point,
+        repository_telegram_user=repository_telegram_user,
+    )
+
     transfer_service = providers.Factory(
         TransferService,
         repository_transfer=repository_transfer,

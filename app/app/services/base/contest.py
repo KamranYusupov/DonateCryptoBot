@@ -1,0 +1,126 @@
+import uuid
+from typing import TypeVar, Generic, List, Tuple, Dict
+
+from app.domain.contest_calculator import ContestResultCalculator
+from app.schemas.contest_domain import ContestUpdateSchema, ContestUserItemSchema
+from app.utils.datetime import get_start_of_week
+
+ContestRepositoryType = TypeVar("ContestRepositoryType")
+ContestPointRepositoryType = TypeVar("ContestPointRepositoryType")
+ContestModelType = TypeVar("ContestModelType")
+ContestPointModelType = TypeVar("ContestPointModelType")
+
+
+class BaseContestService(Generic[ContestRepositoryType, ContestPointRepositoryType]):
+    """Базовый сервис с механикой конкурсов"""
+
+    def __init__(
+            self,
+            repository_contest: ContestRepositoryType,
+            repository_contest_point: ContestPointRepositoryType
+    ) -> None:
+        self._repository_contest = repository_contest
+        self._repository_contest_point = repository_contest_point
+
+    async def contest_exists(self, *args, **kwargs) -> bool:
+        return self._repository_contest.exists(*args, **kwargs)
+
+    async def get_contest(self, *args, **kwargs) -> ContestModelType:
+        return self._repository_contest.get(*args, **kwargs)
+
+    async def get_contests_list(self, *args, **kwargs) -> List[ContestModelType]:
+        return self._repository_contest.get_ordered_list(*args, **kwargs)
+
+    async def get_ids(self, *args, **kwargs) -> List[uuid.UUID]:
+        return self._repository_contest.get_ordered_ids(*args, **kwargs)
+
+    async def get_last_contest(self, *args, **kwarg) -> ContestModelType:
+        return self._repository_contest.get_last(*args, **kwarg)
+
+    async def get_current_contest(self) -> ContestModelType:
+        start_of_week = get_start_of_week()
+        return self._repository_contest.get(start_date=start_of_week)
+
+    async def get_or_create_current_contest(self) -> Tuple[ContestModelType, bool]:
+        current_contest = await self.get_current_contest()
+        if current_contest:
+            return current_contest, False
+
+        start_of_week = get_start_of_week()
+        current_contest = self._repository_contest.create(
+            {"start_date": start_of_week}
+        )
+        return current_contest, True
+
+    async def create_contest_point(self, user_id: int) -> ContestPointModelType:
+        current_contest, _ = await self.get_or_create_current_contest()
+        contest_data = {
+            "user_id": user_id,
+            "contest_id": current_contest.id,
+        }
+        return self._repository_contest_point.create(contest_data)
+
+    async def get_contest_points(self, *args, **kwargs) -> List[ContestPointModelType]:
+        return self._repository_contest_point.list(*args, **kwargs)
+
+    async def _get_user_str_map(
+            self,
+            user_ids: set[int]
+    ) -> Dict[int, str]:
+        raise NotImplementedError
+
+    def _calculate_prize_fund(
+            self,
+            init_prize_fund: int,
+            total_points: int
+    ) -> int:
+        return init_prize_fund
+
+    async def update_results(self, contest_id: uuid.UUID) -> None:
+        """Единый оркестратор обновления для ВСЕХ типов конкурсов."""
+        contest = self._repository_contest.get(id=contest_id)
+        if not contest:
+            return
+
+        users_points = self._repository_contest_point.get_grouped_points(contest_id=contest.id)
+        if not users_points:
+            return
+
+        user_points_schemas = []
+        user_ids_set = set()
+
+        for inx, (user_id, points_count) in user_points_schemas:
+            contest_item = ContestUserItemSchema(
+                user_id=user_id,
+                points_count=points_count
+            )
+
+            user_ids_set.add(user_id)
+            user_points_schemas.append(contest_item)
+
+        user_str_map = await self._get_user_str_map(user_ids_set)
+
+        calculated_result = ContestResultCalculator.calculate(
+            grouped_user_points=users_points,
+            user_str_map=user_str_map,
+        )
+
+        update_schema = ContestUpdateSchema()
+        if calculated_result.total_points:
+            update_schema.prize_fund = self._calculate_prize_fund(
+                calculated_result.total_points
+            )
+
+        if contest.top_10_rating != calculated_result.top_10_rating:
+            update_schema.top_10_rating = calculated_result.top_10_rating
+
+        if contest.results != calculated_result.results:
+            update_schema.results = calculated_result.results
+
+
+        update_data = update_schema.model_dump(exclude_unset=True)
+        if update_data:
+            self._repository_contest.update(
+                obj_id=contest.id,
+                obj_in=update_data
+            )

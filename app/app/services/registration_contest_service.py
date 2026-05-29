@@ -1,25 +1,21 @@
-import uuid
-from collections import Counter
 from typing import Dict
 
-import loguru
-
-from app.repositories.telegram_user import RepositoryTelegramUser
-from app.repositories.sponsors_contest import (
-    RepositorySponsorsContest,
-    RepositorySponsorsContestPoint,
-)
-from app.services.base.contest import BaseContestService
 from app.models.telegram_user import TelegramUser
+from app.repositories.registration_contest import (
+    RepositoryRegistrationContest,
+    RepositoryRegistrationContestPoint,
+)
+from app.repositories.telegram_user import RepositoryTelegramUser
+from app.services.base.contest import BaseContestService
 
 
-class SponsorsContestService(
-    BaseContestService[RepositorySponsorsContest, RepositorySponsorsContestPoint]
+class RegistrationContestService(
+    BaseContestService[RepositoryRegistrationContest, RepositoryRegistrationContestPoint]
 ):
     def __init__(
             self,
-            repository_contest: RepositorySponsorsContest,
-            repository_contest_point: RepositorySponsorsContestPoint,
+            repository_sponsors_contest: RepositoryRegistrationContest,
+            repository_sponsors_contest_point: RepositoryRegistrationContestPoint,
             repository_telegram_user: RepositoryTelegramUser,
     ) -> None:
         super().__init__(
@@ -43,10 +39,4 @@ class SponsorsContestService(
             init_prize_fund: int,
             total_points: int
     ) -> int:
-        return init_prize_fund + (total_points // 10) * 10
-
-
-
-
-
-
+        return init_prize_fund + (total_points // 100) * 10

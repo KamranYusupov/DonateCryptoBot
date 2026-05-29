@@ -1,4 +1,6 @@
 from typing import TypeVar, Generic, List, Optional
+import uuid
+
 from sqlalchemy import select, func
 
 from .base import RepositoryBase
@@ -55,3 +57,14 @@ class RepositoryContestPointBase(
             .filter_by(**kwargs)
         )
         return self._session.execute(statement).scalar()
+
+    def get_grouped_points(self, contest_id: uuid.UUID) -> list[tuple[int, int]]:
+        """Возвращает отсортированный список кортежей (user_id, points_count)"""
+        statement = (
+            select(self._model.user_id, func.count(self._model.id).label("points"))
+            .filter_by(contest_id=contest_id)
+            .group_by(self._model.user_id)
+            .order_by(func.count(self._model.id).desc())
+        )
+        result = self._session.execute(statement)
+        return result.all()
