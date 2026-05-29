@@ -20,6 +20,7 @@ from app.core.container import Container
 from app.schemas.donate import DonateEntity
 from app.services.donate_confirm_service import DonateConfirmService
 from app.services.matrix_node_service import MatrixNodeService
+from app.services.registration_contest_service import RegistrationContestService
 from app.services.telegram_user_service import TelegramUserService
 from app.models.telegram_user import status_list
 from app.services.donate_service import DonateService
@@ -30,7 +31,6 @@ from app.core.config import settings
 from app.services.matrix_service import MatrixService
 from app.schemas.matrix import MatrixEntity
 from app.keyboards.donate import get_donations_keyboard
-from app.db.commit_decorator import commit_and_close_session
 from app.keyboards.reply import get_reply_keyboard
 from app.utils.pagination import Paginator
 from app.utils.sort import get_reversed_dict
@@ -67,7 +67,6 @@ donate_router = Router()
 
 @donate_router.callback_query(F.data.startswith("yes_"))
 @inject
-@commit_and_close_session
 async def captcha_handler(
         callback: CallbackQuery,
         state: FSMContext,
@@ -126,7 +125,6 @@ async def captcha_handler(
 
 @donate_router.callback_query(F.data.startswith("register_"))
 @inject
-@commit_and_close_session
 async def register_handler(
         callback: CallbackQuery,
         state: FSMContext,
@@ -210,7 +208,6 @@ async def register_handler(
 
 @donate_router.callback_query(F.data.startswith("menu_"))
 @inject
-@commit_and_close_session
 async def subscription_checker(
         callback: CallbackQuery,
         telegram_user_service: TelegramUserService = Provide[
@@ -218,6 +215,9 @@ async def subscription_checker(
         ],
         admin_statistic_service: AdminStatisticService = Provide[
             Container.admin_statistic_service
+        ],
+        registration_contests_service: RegistrationContestService = Provide[
+            Container.registration_contests_service
         ],
 ):
     sponsor_user_id = int(callback.data.split("_")[-1])
@@ -258,6 +258,10 @@ async def subscription_checker(
         "Твои первые шаги — ниже ⤵️"
         ,
         reply_markup=get_start_inline_keyboard(),
+    )
+
+    await registration_contests_service.create_contest_point(
+        user_id=sponsor_user_id,
     )
 
     if not settings.send_donate_for_registration or current_user.is_donate_for_registration_sent:
@@ -539,7 +543,6 @@ async def export_users_to_excel_callback_handler(
 
 @donate_router.callback_query(F.data.startswith("send_donate_"))
 @inject
-@commit_and_close_session
 async def confirm_donate(
         callback: CallbackQuery,
         telegram_user_service: TelegramUserService = Provide[
@@ -589,7 +592,6 @@ async def confirm_donate(
 
 @donate_router.callback_query(F.data.startswith("donate_"))
 @inject
-@commit_and_close_session
 async def donate_handler(
         callback: CallbackQuery,
         telegram_user_service: TelegramUserService = Provide[
@@ -783,7 +785,6 @@ async def get_transactions_menu(
 
 @donate_router.callback_query(F.data.startswith("transactions_to_me_"))
 @inject
-@commit_and_close_session
 async def get_transactions_list_to_me(
         callback: CallbackQuery,
         telegram_user_service: TelegramUserService = Provide[

@@ -7,12 +7,10 @@ from aiogram.types import Message
 from celery import shared_task
 
 from app.core.container import Container
-from app.db.commit_decorator import commit_and_close_session
 from app.models.donate import Donate
 from app.models.telegram_user import TelegramUser
 from app.services.donate_confirm_service import DonateConfirmService
 from app.services.telegram_user_service import TelegramUserService
-from app.core import celery_app
 from app.loader import bot
 from app.tasks.const import loop
 

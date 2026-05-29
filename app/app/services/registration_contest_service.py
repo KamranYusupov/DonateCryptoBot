@@ -14,13 +14,13 @@ class RegistrationContestService(
 ):
     def __init__(
             self,
-            repository_sponsors_contest: RepositoryRegistrationContest,
-            repository_sponsors_contest_point: RepositoryRegistrationContestPoint,
+            repository_contest: RepositoryRegistrationContest,
+            repository_contest_point: RepositoryRegistrationContestPoint,
             repository_telegram_user: RepositoryTelegramUser,
     ) -> None:
         super().__init__(
-            repository_contest=repository_sponsors_contest,
-            repository_contest_point=repository_sponsors_contest_point
+            repository_contest=repository_contest,
+            repository_contest_point=repository_contest_point
         )
         self._repository_telegram_user = repository_telegram_user
 

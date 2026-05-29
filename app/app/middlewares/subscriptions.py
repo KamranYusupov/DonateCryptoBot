@@ -3,15 +3,10 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from dependency_injector.wiring import inject, Provide
 
-from app.services import telegram_user_service
 from app.core.container import Container
 from app.services.telegram_user_service import TelegramUserService
-from app.db.commit_decorator import commit_and_close_session
-from app.core.config import settings
-from app.keyboards.donate import get_donate_keyboard
 from app.keyboards.inline import get_subscriptions_keyboard
 from app.loader import bot
-from app.utils.bot import send_subscription_menu
 
 
 @inject

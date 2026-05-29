@@ -3,7 +3,7 @@ from typing import List, Dict
 from app.schemas.contest_domain import (
     ContestUserItemSchema,
     ContestUserResultSchema,
-    ContestTop10ItemSchema,
+    ContestTop10ItemTuple,
     ContestCalculationResultSchema
 )
 
@@ -19,7 +19,7 @@ class ContestResultCalculator:
     ) -> ContestCalculationResultSchema:
 
         results: Dict[int, ContestUserResultSchema] = {}
-        top_10_rating: List[ContestTop10ItemSchema] = []
+        top_10_rating: List[ContestTop10ItemTuple] = []
         total_points = 0
         place = 1
 
@@ -36,7 +36,7 @@ class ContestResultCalculator:
             )
 
             if place <= 10:
-                top_10_item = ContestTop10ItemSchema(
+                top_10_item = ContestTop10ItemTuple(
                     user_str=user_str,
                     points_count=item.points_count,
                 )

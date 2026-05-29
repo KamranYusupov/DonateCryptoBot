@@ -20,9 +20,6 @@ from app.core.container import Container
 from app.services.telegram_user_service import TelegramUserService
 from app.keyboards.donate import get_donate_keyboard
 from app.core.config import settings
-from app.keyboards.donate import get_donations_keyboard
-from app.db.commit_decorator import commit_and_close_session
-from app.services.crypto_bot_api_service import CryptoBotAPIService
 from app.keyboards.reply import get_reply_keyboard, reply_cancel_keyboard
 from app.services.withdrawal_request import WithdrawalRequestService
 from app.schemas.withdrawal_request import WithdrawalRequestEntity
@@ -167,7 +164,6 @@ async def process_tokens_count(
     WithdrawalRequestState.confirm_sending
 )
 @inject
-@commit_and_close_session
 async def send_withdrawal_request_handler(
         callback: CallbackQuery,
         state: FSMContext,
@@ -337,7 +333,6 @@ async def pay_withdrawal_callback_handler(
 
 @withdrawal_requests_router.callback_query(F.data.startswith("conf_withdrawal_"))
 @inject
-@commit_and_close_session
 async def confirm_withdrawal_callback_handler(
         callback: CallbackQuery,
         telegram_user_service: TelegramUserService = Provide[

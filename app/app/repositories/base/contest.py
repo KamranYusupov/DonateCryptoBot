@@ -1,7 +1,7 @@
 from typing import TypeVar, Generic, List, Optional
 import uuid
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, desc
 
 from .base import RepositoryBase
 from app.models.contest import AbstractContest
@@ -39,9 +39,23 @@ class RepositoryContestBase(
             select(self._model)
             .filter(*args)
             .filter_by(**kwargs)
-            .order_by(self._model.start_date)
+            .order_by(desc(self._model.start_date))
+            .limit(1)
         )
         return self._session.execute(statement).scalars().first()
+
+    def get_previous_active_contest(self, current_contest_id: uuid.UUID):
+        statement = (
+            select(self._model)
+            .where(
+                self._model.id != current_contest_id,
+                self._model.is_archived == False,
+            )
+            .order_by(desc(self._model.start_date))
+            .limit(1)
+        )
+        result = self._session.execute(statement)
+        return result.scalar_one_or_none()
 
 
 class RepositoryContestPointBase(

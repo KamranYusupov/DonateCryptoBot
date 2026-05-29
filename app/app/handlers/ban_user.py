@@ -8,7 +8,6 @@ from dependency_injector.wiring import inject, Provide
 
 from app.core.container import Container
 from app.services.telegram_user_service import TelegramUserService
-from app.db.commit_decorator import commit_and_close_session
 from app.core.config import settings
 from app.keyboards.donate import get_donate_keyboard
 from app.utils.pagination import Paginator
@@ -97,7 +96,6 @@ async def process_name(
 
 @ban_user_router.callback_query(F.data.startswith("confirm_ban_"))
 @inject
-@commit_and_close_session
 async def confirm_ban_user_callback_handler(
         callback: CallbackQuery,
         telegram_user_service: TelegramUserService = Provide[
@@ -208,7 +206,6 @@ async def unban_user_callback_handler(
 
 @ban_user_router.callback_query(F.data.startswith("confirm_unban_"))
 @inject
-@commit_and_close_session
 async def confirm_ban_user_callback_handler(
         callback: CallbackQuery,
         telegram_user_service: TelegramUserService = Provide[

@@ -23,8 +23,8 @@ class SponsorsContestService(
             repository_telegram_user: RepositoryTelegramUser,
     ) -> None:
         super().__init__(
-            repository_contest=repository_sponsors_contest,
-            repository_contest_point=repository_sponsors_contest_point
+            repository_contest=repository_contest,
+            repository_contest_point=repository_contest_point
         )
         self._repository_telegram_user = repository_telegram_user
 

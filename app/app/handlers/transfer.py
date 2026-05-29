@@ -14,7 +14,6 @@ from app.services.telegram_user_service import TelegramUserService
 from app.keyboards.donate import get_donate_keyboard
 from app.core.config import settings
 from app.keyboards.donate import get_donations_keyboard
-from app.db.commit_decorator import commit_and_close_session
 from app.services.crypto_bot_api_service import CryptoBotAPIService
 from app.keyboards.reply import reply_cancel_keyboard, get_reply_keyboard
 from app.schemas.telegram_user import BillType
@@ -158,7 +157,6 @@ async def process_amount(
 
 @transfer_router.callback_query(F.data == "confirm_transfer", TransferState.confirm)
 @inject
-@commit_and_close_session
 async def transfer_tokens_handler(
         callback: CallbackQuery,
         state: FSMContext,
@@ -212,7 +210,6 @@ async def transfer_tokens_handler(
 
 @transfer_router.callback_query(F.data.startswith("transfer-list_"))
 @inject
-@commit_and_close_session
 async def transfer_list_handler(
         callback: CallbackQuery,
         telegram_user_service: TelegramUserService = Provide[

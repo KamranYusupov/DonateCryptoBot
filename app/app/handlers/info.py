@@ -14,12 +14,9 @@ from app.services.telegram_user_service import TelegramUserService
 from app.keyboards.donate import get_donate_keyboard
 from app.core.config import settings
 from app.services.matrix_service import MatrixService
-from app.utils.sponsor import get_callback_value
 from app.utils.pagination import Paginator
-from app.utils.matrix import get_matrices_length
 from app.utils.matrix import get_active_matrices, get_archived_matrices
 from app.models.telegram_user import status_list, status_emoji_list, DonateStatus
-from app.db.commit_decorator import commit_and_close_session
 from app.utils.texts import get_my_team_message, get_matrix_info_message, get_downline_nodes_message
 from app.models.telegram_user import TelegramUser
 
@@ -37,7 +34,11 @@ async def about_handler(
     presentation_keyboard.add(
         InlineKeyboardButton(
             text="🏆 КОНКУРС КУРАТОРОВ",
-            callback_data="sponsors_contest",
+            callback_data=settings.sponsors_contest_callback_prefix,
+        ),
+        InlineKeyboardButton(
+            text="🏆 КОНКУРС ПРИГЛАСИТЕЛЕЙ",
+            callback_data=settings.registration_contest_callback_prefix,
         ),
         InlineKeyboardButton(
             text="🎬 Фильм «KOD 💵 DENEG»",
@@ -111,12 +112,20 @@ async def team_inline_handler(
         matrix_node = await matrix_node_service.get_node(
             owner_id=current_user.id
         )
+        downline_nodes = await matrix_node_service.get_downline_nodes(
+            matrix_id=matrix_node.matrix_id,
+            position=matrix_node.position,
+            level=matrix_node.level,
+        )
         get_my_team_message_kwargs["matrix_node"] = matrix_node
+        get_my_team_message_kwargs["downline_nodes"] = downline_nodes
+
 
     if current_user.is_admin:
         for matrix in matrices:
             if matrix.status == DonateStatus.BRILLIANT:
                 matrices.remove(matrix)
+
 
     get_my_team_message_kwargs.update(dict(
         matrices=matrices,

@@ -142,6 +142,12 @@ class Settings(BaseSettings):
         default=15
     )
 
+    # region callback query prefixes
+    sponsors_contest_callback_prefix: str = "sponsors_contest"
+    registration_contest_callback_prefix: str = "registration_contest"
+    # endregion
+
+
     @computed_field
     @property
     def timezone_info(self) -> ZoneInfo:

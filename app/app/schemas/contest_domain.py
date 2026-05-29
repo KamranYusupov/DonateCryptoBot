@@ -1,7 +1,5 @@
-# app/schemas/contest_domain.py
-
 from pydantic import BaseModel, Field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, NamedTuple
 
 
 class ContestUserItemSchema(BaseModel):
@@ -19,7 +17,7 @@ class ContestUserResultSchema(BaseModel):
     place: int
 
 
-class ContestTop10ItemSchema(BaseModel):
+class ContestTop10ItemTuple(NamedTuple):
     """Элемент рейтинга ТОП-10"""
 
     user_str: str
@@ -31,12 +29,12 @@ class ContestCalculationResultSchema(BaseModel):
 
     total_points: int
     results: Dict[int, ContestUserResultSchema] = Field(default_factory=dict)
-    top_10_rating: List[ContestTop10ItemSchema] = Field(default_factory=list)
+    top_10_rating: List[ContestTop10ItemTuple] = Field(default_factory=list)
 
 
 class ContestUpdateSchema(BaseModel):
     """Схема для обновления модели конкурса в БД"""
 
     prize_fund: Optional[int] = None
-    top_10_rating: Optional[List[ContestTop10ItemSchema]] = None
+    top_10_rating: Optional[List[ContestTop10ItemTuple]] = None
     results: Optional[Dict[int, ContestUserResultSchema]] = None

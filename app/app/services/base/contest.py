@@ -1,6 +1,8 @@
 import uuid
 from typing import TypeVar, Generic, List, Tuple, Dict
 
+import loguru
+
 from app.domain.contest_calculator import ContestResultCalculator
 from app.schemas.contest_domain import ContestUpdateSchema, ContestUserItemSchema
 from app.utils.datetime import get_start_of_week
@@ -36,6 +38,11 @@ class BaseContestService(Generic[ContestRepositoryType, ContestPointRepositoryTy
 
     async def get_last_contest(self, *args, **kwarg) -> ContestModelType:
         return self._repository_contest.get_last(*args, **kwarg)
+
+    async def get_previous_active_contest(self, current_contest_id: uuid.UUID):
+        return self._repository_contest.get_previous_active_contest(
+            current_contest_id=current_contest_id
+        )
 
     async def get_current_contest(self) -> ContestModelType:
         start_of_week = get_start_of_week()
@@ -88,8 +95,7 @@ class BaseContestService(Generic[ContestRepositoryType, ContestPointRepositoryTy
 
         user_points_schemas = []
         user_ids_set = set()
-
-        for inx, (user_id, points_count) in user_points_schemas:
+        for inx, (user_id, points_count) in enumerate(users_points):
             contest_item = ContestUserItemSchema(
                 user_id=user_id,
                 points_count=points_count
@@ -99,16 +105,16 @@ class BaseContestService(Generic[ContestRepositoryType, ContestPointRepositoryTy
             user_points_schemas.append(contest_item)
 
         user_str_map = await self._get_user_str_map(user_ids_set)
-
         calculated_result = ContestResultCalculator.calculate(
-            grouped_user_points=users_points,
+            grouped_user_points=user_points_schemas,
             user_str_map=user_str_map,
         )
 
         update_schema = ContestUpdateSchema()
         if calculated_result.total_points:
             update_schema.prize_fund = self._calculate_prize_fund(
-                calculated_result.total_points
+                init_prize_fund=contest.init_prize_fund,
+                total_points=calculated_result.total_points
             )
 
         if contest.top_10_rating != calculated_result.top_10_rating:
@@ -123,4 +129,20 @@ class BaseContestService(Generic[ContestRepositoryType, ContestPointRepositoryTy
             self._repository_contest.update(
                 obj_id=contest.id,
                 obj_in=update_data
+            )
+
+    async def process_periodic_update(self) -> None:
+        """Оркестратор жизненного цикла: обновляет текущий и закрывает прошлый."""
+
+        current_contest, _ = await self.get_or_create_current_contest()
+        await self.update_results(current_contest.id)
+
+        previous_contest = await self.get_previous_active_contest(
+            current_contest_id=current_contest.id,
+        )
+        if previous_contest:
+            await self.update_results(previous_contest.id)
+            await self._repository_contest.update(
+                obj_id=previous_contest.id,
+                obj_in={"is_archived": True}
             )

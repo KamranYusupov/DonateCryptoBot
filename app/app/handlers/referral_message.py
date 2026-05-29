@@ -18,7 +18,6 @@ from app.utils.pagination import Paginator
 from app.utils.matrix import get_matrices_length
 from app.utils.matrix import get_active_matrices, get_archived_matrices
 from app.models.telegram_user import status_list, status_emoji_list
-from app.db.commit_decorator import commit_and_close_session
 from app.utils.bot import echo_message_with_media
 from app.keyboards.reply import get_reply_keyboard
 from app.utils.bot import send_assembled_message

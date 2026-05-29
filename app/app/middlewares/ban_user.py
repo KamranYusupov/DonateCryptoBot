@@ -4,7 +4,6 @@ from dependency_injector.wiring import inject, Provide
 from app.services import telegram_user_service
 from app.core.container import Container
 from app.services.telegram_user_service import TelegramUserService
-from app.db.commit_decorator import commit_and_close_session
 from app.core.config import settings
 
 

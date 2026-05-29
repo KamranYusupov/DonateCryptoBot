@@ -21,7 +21,6 @@ from app.services.telegram_user_service import TelegramUserService
 from app.keyboards.donate import get_donate_keyboard
 from app.core.config import settings
 from app.keyboards.donate import get_donations_keyboard
-from app.db.commit_decorator import commit_and_close_session
 from app.services.crypto_bot_api_service import CryptoBotAPIService
 from app.keyboards.reply import reply_cancel_keyboard, get_reply_keyboard
 from app.loader import bot

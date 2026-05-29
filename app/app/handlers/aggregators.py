@@ -6,8 +6,6 @@ from dependency_injector.wiring import inject, Provide
 
 from app.core.container import Container
 from app.services.telegram_user_service import TelegramUserService
-from app.core.config import settings
-from app.db.commit_decorator import commit_and_close_session
 from app.services.donate_confirm_service import DonateConfirmService
 from app.models.donate import DonateTransaction, DonateTransactionType
 
@@ -16,7 +14,6 @@ aggregators_router = Router()
 
 @aggregators_router.message(Command("aggregate_donates_sum"))
 @inject
-@commit_and_close_session
 async def aggregate_donates_sum_handler(
         message: Message,
         telegram_user_service: TelegramUserService = Provide[
@@ -59,7 +56,6 @@ async def aggregate_donates_sum_handler(
 
 @aggregators_router.message(Command("aggregate_invites_count"))
 @inject
-@commit_and_close_session
 async def aggregate_invites_count_handler(
         message: Message,
         telegram_user_service: TelegramUserService = Provide[

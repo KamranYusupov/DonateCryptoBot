@@ -1,12 +1,10 @@
 import copy
 from datetime import date, timedelta
 from typing import Any, List
-from collections import deque
 import uuid
 
 import loguru
 from aiogram import html
-from dependency_injector.wiring import inject, Provide
 
 from app.models.telegram_user import (
     DonateStatus,
@@ -15,18 +13,16 @@ from app.models.telegram_user import (
     statuses_colors_data,
 )
 from app.models.telegram_user import TelegramUser
-from app.models.matrix import Matrix, MatrixNode
-from app.services.matrix_node_service import MatrixNodeService
-from app.utils.matrix import find_free_place_in_matrix, get_matrix_levels, get_sorted_matrices, insert_into_matrices
+from app.utils.matrix import (
+    find_free_place_in_matrix,
+    get_matrix_levels,
+    get_sorted_matrices,
+    insert_into_matrices,
+)
 from app.utils.pagination import Paginator
-from app.core.config import Settings, settings
-from app.models.matrix import Matrix
-from app.core.config import Settings
-from app.models.matrix import Matrix
+from app.core.config import settings
+from app.models.matrix import Matrix, MatrixNode
 from app.models.withdrawal_request import WithdrawalRequest
-from app.core.container import Container
-from app.models.donate import DonateTransactionType
-from app.services.donate_service import DonateService
 from app.utils.datetime import to_main_tz
 
 
@@ -147,7 +143,6 @@ def get_withdrawal_request_info_message(
     )
     return message
 
-@inject
 async def get_my_team_message(
         matrices: list[Matrix],
         matrix_node: MatrixNode,
@@ -155,9 +150,7 @@ async def get_my_team_message(
         per_page: int = 1,
         callback_data_prefix: str = "team",
         previous_page_number: int | None = None,
-        matrix_node_service: MatrixNodeService = Provide[
-            Container.matrix_node_service
-        ],
+        downline_nodes: list[MatrixNode] = [],
 ):
     message = ""
     sorted_matrices = get_sorted_matrices(matrices, status_list)
@@ -175,13 +168,8 @@ async def get_my_team_message(
         matrix = paginator.get_page()[0]
         if isinstance(matrix, Matrix):
             message += get_matrix_info_message(matrix)
-        else:
+        elif isinstance(matrix, MatrixNode):
             matrix_node = matrix
-            downline_nodes = await matrix_node_service.get_downline_nodes(
-                matrix_id=matrix_node.matrix_id,
-                position=matrix_node.position,
-                level=matrix_node.level,
-            )
             message += get_downline_nodes_message(
                 matrix_node,
                 status=DonateStatus.BRILLIANT,
@@ -314,16 +302,17 @@ def get_period_message(
     return f"{start_date_str} - {end_date_str}"
 
 
-def get_sponsors_contest_top_10_rating_message(
+def get_contest_top_10_rating_message(
         top_10_rating: list[tuple[str, int]],
         start_date: date,
         prize_fund: int,
+        title: str = "🏆 Топ‑10",
 ) -> str:
     lines = []
     if not top_10_rating:
         lines.append("В конкурсе пока нет результатов.")
     else:
-        lines.append("<b>🏆 Топ‑10 кураторов</b>\n")
+        lines.append(f"<b>{title}</b>\n")
 
     for place, (full_name, points) in enumerate(top_10_rating):
         try:

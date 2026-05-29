@@ -2,6 +2,7 @@ from dependency_injector import containers, providers
 
 from app.core.config import Settings
 from app.db.session import SyncSession
+from app.handlers.controllers.contest import ContestCallbackController
 from app.repositories.donate import RepositoryDonate, RepositoryDonateTransaction
 from app.repositories.registration_contest import RepositoryRegistrationContest, RepositoryRegistrationContestPoint
 
@@ -46,6 +47,7 @@ from app.services.sponsors_contest_service import SponsorsContestService
 from app.services.transfer_service import TransferService
 from app.services.statistic_service import AdminStatisticService
 from app.services.matrix_node_service import MatrixNodeService
+from app.utils.texts import get_contest_top_10_rating_message
 
 
 class Container(containers.DeclarativeContainer):
@@ -53,6 +55,7 @@ class Container(containers.DeclarativeContainer):
         modules=[
             "app.api.endpoints.crypto_bot",
 
+            "app.handlers.routing",
             "app.handlers.donate",
             "app.handlers.start",
             "app.handlers.info",
@@ -66,18 +69,18 @@ class Container(containers.DeclarativeContainer):
             "app.handlers.aggregators",
             "app.handlers.sponsors_contest",
 
+
             "app.middlewares.ban_user",
             "app.middlewares.subscriptions",
             "app.tasks.donate",
             "app.tasks.matrix",
 
             "app.utils.excel",
-            "app.utils.texts",
         ]
     )
 
-    config = providers.Factory(Settings)
-    db = providers.Singleton(SyncSession, db_url=config.provided.postgres_url)
+    settings = providers.Factory(Settings)
+    db = providers.Singleton(SyncSession, db_url=settings.provided.postgres_url)
     session = providers.Factory(db().create_session)
 
     # region repository
@@ -161,8 +164,8 @@ class Container(containers.DeclarativeContainer):
     )
     crypto_bot_api_service = providers.Factory(
         CryptoBotAPIService,
-        base_url=config.provided.crypto_bot_api_base_url,
-        api_token=config.provided.crypto_bot_api_token,
+        base_url=settings.provided.crypto_bot_api_base_url,
+        api_token=settings.provided.crypto_bot_api_token,
     )
     withdrawal_request_service = providers.Factory(
         WithdrawalRequestService,
@@ -195,3 +198,21 @@ class Container(containers.DeclarativeContainer):
         repository_admin_statistic=repository_admin_statistic,
     )
     # endregion
+
+    # region bot controllers
+    sponsors_contest_controller = providers.Factory(
+        ContestCallbackController,
+        title="🏆 Топ‑10 кураторов",
+        prefix=settings.provided.sponsors_contest_callback_prefix,
+        service=sponsors_contests_service,
+        results_text_formatter=get_contest_top_10_rating_message
+    )
+    registration_contest_controller = providers.Factory(
+        ContestCallbackController,
+        title="🏆 Топ‑10 пригласителей",
+        prefix=settings.provided.registration_contest_callback_prefix,
+        service=registration_contests_service,
+        results_text_formatter=get_contest_top_10_rating_message
+    )
+    # endregion
+
