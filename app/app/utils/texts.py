@@ -138,7 +138,9 @@ def get_withdrawal_request_info_message(
         f"Адрес кошелька: {html.code(withdrawal_request.wallet_address)}\n"
         f"Сеть: {html.bold(withdrawal_request.network.value)}\n"
         f"Сумма: ${html.code(withdrawal_request.tokens_count)}\n"
-        f"Пользователь: @{html.bold(withdrawal_request_user.username)}\n"
+        f"Пользователь: "
+        f"@{html.bold(withdrawal_request_user.username)} "
+        f"({withdrawal_request_user.user_id})\n"
         f"Подтвержден: " + html.bold("да" if withdrawal_request.is_paid else "нет") + "\n"
         f"Дата и время создания: "
         + html.bold(created_at_str)

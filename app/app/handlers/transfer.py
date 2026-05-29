@@ -108,6 +108,12 @@ async def process_amount(
         )
         return
 
+    if amount <= 0:
+        await message.answer(
+            "❌ Некорректный ввод. Отправьте положительное, целое число."
+        )
+        return
+
     state_data = await state.get_data()
     bill_type = state_data["bill_type"]
 
@@ -253,8 +259,8 @@ async def transfer_list_handler(
         transfer_str = (
             f"ID: {transfer.id}\n"
             f"Сумма: ${transfer.amount}\n"
-            f"От кого: @{transfer.sender.username} \n"
-            f"Кому: @{transfer.receiver.username} \n"
+            f"От кого: @{transfer.sender.username} ({transfer.sender.user_id})\n"
+            f"Кому: @{transfer.receiver.username} ({transfer.receiver.user_id})\n"
             f"Дата и время: " +
             to_main_tz(transfer.created_at).strftime("%d.%m.%Y %H:%M") + "\n"
         )
