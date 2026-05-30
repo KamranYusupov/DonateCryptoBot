@@ -112,13 +112,15 @@ async def team_inline_handler(
         matrix_node = await matrix_node_service.get_node(
             owner_id=current_user.id
         )
-        downline_nodes = await matrix_node_service.get_downline_nodes(
-            matrix_id=matrix_node.matrix_id,
-            position=matrix_node.position,
-            level=matrix_node.level,
-        )
+        if matrix_node:
+            downline_nodes = await matrix_node_service.get_downline_nodes(
+                matrix_id=matrix_node.matrix_id,
+                position=matrix_node.position,
+                level=matrix_node.level,
+            )
+            get_my_team_message_kwargs["downline_nodes"] = downline_nodes
+
         get_my_team_message_kwargs["matrix_node"] = matrix_node
-        get_my_team_message_kwargs["downline_nodes"] = downline_nodes
 
 
     if current_user.is_admin:

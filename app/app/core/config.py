@@ -3,7 +3,7 @@ import secrets
 from enum import Enum
 from zoneinfo import ZoneInfo
 
-from pydantic import PostgresDsn, Field, computed_field
+from pydantic import PostgresDsn, Field, computed_field, BaseModel
 from pydantic_settings import BaseSettings
 
 
@@ -17,6 +17,11 @@ class LogLevel(str, Enum):
 
 def field_validator(param, mode):
     pass
+
+
+class IntervalConfig(BaseModel):
+    min_minutes: int
+    max_minutes: int
 
 
 class Settings(BaseSettings):
@@ -35,7 +40,7 @@ class Settings(BaseSettings):
     donates_channel_link: str = Field(title="Ссылка на канал с донатами")
     web_app_link: str = Field(title="Ссылка на web app")
     manifest_link: str = Field(title="Ссылка на манифест")
-    message_per_second: float = Field(title="Кол-во сообщений в секунду", default=1)
+    message_per_second: int = Field(title="Кол-во сообщений в секунду", default=1)
     support_username: str = Field(title="Username аккаунта поддержки")
     log_level: LogLevel = Field(title="Уровень логирования", default=LogLevel.INFO)
     timezone: str = Field(default="Europe/Moscow")
@@ -127,20 +132,21 @@ class Settings(BaseSettings):
     # endregion
 
     # region Настройки Captcha
-    captcha_seconds_interval: int = Field(title="Время на решение каптчи", default=60)
+    captcha_time_to_solve_seconds: int = Field(title="Время на решение каптчи", default=60)
     math_captcha_options_count: int = Field(default=6)
     math_captcha_max_attempts_count: int = Field(default=2)
     # endregion
 
 
-    add_bot_to_matrix_1_countdown_minutes: int = Field(
-        title="Время ожидания первой задачи добавления бота в матрицу",
-        default=5
+    add_bot_to_matrix_first_task_interval: IntervalConfig = Field(
+        title="Интервал ожидания первой задачи добавления бота в матрицу",
+        default=IntervalConfig(min_minutes=30, max_minutes=60)
     )
-    add_bot_to_matrix_2_countdown_minutes: int = Field(
-        title="Время ожидания второй задачи добавления бота в матрицу",
-        default=15
+    add_bot_to_matrix_second_task_interval: IntervalConfig = Field(
+        title="Интервал ожидания второй задачи добавления бота в матрицу",
+        default=IntervalConfig(min_minutes=90, max_minutes=180)
     )
+
 
     # region callback query prefixes
     sponsors_contest_callback_prefix: str = "sponsors_contest"

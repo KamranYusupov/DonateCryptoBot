@@ -114,8 +114,6 @@ class MatrixNodeService:
             current_user_id: UUID,
             sponsor_id: UUID,
             status: DonateStatus,
-            donate_sum: int | float,
-            start_bot_tasks: bool = True,
     ) -> Tuple[MatrixNode, List[MatrixNode]]:
         inserted_node, is_created = await self._get_or_create_node(
             current_user_id=current_user_id,
@@ -135,31 +133,6 @@ class MatrixNodeService:
             ),
             matrix_id=inserted_node.matrix_id,
             positions=upline_positions,
-        )
-
-        if not start_bot_tasks or not is_created:
-            return inserted_node, active_upline_nodes
-
-        now = datetime.now()
-        self._repository_matrix_task.create(
-            obj_in=AddBotToMatrixTaskSchema(
-                obj_id=inserted_node.id,
-                donate_sum=donate_sum,
-                engine_type=MatrixEngineType.NODES,
-                execute_at=now + timedelta(
-                    minutes=settings.add_bot_to_matrix_1_countdown_minutes
-                ),
-            ).model_dump()
-        )
-        self._repository_matrix_task.create(
-            obj_in=AddBotToMatrixTaskSchema(
-                obj_id=inserted_node.id,
-                donate_sum=donate_sum,
-                engine_type=MatrixEngineType.NODES,
-                execute_at=now + timedelta(
-                    minutes=settings.add_bot_to_matrix_2_countdown_minutes
-                ),
-            ).model_dump()
         )
 
         return inserted_node, active_upline_nodes

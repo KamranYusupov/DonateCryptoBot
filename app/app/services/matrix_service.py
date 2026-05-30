@@ -67,30 +67,3 @@ class MatrixService:
     async def delete(self, obj_id: uuid.UUID):
         self._repository_matrix.delete(obj_id=obj_id)
 
-
-class AddBotToMatrixTaskModelService:
-    def __init__(
-            self,
-            repository_add_bot_to_matrix_task: RepositoryAddBotToMatrixTaskModel
-    ) -> None:
-        self._repository_add_bot_to_matrix_task = repository_add_bot_to_matrix_task
-
-    async def get_list(self, *args, **kwargs) -> list[AddBotToMatrixTaskModel]:
-        return self._repository_add_bot_to_matrix_task.list(*args, **kwargs)
-
-    async def get_task(self, **kwargs) -> Matrix:
-        return self._repository_add_bot_to_matrix_task.get(**kwargs)
-
-    async def create_task(
-            self,
-            add_bot_to_matrix_task_model: AddBotToMatrixTaskSchema
-    ) -> AddBotToMatrixTaskModel:
-        return self._repository_add_bot_to_matrix_task.create(
-            obj_in=add_bot_to_matrix_task_model.model_dump()
-        )
-
-    async def set_is_executed(self, ids: list[uuid.UUID], commit: bool = False,):
-        return self._repository_add_bot_to_matrix_task.set_is_executed(ids, commit)
-
-
-

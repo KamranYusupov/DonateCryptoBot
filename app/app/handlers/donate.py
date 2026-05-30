@@ -22,6 +22,7 @@ from app.services.donate_confirm_service import DonateConfirmService
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.registration_contest_service import RegistrationContestService
 from app.services.telegram_user_service import TelegramUserService
+from app.services.add_bot_to_matrix_task_service import AddBotToMatrixTaskService
 from app.models.telegram_user import status_list
 from app.services.donate_service import DonateService
 from app.schemas.telegram_user import TelegramUserEntity
@@ -47,7 +48,7 @@ from app.models.donate import DonateTransactionType
 from app.loader import bot
 from app.utils.bot import send_transaction_messages, send_captcha
 from app.models.telegram_user import TelegramUser
-from app.models.matrix import Matrix
+from app.models.matrix import Matrix, MatrixEngineType
 from app.utils.matrix import get_main_matrices
 from app.keyboards.donate import get_start_inline_keyboard
 from app.utils.datetime import to_main_tz
@@ -607,9 +608,9 @@ async def donate_handler(
         sponsors_contests_service: SponsorsContestService = Provide[
             Container.sponsors_contests_service
         ],
-        admin_statistic_service: AdminStatisticService = Provide[
-            Container.admin_statistic_service
-        ],
+        add_bot_to_matrix_task_service: AddBotToMatrixTaskService = Provide[
+            Container.add_bot_to_matrix_task_service
+        ]
 ) -> None:
     bill_type = callback.data.split("_")[-1]
     donate_sum = int(callback.data.split("_")[-2])
@@ -655,22 +656,37 @@ async def donate_handler(
     first_sponsor = sponsors[0]
     is_triumph = (status in (DonateStatus.BRILLIANT, ))
 
+
+    create_tasks_data = {"donate_sum": donate_sum}
+
     if not is_triumph:
-        matrix = await donate_service.handle_matrix_activation(
+        result = await donate_service.handle_matrix_activation(
             current_user,
             first_sponsor,
             donate_sum,
             donate_data,
             status,
         )
+        if not result:
+            await callback.message.delete()
+            await callback.message.answer(
+                "Непредвиденая ошибка. "
+                "Пожалуйста, обратитесь в службу поддержки "
+                f"@{settings.support_username}"
+            )
+            return
+
+        matrix, created_matrix = result
+        create_tasks_data["obj_id"] = created_matrix.id
+        create_tasks_data["engine_type"] = MatrixEngineType.JSON
         matrix_id = matrix.id
         matrix_max_length = settings.matrix_max_length
+
     else:
         inserted_node, upline_nodes = await matrix_node_service.activate_matrix_node(
             current_user_id=current_user.id,
             sponsor_id=first_sponsor.id,
             status=status,
-            donate_sum=donate_sum,
         )
         matrix_donate_data = await donate_service.update_donate_data_with_nodes(
             upline_nodes,
@@ -678,8 +694,13 @@ async def donate_handler(
             transaction_percent=settings.triumph_matrix_transaction_percent,
         )
         donate_data.extend(matrix_donate_data)
+
+        create_tasks_data["obj_id"] = inserted_node.id
+        create_tasks_data["engine_type"] = MatrixEngineType.NODES
         matrix_max_length = settings.triumph_matrix_max_length
         matrix_id = inserted_node.matrix_id
+
+    await add_bot_to_matrix_task_service.create_tasks(**create_tasks_data)
 
     donate_service.update_donate_data_with_system_transaction(
         donate_data,

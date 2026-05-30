@@ -420,7 +420,7 @@ async def send_captcha(
         captcha_id=captcha_id,
         answer=answer,
         expires_at=(
-                datetime.now() + timedelta(seconds=settings.captcha_seconds_interval)
+                datetime.now() + timedelta(seconds=settings.captcha_time_to_solve_seconds)
         ).timestamp(),
 
     )

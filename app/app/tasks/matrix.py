@@ -6,8 +6,9 @@ import loguru
 from aiogram.exceptions import TelegramAPIError
 from dependency_injector.wiring import Provide, inject
 
-from app.models.matrix import Matrix, MatrixEngineType
+from app.models.matrix import Matrix, MatrixEngineType, MatrixNode
 from app.models.telegram_user import TelegramUser, statuses_colors_data
+from app.schemas.matrix import AddBotToMatrixTaskSchema
 from app.services.donate_confirm_service import DonateConfirmService
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.telegram_user_service import TelegramUserService
@@ -20,7 +21,7 @@ from app.schemas.telegram_user import generate_random_user
 from app.core.container import Container
 from app.services.donate_service import DonateService
 from app.services.matrix_service import MatrixService
-from app.services.matrix_service import AddBotToMatrixTaskModelService
+from app.services.add_bot_to_matrix_task_service import AddBotToMatrixTaskService
 from app.db.commit_decorator import commit_and_close_session
 from app.core.container import Container
 from app.models.matrix import AddBotToMatrixTaskModel
@@ -44,12 +45,12 @@ async def add_bot_to_matrix(
         donate_confirm_service: DonateConfirmService = Provide[Container.donate_confirm_service],
 ) -> None:
     if engine_type == MatrixEngineType.JSON:
-        obj = await matrix_service.get_matrix(id=obj_id)
+        obj: Matrix = await matrix_service.get_matrix(id=obj_id)
         if not obj or len(obj.matrices) == 2:
             return
 
     else:
-        obj = await matrix_node_service.get_node(id=obj_id)
+        obj: MatrixNode = await matrix_node_service.get_node(id=obj_id)
         if not obj or obj.children_count == 2:
             return
 
@@ -67,7 +68,7 @@ async def add_bot_to_matrix(
     donations_data = []
 
     if engine_type == MatrixEngineType.JSON:
-        matrix = await donate_service.handle_matrix_activation(
+        result = await donate_service.handle_matrix_activation(
             bot_user,
             owner,
             donate_sum,
@@ -75,6 +76,11 @@ async def add_bot_to_matrix(
             obj.status,
             found_matrix=obj,
         )
+        if not result:
+            return
+
+        matrix, _ = result
+        loguru.logger.info(str(matrix.id))
 
         matrix_max_length = settings.matrix_max_length
         is_triumph = False
@@ -84,8 +90,6 @@ async def add_bot_to_matrix(
             current_user_id=bot_user.id,
             sponsor_id=owner.id,
             status=status,
-            donate_sum=donate_sum,
-            start_bot_tasks=False
         )
         matrix_donations_data = await donate_service.update_donate_data_with_nodes(
             upline_nodes,
@@ -136,13 +140,13 @@ async def add_bot_to_matrix(
 
 @inject
 async def execute_bot_matrix_tasks(
-    add_bot_to_matrix_task_service: AddBotToMatrixTaskModelService = Provide[
+    add_bot_to_matrix_task_service: AddBotToMatrixTaskService = Provide[
         Container.add_bot_to_matrix_task_service
     ]
 ):
     now = datetime.datetime.now()
     tasks = await add_bot_to_matrix_task_service.get_list(
-        AddBotToMatrixTaskModel.execute_at <= now + datetime.timedelta(minutes=1),
+        AddBotToMatrixTaskModel.execute_at <= now,# + datetime.timedelta(minutes=1),
         is_executed=False,
     )
     tasks_data = [
@@ -164,5 +168,5 @@ async def execute_bot_matrix_tasks(
         )
         tasks_ids.append(task["id"])
 
-    await add_bot_to_matrix_task_service.set_is_executed(tasks_ids, commit=True)
+    await add_bot_to_matrix_task_service.set_executed(tasks_ids, commit=True)
 

@@ -145,16 +145,19 @@ def get_withdrawal_request_info_message(
 
 async def get_my_team_message(
         matrices: list[Matrix],
-        matrix_node: MatrixNode,
         page_number: int,
         per_page: int = 1,
         callback_data_prefix: str = "team",
         previous_page_number: int | None = None,
-        downline_nodes: list[MatrixNode] = [],
+        matrix_node: MatrixNode | None = None,
+        downline_nodes: list[MatrixNode] | None = None,
 ):
+    downline_nodes = [] if not downline_nodes else downline_nodes
     message = ""
     sorted_matrices = get_sorted_matrices(matrices, status_list)
-    sorted_matrices.append(matrix_node)
+
+    if matrix_node:
+        sorted_matrices.append(matrix_node)
 
     paginator = Paginator(
         sorted_matrices,

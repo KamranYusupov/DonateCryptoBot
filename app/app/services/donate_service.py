@@ -267,7 +267,7 @@ class DonateService:
             status: DonateStatus,
             level_length: int = settings.level_length,
             found_matrix: Matrix | None = None
-    ) -> Matrix:
+    ) -> Tuple[Matrix, Optional[Matrix]]:
         if found_matrix:
             await self._handle_insertion_to_free_matrix(
                 found_matrix,
@@ -275,9 +275,8 @@ class DonateService:
                 donate_sum,
                 donations_data,
                 level_length,
-                start_bot_tasks=False,
             )
-            return found_matrix
+            return found_matrix, None
 
         sponsor_matrices = self._repository_matrix.get_user_matrices(
             owner_id=sponsor.id,
@@ -287,14 +286,14 @@ class DonateService:
         for matrix in sponsor_matrices:
 
             if len(matrix.telegram_users) < settings.matrix_max_length:
-                await self._handle_insertion_to_free_matrix(
+                created_matrix = await self._handle_insertion_to_free_matrix(
                     matrix,
                     current_user,
                     donate_sum,
                     donations_data,
                     level_length,
                 )
-                return matrix
+                return matrix, created_matrix
         else:
             if sponsor.is_admin:
                 matrix_entity = MatrixEntity(
@@ -303,14 +302,14 @@ class DonateService:
                 )
                 matrix = self._repository_matrix.create(obj_in=matrix_entity)
                 matrix.matrices, matrix.telegram_users = {},  []
-                await self._handle_insertion_to_free_matrix(
+                created_matrix = await self._handle_insertion_to_free_matrix(
                     matrix,
                     current_user,
                     donate_sum,
                     donations_data,
                     level_length,
                 )
-                return matrix
+                return matrix, created_matrix
 
             return await self._find_free_matrix(
                 current_user,
@@ -328,7 +327,6 @@ class DonateService:
             donate_sum: int | float,
             donations_data: list,
             level_length: int = settings.level_length,
-            start_bot_tasks: bool = True
     ):
         free_place_path = find_free_place_in_matrix(free_matrix.matrices, level_length)
         free_place_level = len(free_place_path) + 1
@@ -344,37 +342,12 @@ class DonateService:
             free_place_path,
             parents,
         )
-        created_matrix = await self.add_to_matrix(
+        return await self.add_to_matrix(
             free_matrix,
             current_user,
             free_place_level,
             free_place_path,
             parents,
-        )
-
-        if not start_bot_tasks:
-            return
-
-        now = datetime.now()
-        self._repository_matrix_task.create(
-            obj_in=AddBotToMatrixTaskSchema(
-                obj_id=created_matrix.id,
-                donate_sum=donate_sum,
-                engine_type=MatrixEngineType.JSON,
-                execute_at=now + timedelta(
-                    minutes=settings.add_bot_to_matrix_1_countdown_minutes
-                ),
-            ).model_dump()
-        )
-        self._repository_matrix_task.create(
-            obj_in=AddBotToMatrixTaskSchema(
-                obj_id=created_matrix.id,
-                donate_sum=donate_sum,
-                engine_type=MatrixEngineType.JSON,
-                execute_at=now + timedelta(
-                    minutes=settings.add_bot_to_matrix_2_countdown_minutes
-                ),
-            ).model_dump()
         )
 
     async def _find_free_matrix(
@@ -385,7 +358,7 @@ class DonateService:
             donations_data: list,
             level_length: int,
             max_iterations: int = 10000,
-    ):
+    ) -> Tuple[Matrix, Optional[Matrix]]:
         current_user = user_to_add
         iter_count = 0
 
@@ -413,14 +386,14 @@ class DonateService:
 
             for matrix in next_sponsor_matrices:
                 if len(matrix.telegram_users) < settings.matrix_max_length:
-                    await self._handle_insertion_to_free_matrix(
+                    created_matrix = await self._handle_insertion_to_free_matrix(
                         matrix,
                         current_user,
                         donate_sum,
                         donations_data,
                         level_length,
                     )
-                    return matrix
+                    return matrix, created_matrix
 
             if next_sponsor.is_admin:
                 matrix_entity = MatrixEntity(
@@ -429,14 +402,14 @@ class DonateService:
                 )
                 matrix = self._repository_matrix.create(obj_in=matrix_entity)
                 matrix.matrices, matrix.telegram_users = {}, []
-                await self._handle_insertion_to_free_matrix(
+                created_matrix = await self._handle_insertion_to_free_matrix(
                     matrix,
                     current_user,
                     donate_sum,
                     donations_data,
                     level_length,
                 )
-                return matrix
+                return matrix, created_matrix
             else:
                 user_to_add = next_sponsor
                 continue

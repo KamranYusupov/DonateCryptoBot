@@ -4,10 +4,11 @@ from typing import Optional, Sequence, List
 import loguru
 from sqlalchemy import select, func, update
 
-from app.models.telegram_user import TelegramUser, DonateStatus
+from app.models.telegram_user import DonateStatus
 from .base import RepositoryBase
+from app.repositories.base.mixins import BulkCreateMixin
 from app.models.matrix import Matrix, AddBotToMatrixTaskModel, MatrixNode
-from ..core.config import Settings, settings
+from app.core.config import settings
 
 
 class RepositoryMatrix(RepositoryBase[Matrix]):
@@ -212,9 +213,12 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
         return result.scalars().all()
 
 
-class RepositoryAddBotToMatrixTaskModel(RepositoryBase[AddBotToMatrixTaskModel]):
+class RepositoryAddBotToMatrixTaskModel(
+    RepositoryBase[AddBotToMatrixTaskModel],
+    BulkCreateMixin,
+):
 
-    def set_is_executed(self, ids: list[uuid.UUID], commit: bool = False):
+    def set_executed(self, ids: list[uuid.UUID], commit: bool = False):
         statement = (
             update(AddBotToMatrixTaskModel)
             .where(AddBotToMatrixTaskModel.id.in_(ids))

@@ -42,7 +42,7 @@ from app.services.crypto_bot_api_service import CryptoBotAPIService
 from app.services.withdrawal_request import WithdrawalRequestService
 from app.models.matrix import AddBotToMatrixTaskModel
 from app.repositories.matrix import RepositoryAddBotToMatrixTaskModel
-from app.services.matrix_service import AddBotToMatrixTaskModelService
+from app.services.add_bot_to_matrix_task_service import AddBotToMatrixTaskService
 from app.services.sponsors_contest_service import SponsorsContestService
 from app.services.transfer_service import TransferService
 from app.services.statistic_service import AdminStatisticService
@@ -171,8 +171,8 @@ class Container(containers.DeclarativeContainer):
         repository_withdrawal_request=repository_withdrawal_request,
     )
     add_bot_to_matrix_task_service = providers.Factory(
-        AddBotToMatrixTaskModelService,
-        repository_add_bot_to_matrix_task=repository_matrix_task,
+        AddBotToMatrixTaskService,
+        repository_matrix_task=repository_matrix_task,
     )
     sponsors_contests_service = providers.Factory(
         SponsorsContestService,
