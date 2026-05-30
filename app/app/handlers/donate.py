@@ -487,7 +487,7 @@ async def send_donations_menu(
     ]
 
     if triumph_node:
-        message_parts.append(f"Срок действия площадки <b>🏆 ТРИУМФ</b>: {triumph_node_deadline_str} дней")
+        message_parts.append(f"Срок действия площадки <b>🏆 ТРИУМФ</b>: {triumph_node_deadline_str}")
 
     message_parts.append(f"\nМой куратор: {sponsor.full_username}")
 
