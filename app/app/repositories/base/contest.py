@@ -21,7 +21,7 @@ class RepositoryContestBase(
             select(self._model.id)
             .filter(*args)
             .filter_by(**kwargs)
-            .order_by(self._model.start_date)
+            .order_by(desc(self._model.start_date))
         )
         return self._session.execute(statement).scalars().all()
 
@@ -30,7 +30,7 @@ class RepositoryContestBase(
             select(self._model)
             .filter(*args)
             .filter_by(**kwargs)
-            .order_by(self._model.start_date)
+            .order_by(desc(self._model.start_date))
         )
         return self._session.execute(statement).scalars().all()
 
