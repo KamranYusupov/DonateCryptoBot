@@ -28,7 +28,7 @@ def upgrade() -> None:
         new_column_name='start_at',
         type_=sa.DateTime(timezone=True),
         existing_type=sa.Date(),
-        postgresql_using='start_date::timestamp with time zone',
+        postgresql_using="start_date::timestamp AT TIME ZONE 'Europe/Moscow'",
     )
     op.alter_column(
         'registration_contests',
@@ -36,7 +36,7 @@ def upgrade() -> None:
         new_column_name='start_at',
         type_=sa.DateTime(timezone=True),
         existing_type=sa.Date(),
-        postgresql_using='start_date::timestamp with time zone',
+        postgresql_using="start_date::timestamp AT TIME ZONE 'Europe/Moscow'",
     )
 
     op.create_unique_constraint('uq_sponsors_contests_start_datetime', 'sponsors_contests', ['start_at'])
