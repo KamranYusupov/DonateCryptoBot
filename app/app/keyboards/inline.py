@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict
 
 import loguru
 from aiogram import Bot
@@ -73,3 +73,14 @@ async def get_subscriptions_keyboard(
     sizes = (1,) * len(buttons) if not sizes else sizes
 
     return keyboard.adjust(*sizes).as_markup()
+
+
+def get_inline_buttons_from_dict(dct: Dict[str, str]):
+    inline_buttons = [
+        InlineKeyboardButton(
+            text=text,
+            callback_data=data,
+        )
+        for text, data in dct.items()
+    ]
+    return inline_buttons
