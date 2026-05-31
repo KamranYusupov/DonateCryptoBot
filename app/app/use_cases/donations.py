@@ -58,6 +58,12 @@ async def send_donations_menu(
         current_user_place = places_emoji_list[current_user_place - 1]
 
     default_buttons = {}
+    if current_user.status != DonateStatus.NOT_ACTIVE:
+        default_buttons.update({
+            "АКТИВНЫЕ ПЛОЩАДКИ": f"team_1",
+            "Транзакции 💳": f"transactions",
+        })
+
     message_text = (
         f"Место в конкурсе: <b>{current_user_place}</b>\n"
         f"Лично приглашенных: <b>{current_user.invites_count}</b>\n"
