@@ -1,9 +1,10 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, time
 from typing import TypeVar, Generic, List, Tuple, Dict
 
 import loguru
 
+from app.core.config import settings
 from app.domain.contest_calculator import ContestResultCalculator
 from app.schemas.contest_domain import ContestUpdateSchema, ContestUserItemSchema
 from app.utils.datetime import get_start_of_week, to_main_tz
@@ -31,7 +32,12 @@ class BaseContestService(Generic[ContestRepositoryType, ContestPointRepositoryTy
         По умолчанию - понедельник 00:00. Наследники могут переопределить.
         """
         today = get_start_of_week()
-        dt = datetime.combine(today, datetime.min.time())
+
+        dt = datetime.combine(
+            today,
+            time(0, 0, 0),
+            tzinfo=settings.timezone_info
+        )
         return to_main_tz(dt)
 
     async def get_current_contest(self) -> ContestModelType:
