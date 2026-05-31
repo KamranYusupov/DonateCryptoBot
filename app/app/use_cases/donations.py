@@ -6,6 +6,7 @@ from dependency_injector.wiring import Provide, inject
 
 from app.core.container import Container
 from app.keyboards.donate import get_donate_keyboard, get_donations_keyboard
+from app.keyboards.inline import get_inline_buttons_from_dict
 from app.loader import bot
 from app.models import Matrix
 from app.models.telegram_user import DonateStatus, TelegramUser
@@ -151,13 +152,22 @@ async def send_donations_menu(
             "Забанить пользователя 🔒": "ban_user",
         }
         buttons.update(admin_buttons)
+        inline_buttons = get_inline_buttons_from_dict(buttons)
+        inline_buttons.append(
+            InlineKeyboardButton(
+                text="Внутренний перевод 💸",
+                callback_data="start_transfer",
+                style="success",
+            ),
+        )
+        keyboard = InlineKeyboardBuilder()
+        keyboard.add(*inline_buttons)
+        sizes = (1,) * len(inline_buttons)
 
         await telegram_method(
             **telegram_method_kwargs,
             text=message_text,
-            reply_markup=get_donate_keyboard(
-                buttons=default_buttons,
-            ),
+            reply_markup=keyboard.adjust(*sizes).as_markup(),
         )
         return
 
@@ -216,13 +226,7 @@ async def send_donations_menu(
     message_text = "\n".join(message_parts) + "\n" + message_text
 
     buttons.update(default_buttons)
-    inline_buttons = [
-        InlineKeyboardButton(
-            text=text,
-            callback_data=data,
-        )
-        for text, data in buttons.items()
-    ]
+    inline_buttons = get_inline_buttons_from_dict(buttons)
 
     if current_user.bill_for_withdraw:
         inline_buttons.append(
@@ -236,12 +240,12 @@ async def send_donations_menu(
         InlineKeyboardButton(
             text="📥 Пополнить USDT",
             callback_data="start_buy_tokens_state",
-            style="success",
+            style="primary"
         ),
         InlineKeyboardButton(
             text="Внутренний перевод 💸",
             callback_data="start_transfer",
-            style="primary"
+            style="success",
         ),
     ])
     keyboard = InlineKeyboardBuilder()
