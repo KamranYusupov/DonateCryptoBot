@@ -86,7 +86,7 @@ class AbstractAdminUser:
 
 class AbstractContest:
     """Абстрактная модель конкурса."""
-    start_date = Column(Date, unique=True, index=True)
+    start_at = Column(DateTime(timezone=True), unique=True, index=True)
     prize_fund = Column(Integer, default=100, server_default=text("100"))
     init_prize_fund = Column(Integer, default=100, server_default=text("100"))
     top_10_rating = Column(MutableList.as_mutable(JSONB), default=list)
