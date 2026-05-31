@@ -41,6 +41,9 @@ class SponsorsContestPoint(
 class RegistrationContest(Base, AbstractContest, UUIDMixin):
     __tablename__ = "registration_contests"
 
+    prize_fund = Column(Integer, default=0, server_default=text("0"))
+    init_prize_fund = Column(Integer, default=0, server_default=text("0"))
+
 
 class RegistrationContestPoint(Base,
     AbstractContestPoint[RegistrationContest],
