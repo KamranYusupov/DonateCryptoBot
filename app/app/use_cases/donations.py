@@ -216,18 +216,24 @@ async def send_donations_menu(
         for text, data in buttons.items()
     ]
 
+    if current_user.bill_for_withdraw:
+        inline_buttons.append(
+            InlineKeyboardButton(
+                text="📤 Вывод USDT",
+                callback_data="withdrawal_request",
+            )
+        )
+
     inline_buttons.extend([
-        InlineKeyboardButton(
-            text="📤 Вывод USDT",
-            callback_data="start_buy_tokens_state",
-        ),
         InlineKeyboardButton(
             text="📥 Пополнить USDT",
             callback_data="start_buy_tokens_state",
+            style="success",
         ),
         InlineKeyboardButton(
             text="Внутренний перевод 💸",
-            callback_data="start_buy_tokens_state",
+            callback_data="start_transfer",
+            style="primary"
         ),
     ])
     keyboard = InlineKeyboardBuilder()
