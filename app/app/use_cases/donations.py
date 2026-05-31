@@ -81,8 +81,6 @@ async def send_donations_menu(
             "Транзакции 💳": f"transactions",
         })
 
-    default_buttons.update({"Внутренний перевод 💸": "start_transfer" ,})
-
     if current_user.is_admin:
         admin_statistic = admin_statistic_service.get_statistic()
 
@@ -214,6 +212,7 @@ async def send_donations_menu(
 
     message_text = "\n".join(message_parts) + "\n" + message_text
 
+    buttons.update(default_buttons)
     inline_buttons = [
         InlineKeyboardButton(
             text=text,
