@@ -3,18 +3,16 @@ from typing import Dict, Any
 
 import loguru
 from aiogram.exceptions import TelegramAPIError
-from dependency_injector import providers
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, Request
 from starlette.responses import Response
 from starlette import status
 
 from app.core.container import Container
-from app.handlers import send_donations_menu
+from app.use_cases.donations import send_donations_menu
 from app.loader import bot
 from app.api.schemas.crypto_bot import UpdateWebhookSchema, CryptoInvoiceSchema
 from app.services.telegram_user_service import TelegramUserService
-from app.keyboards.donate import get_donate_keyboard
 from app.db.commit_decorator import commit_and_close_session
 
 router = APIRouter(tags=['CryptoBot'], prefix='/crypto-bot')

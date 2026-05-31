@@ -2,10 +2,15 @@ import uuid
 from typing import Any, Callable, Optional
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
+from dependency_injector.wiring import Provide, inject
 
+from app.core.config import settings
+from app.core.container import Container
 from app.keyboards.donate import get_donate_keyboard
+from app.services.registration_contest_service import RegistrationContestService
+from app.services.sponsors_contest_service import SponsorsContestService
 from app.utils.pagination import Paginator, get_pagination_buttons
-from app.utils.texts import get_period_message
+from app.utils.texts import get_period_message, get_contest_top_10_rating_message
 
 
 class ContestCallbackController:
@@ -148,3 +153,34 @@ class ContestCallbackController:
             self.archive_contest_callback_handler,
             F.data.startswith(f"{self.archive_prefix}_")
         )
+
+
+@inject
+def get_router(
+    sponsors_contests_service: SponsorsContestService = Provide[
+        Container.sponsors_contests_service
+    ],
+    registration_contests_service: RegistrationContestService = Provide[
+        Container.registration_contests_service
+    ],
+
+) -> Router:
+    router = Router()
+
+    sponsors_contest_controller = ContestCallbackController(
+        title="🏆 Топ‑10 кураторов",
+        prefix=settings.sponsors_contest_callback_prefix,
+        service=sponsors_contests_service,
+        results_text_formatter=get_contest_top_10_rating_message
+    )
+    registration_contest_controller = ContestCallbackController(
+        title="🏆 Топ‑10 пригласителей",
+        prefix=settings.registration_contest_callback_prefix,
+        service=registration_contests_service,
+        results_text_formatter=get_contest_top_10_rating_message
+    )
+
+    sponsors_contest_controller.register_to_router(router)
+    registration_contest_controller.register_to_router(router)
+
+    return router

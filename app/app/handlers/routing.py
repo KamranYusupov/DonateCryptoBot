@@ -1,7 +1,5 @@
 from aiogram import Router
-from dependency_injector.wiring import inject, Provide
 
-from .controllers.contest import ContestCallbackController
 from .start import start_router
 from .donate import donate_router
 from .info import info_router
@@ -13,21 +11,15 @@ from .transfer import transfer_router
 from .bill_type import bill_type_router
 from .aggregators import aggregators_router
 from app.core.config import settings
-from app.core.container import Container
+from .controllers.contest import get_router as get_contest_router
 
 
-@inject
-def get_all_routers(
-        sponsors_contest_controller: ContestCallbackController = Provide[
-            Container.sponsors_contest_controller
-        ],
-        registration_contest_controller: ContestCallbackController = Provide[
-            Container.registration_contest_controller
-        ],
-) -> Router:
+def get_all_routers() -> Router:
     """Функция для регистрации всех router"""
 
     router = Router()
+
+    contest_router = get_contest_router()
     router.include_routers(
         start_router,
         donate_router,
@@ -39,6 +31,7 @@ def get_all_routers(
         transfer_router,
         bill_type_router,
         aggregators_router,
+        contest_router
     )
     sponsors_contest_controller.register_to_router(router)
     registration_contest_controller.register_to_router(router)

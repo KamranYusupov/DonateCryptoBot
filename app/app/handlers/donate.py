@@ -5,63 +5,41 @@ import uuid
 from typing import Optional
 
 import loguru
-from aiogram import Router, F, Bot
-from aiogram.enums import ChatMemberStatus
-from aiogram.exceptions import TelegramBadRequest, TelegramAPIError
+from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import CallbackQuery, FSInputFile, InlineKeyboardButton
-from aiogram.filters import Command
+from aiogram.types import CallbackQuery, FSInputFile
 from aiogram.types import Message
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 from dependency_injector.wiring import inject, Provide
 
 from app.core.container import Container
-from app.schemas.donate import DonateEntity
 from app.services.donate_confirm_service import DonateConfirmService
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.registration_contest_service import RegistrationContestService
 from app.services.telegram_user_service import TelegramUserService
 from app.services.add_bot_to_matrix_task_service import AddBotToMatrixTaskService
-from app.models.telegram_user import status_list
 from app.services.donate_service import DonateService
-from app.schemas.telegram_user import TelegramUserEntity
 from app.keyboards.donate import get_donate_keyboard
-from app.utils.sponsor import get_callback_value
 from app.core.config import settings
 from app.services.matrix_service import MatrixService
-from app.schemas.matrix import MatrixEntity
-from app.keyboards.donate import get_donations_keyboard
 from app.keyboards.reply import get_reply_keyboard
 from app.utils.pagination import Paginator
-from app.utils.sort import get_reversed_dict
-from app.utils.sponsor import check_is_second_status_higher
-from app.utils.texts import get_donate_confirm_message
 from app.utils.excel import export_users_to_excel
-from app.utils.texts import (
-    get_user_statuses_statistic_message,
-    get_matrices_statuses_statistic_message,
-    get_matrices_length_statistic_message,
-)
-from app.models.donate import DonateTransactionType
 from app.models.donate import DonateTransactionType
 from app.loader import bot
 from app.utils.bot import send_transaction_messages, send_captcha
 from app.models.telegram_user import TelegramUser
 from app.models.matrix import Matrix, MatrixEngineType
-from app.utils.matrix import get_main_matrices
 from app.keyboards.donate import get_start_inline_keyboard
 from app.utils.datetime import to_main_tz
 from app.services.sponsors_contest_service import SponsorsContestService
-from app.utils.texts import places_emoji_list
 from app.models.telegram_user import DonateStatus
-from app.utils.captcha import generate_math_captcha
 from app.utils.bot import send_message_or_pass, delete_message_or_pass
 from app.utils.bot import get_schema_from_user
 from app.services.statistic_service import AdminStatisticService
-from app.keyboards.inline import get_subscriptions_keyboard, links_buttons
+from app.keyboards.inline import get_subscriptions_keyboard
 from app.utils.bot import send_subscription_menu
 from app.states.captcha import CaptchaState
+from app.use_cases.donations import send_donations_menu
 
 donate_router = Router()
 
@@ -114,7 +92,7 @@ async def captcha_handler(
     await state.set_state(CaptchaState.option)
     await send_message_or_pass(
         bot=callback.bot,
-        chat_id=sponsor.user_id,
+        chat_id=sponsor_user_id,
         text=(
             f"🎉 Поздравляем! По вашей ссылке зарегистрировался {current_user.full_username}\n\n"
             "👥 Свяжитесь с ним, узнайте, всё ли понятно, и при необходимости окажите поддержку.\n\n"
@@ -305,209 +283,6 @@ async def subscription_checker(
             chat_id=settings.donates_channel_id,
             text=donate_text,
         )
-
-
-
-@inject
-async def send_donations_menu(
-        from_user_id: int,
-        telegram_method,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
-        matrix_service: MatrixService = Provide[Container.matrix_service],
-        matrix_node_service: MatrixNodeService = Provide[
-            Container.matrix_node_service
-        ],
-        donate_confirm_service: DonateConfirmService = Provide[
-            Container.donate_confirm_service
-        ],
-        sponsors_contests_service: SponsorsContestService = Provide[
-            Container.sponsors_contests_service
-        ],
-        admin_statistic_service: AdminStatisticService = Provide[
-            Container.admin_statistic_service
-        ],
-) -> None:
-    telegram_method_kwargs = {}
-    if telegram_method == bot.send_message:
-        telegram_method_kwargs["chat_id"] = from_user_id
-
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=from_user_id
-    )
-    current_sponsors_contest, _ = \
-        await sponsors_contests_service.get_or_create_current_contest()
-    current_user_contest_result = current_sponsors_contest.results.get(
-        str(current_user.user_id), {}
-    )
-    current_user_place = current_user_contest_result.get("place", "-")
-    if isinstance(current_user_place, int) and 0 < current_user_place <= 10:
-        current_user_place = places_emoji_list[current_user_place - 1]
-
-    default_buttons = {}
-    message_text = (
-        f"Место в конкурсе: <b>{current_user_place}</b>\n"
-        f"Лично приглашенных: <b>{current_user.invites_count}</b>\n"
-        f"Баланс для активации: "
-        f"<b>${current_user.bill_for_activation}</b>\n"
-        "Баланс для вывода: "
-        f"<b>${current_user.bill_for_withdraw}</b>\n"
-        "Всего заработано: "
-        f"<b>${current_user.donates_sum}</b>\n"
-    )
-
-    if current_user.status != DonateStatus.NOT_ACTIVE:
-        default_buttons.update({
-            "АКТИВНЫЕ ПЛОЩАДКИ": f"team_1",
-            "Транзакции 💳": f"transactions",
-        })
-
-    default_buttons.update({"Внутренний перевод 💸": "start_transfer",})
-
-    if current_user.is_admin:
-        admin_statistic = admin_statistic_service.get_statistic()
-
-        users_count = await telegram_user_service.get_count(is_bot=False)
-        users_count_with_not_active_status = await telegram_user_service.get_count(
-            status=DonateStatus.NOT_ACTIVE,
-            is_bot=False,
-        )
-        owners_ids = await telegram_user_service.get_ids(is_bot=False)
-        matrices = await matrix_service.get_list(Matrix.owner_id.in_(owners_ids))
-        matrix_statuses_statistic_message = get_matrices_statuses_statistic_message(
-            matrices,
-        )
-        donates_sum = await donate_confirm_service.get_donates_sum()
-
-        bills_for_activation_sum = (
-            await telegram_user_service.get_bills_for_activation_sum()
-        ) - current_user.bill_for_activation
-        bills_for_withdraw_sum = (
-            await telegram_user_service.get_bills_for_withdraw_sum()
-        ) - current_user.bill_for_withdraw
-
-        users_count_with_bill_for_withdraw_gte_10 = (
-            await telegram_user_service.get_count(
-                TelegramUser.bill_for_withdraw >= 10,
-                TelegramUser.is_bot == False,
-            )
-        )
-        bills_for_withdraw_gte_10_sum = (
-            await telegram_user_service.get_bills_for_withdraw_sum(
-                TelegramUser.bill_for_withdraw >= 10,
-                TelegramUser.is_bot == False,
-            )
-        ) - current_user.bill_for_withdraw
-
-        message_text = (
-            f"Регистраций в KOD💵DENEG: <b>{users_count}</b>\n"
-            f"\n{matrix_statuses_statistic_message}"
-            f"🆓: {users_count_with_not_active_status}\n\n"
-            "Всего подарили: "
-            f"<b>${donates_sum}</b>\n"
-            "Системный баланс: "
-            f"<b>${admin_statistic.system_bill}</b>\n"
-            "Системный баланс Триумф: "
-            f"<b>${admin_statistic.triumph_system_bill}</b>\n"
-            "Число отправленных $ за регистрацию: "
-            f"<b>${admin_statistic.donates_sum_for_registration}</b>\n"
-            "Общий баланс для активации: "
-            f"<b>${bills_for_activation_sum}</b>\n"
-            "Общий баланс для вывода: "
-            f"<b>${bills_for_withdraw_sum}</b>\n"
-            "Общий баланс для вывода +10$: "
-            f"<b>${bills_for_withdraw_gte_10_sum}</b>\n"
-            "Число пользователей с балансом для вывода +10: "
-            f"<b>{users_count_with_bill_for_withdraw_gte_10}</b>\n\n"
-        ) + message_text
-        buttons = default_buttons
-        admin_buttons = {
-            "Скачать базу ⬇️": "excel_users",
-            "Заявки на вывод 💸": "withdrawal_requests_1",
-            "Список забаненных пользователей 📇🅱️": "banned_users_1",
-            "Внутренние переводы": "transfer-list_1",
-            "Забанить пользователя 🔒": "ban_user",
-        }
-        buttons.update(admin_buttons)
-
-        await telegram_method(
-            **telegram_method_kwargs,
-            text=message_text,
-            reply_markup=get_donate_keyboard(
-                buttons=default_buttons,
-            ),
-        )
-        return
-
-    current_user_matrices = await matrix_service.get_user_matrices(
-        owner_id=current_user.id,
-    )
-    current_user_main_matrices = get_main_matrices(current_user_matrices)
-    matrices_length_statistic_message = (
-        "\n" + get_matrices_length_statistic_message(current_user_main_matrices)
-    ) if current_user_main_matrices else "не открыты"
-
-    buttons = {}
-    sponsor = await telegram_user_service.get_telegram_user(
-        user_id=current_user.sponsor_user_id
-    )
-    buttons.update(get_donations_keyboard())
-
-    triumph_node = await matrix_node_service.get_node(
-        owner_id=current_user.id,
-    )
-    triumph_node_deadline_template = "{0} дней {1}"
-    triumph_node_deadline_str = ""
-
-    if triumph_node:
-        now = datetime.now(triumph_node.last_activation.tzinfo)
-        triumph_node_expires_at = triumph_node.last_activation + timedelta(days=365)
-        time_difference = triumph_node_expires_at - now
-        triumph_node_expires_in_days = time_difference.days
-
-        triumph_node_deadline_additional_str = ""
-
-        if triumph_node_expires_in_days == 1:
-            remaining_seconds = time_difference.seconds
-            hours = remaining_seconds // 3600
-            minutes = (remaining_seconds % 3600) // 60
-
-            triumph_node_deadline_additional_str = f" {hours} ч. {minutes} мин."
-        else:
-            triumph_node_expires_in_days += 1
-
-
-        triumph_node_deadline_str = triumph_node_deadline_template.format(
-            triumph_node_expires_in_days,
-            triumph_node_deadline_additional_str
-        )
-
-    message_parts = [
-        f"Активные площадки: {matrices_length_statistic_message}"
-    ]
-
-    if triumph_node:
-        message_parts.append(f"Срок действия площадки <b>🏆 ТРИУМФ</b>: {triumph_node_deadline_str}")
-
-    message_parts.append(f"\nМой куратор: {sponsor.full_username}")
-
-    message_text = "\n".join(message_parts) + "\n" + message_text
-
-    buttons.update(default_buttons)
-    buttons.update({
-        "Пополнить баланс": "start_buy_tokens_state",
-        "Вывод средств": "withdrawal_request",
-    })
-
-    await telegram_method(
-        **telegram_method_kwargs,
-        text=message_text,
-        reply_markup=get_donate_keyboard(
-            buttons=buttons,
-        ),
-    )
-
 
 @donate_router.callback_query(F.data.startswith("donations"))
 @donate_router.message(F.text == "⚡️ Активация")

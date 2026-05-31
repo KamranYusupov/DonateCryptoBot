@@ -80,8 +80,6 @@ async def add_bot_to_matrix(
             return
 
         matrix, _ = result
-        loguru.logger.info(str(matrix.id))
-
         matrix_max_length = settings.matrix_max_length
         is_triumph = False
         matrix_id = matrix.id

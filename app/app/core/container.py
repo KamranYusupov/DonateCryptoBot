@@ -2,7 +2,6 @@ from dependency_injector import containers, providers
 
 from app.core.config import Settings
 from app.db.session import SyncSession
-from app.handlers.controllers.contest import ContestCallbackController
 from app.repositories.donate import RepositoryDonate, RepositoryDonateTransaction
 from app.repositories.registration_contest import RepositoryRegistrationContest, RepositoryRegistrationContestPoint
 
@@ -12,7 +11,6 @@ from app.repositories.matrix import (
     RepositoryMatrix,
     RepositoryMatrixNode,
 )
-from app.repositories.transaction import RepositoryTransaction
 from app.repositories.withdrawal_request import RepositoryWithdrawalRequest
 from app.repositories.sponsors_contest import RepositorySponsorsContest, RepositorySponsorsContestPoint
 from app.repositories.transfer import RepositoryTransfer
@@ -22,7 +20,6 @@ from app.models.telegram_user import TelegramUser
 from app.models.admin_user import AdminUser
 from app.models.donate import Donate, DonateTransaction
 from app.models.matrix import Matrix, MatrixNode
-from app.models.transaction import Transaction
 from app.models.withdrawal_request import WithdrawalRequest
 from app.models.contest import (
     SponsorsContest,
@@ -47,7 +44,6 @@ from app.services.sponsors_contest_service import SponsorsContestService
 from app.services.transfer_service import TransferService
 from app.services.statistic_service import AdminStatisticService
 from app.services.matrix_node_service import MatrixNodeService
-from app.utils.texts import get_contest_top_10_rating_message
 
 
 class Container(containers.DeclarativeContainer):
@@ -67,7 +63,9 @@ class Container(containers.DeclarativeContainer):
             "app.handlers.worker",
             "app.handlers.bill_type",
             "app.handlers.aggregators",
+            "app.handlers.controllers.contest",
 
+            "app.use_cases.donations",
 
             "app.middlewares.ban_user",
             "app.middlewares.subscriptions",
@@ -195,23 +193,6 @@ class Container(containers.DeclarativeContainer):
     admin_statistic_service = providers.Factory(
         AdminStatisticService,
         repository_admin_statistic=repository_admin_statistic,
-    )
-    # endregion
-
-    # region bot controllers
-    sponsors_contest_controller = providers.Factory(
-        ContestCallbackController,
-        title="🏆 Топ‑10 кураторов",
-        prefix=settings.provided.sponsors_contest_callback_prefix,
-        service=sponsors_contests_service,
-        results_text_formatter=get_contest_top_10_rating_message
-    )
-    registration_contest_controller = providers.Factory(
-        ContestCallbackController,
-        title="🏆 Топ‑10 пригласителей",
-        prefix=settings.provided.registration_contest_callback_prefix,
-        service=registration_contests_service,
-        results_text_formatter=get_contest_top_10_rating_message
     )
     # endregion
 
