@@ -1,11 +1,12 @@
 import uuid
+from datetime import datetime
 from typing import TypeVar, Generic, List, Tuple, Dict
 
 import loguru
 
 from app.domain.contest_calculator import ContestResultCalculator
 from app.schemas.contest_domain import ContestUpdateSchema, ContestUserItemSchema
-from app.utils.datetime import get_start_of_week
+from app.utils.datetime import get_start_of_week, to_main_tz
 
 ContestRepositoryType = TypeVar("ContestRepositoryType")
 ContestPointRepositoryType = TypeVar("ContestPointRepositoryType")
@@ -23,6 +24,41 @@ class BaseContestService(Generic[ContestRepositoryType, ContestPointRepositoryTy
     ) -> None:
         self._repository_contest = repository_contest
         self._repository_contest_point = repository_contest_point
+
+    def _get_period_start(self) -> datetime:
+        """
+        Определяет точку отсчета для текущего конкурса.
+        По умолчанию - понедельник 00:00. Наследники могут переопределить.
+        """
+        today = get_start_of_week()
+        dt = datetime.combine(today, datetime.min.time())
+        return to_main_tz(dt)
+
+    async def get_current_contest(self) -> ContestModelType:
+        period_start = self._get_period_start()
+        return self._repository_contest.get(start_at=period_start)
+
+    async def get_or_create_current_contest(self) -> Tuple[ContestModelType, bool]:
+        current_contest = await self.get_current_contest()
+        if current_contest:
+            return current_contest, False
+
+        period_start = self._get_period_start()
+        current_contest = self._repository_contest.create(
+            {"start_at": period_start}
+        )
+        return current_contest, True
+
+    async def create_contest_point(self, user_id: int) -> ContestPointModelType:
+        current_contest, _ = await self.get_or_create_current_contest()
+        contest_data = {
+            "user_id": user_id,
+            "contest_id": current_contest.id,
+        }
+        return self._repository_contest_point.create(contest_data)
+
+    async def get_contest_points(self, *args, **kwargs) -> List[ContestPointModelType]:
+        return self._repository_contest_point.list(*args, **kwargs)
 
     async def contest_exists(self, *args, **kwargs) -> bool:
         return self._repository_contest.exists(*args, **kwargs)
@@ -43,32 +79,6 @@ class BaseContestService(Generic[ContestRepositoryType, ContestPointRepositoryTy
         return self._repository_contest.get_previous_active_contest(
             current_contest_id=current_contest_id
         )
-
-    async def get_current_contest(self) -> ContestModelType:
-        start_of_week = get_start_of_week()
-        return self._repository_contest.get(start_date=start_of_week)
-
-    async def get_or_create_current_contest(self) -> Tuple[ContestModelType, bool]:
-        current_contest = await self.get_current_contest()
-        if current_contest:
-            return current_contest, False
-
-        start_of_week = get_start_of_week()
-        current_contest = self._repository_contest.create(
-            {"start_date": start_of_week}
-        )
-        return current_contest, True
-
-    async def create_contest_point(self, user_id: int) -> ContestPointModelType:
-        current_contest, _ = await self.get_or_create_current_contest()
-        contest_data = {
-            "user_id": user_id,
-            "contest_id": current_contest.id,
-        }
-        return self._repository_contest_point.create(contest_data)
-
-    async def get_contest_points(self, *args, **kwargs) -> List[ContestPointModelType]:
-        return self._repository_contest_point.list(*args, **kwargs)
 
     async def _get_user_str_map(
             self,
@@ -142,7 +152,7 @@ class BaseContestService(Generic[ContestRepositoryType, ContestPointRepositoryTy
         )
         if previous_contest:
             await self.update_results(previous_contest.id)
-            await self._repository_contest.update(
+            self._repository_contest.update(
                 obj_id=previous_contest.id,
                 obj_in={"is_archived": True}
             )

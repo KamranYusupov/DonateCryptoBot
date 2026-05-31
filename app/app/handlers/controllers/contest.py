@@ -22,12 +22,14 @@ class ContestCallbackController:
             archive_prefix: Optional[str] = None,
             period_days: int = 7,
             title: str = "🏆 Топ‑10",
+            show_time: bool = False,
     ):
         self.prefix = prefix
         self.service = service
         self.results_text_formatter = results_text_formatter
         self.period_days = period_days
         self.title = title
+        self.show_time = show_time
 
         if not archive_prefix:
             archive_prefix = f"archive_{prefix}"
@@ -76,8 +78,10 @@ class ContestCallbackController:
 
         message_text = self.results_text_formatter(
             top_10_rating=contest.top_10_rating,
-            start_date=contest.start_date,
+            start_at=contest.start_at,
             prize_fund=contest.prize_fund,
+            period_days=self.period_days,
+            show_time=self.show_time,
         )
 
         await telegram_method(
@@ -117,7 +121,7 @@ class ContestCallbackController:
         detail_page_number = contests.index(page[0])
         for contest in page:
             button_text = get_period_message(
-                contest.start_date,
+                contest.start_at,
                 period_days=self.period_days
             )
             detail_page_number += 1
@@ -177,7 +181,9 @@ def get_router(
         title="🏆 Топ‑10 пригласителей",
         prefix=settings.registration_contest_callback_prefix,
         service=registration_contests_service,
-        results_text_formatter=get_contest_top_10_rating_message
+        results_text_formatter=get_contest_top_10_rating_message,
+        period_days=8,
+        show_time=True,
     )
 
     sponsors_contest_controller.register_to_router(router)

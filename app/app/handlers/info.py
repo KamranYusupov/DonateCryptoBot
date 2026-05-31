@@ -37,7 +37,7 @@ async def about_handler(
             callback_data=settings.sponsors_contest_callback_prefix,
         ),
         InlineKeyboardButton(
-            text="🏆 КОНКУРС ПРИГЛАСИТЕЛЕЙ",
+            text="🌊 ВОЛНА ИЗОБИЛИЯ",
             callback_data=settings.registration_contest_callback_prefix,
         ),
         InlineKeyboardButton(

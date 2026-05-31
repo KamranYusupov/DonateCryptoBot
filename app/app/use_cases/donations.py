@@ -16,8 +16,11 @@ from app.services.sponsors_contest_service import SponsorsContestService
 from app.services.statistic_service import AdminStatisticService
 from app.services.telegram_user_service import TelegramUserService
 from app.utils.matrix import get_main_matrices
-from app.utils.texts import places_emoji_list, get_matrices_statuses_statistic_message, \
-    get_matrices_length_statistic_message
+from app.utils.texts import (
+    places_emoji_list,
+    get_matrices_statuses_statistic_message,
+    get_matrices_length_statistic_message,
+)
 
 
 @inject

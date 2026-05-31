@@ -1,5 +1,5 @@
 import copy
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from typing import Any, List
 import uuid
 
@@ -295,21 +295,27 @@ def get_matrix_info_message(
 
 
 def get_period_message(
-        start_date: date,
+        start_at: datetime,
         period_days: int,
+        show_time: bool = False,
 ) -> str:
-    end_date = start_date + timedelta(days=period_days - 1)
-    start_date_str = start_date.strftime("%d.%m.%Y")
-    end_date_str = end_date.strftime("%d.%m.%Y")
+    start_at = to_main_tz(start_at)
+    end_date = start_at + timedelta(days=period_days - 1)
+    parse_format = "%d.%m.%Y" + (" %H:%M" if show_time else "")
 
-    return f"{start_date_str} - {end_date_str}"
+    start_str = start_at.strftime(parse_format)
+    end_str = end_date.strftime(parse_format)
+
+    return f"{start_str} - {end_str}"
 
 
 def get_contest_top_10_rating_message(
         top_10_rating: list[tuple[str, int]],
-        start_date: date,
+        start_at: datetime,
         prize_fund: int,
         title: str = "🏆 Топ‑10",
+        period_days: int = 7,
+        show_time: bool = False,
 ) -> str:
     lines = []
     if not top_10_rating:
@@ -328,7 +334,11 @@ def get_contest_top_10_rating_message(
         if place == 2:
             lines.append("")
 
-    period_str = get_period_message(start_date, period_days=7)
+    period_str = get_period_message(
+        start_at,
+        period_days=period_days,
+        show_time=show_time,
+    )
 
     lines.append(f"\n🗓 Период: <b>{period_str}</b>")
     lines.append(f"💰 Призовой фонд: <b>${prize_fund}</b>")

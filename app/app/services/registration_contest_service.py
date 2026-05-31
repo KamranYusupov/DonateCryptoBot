@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Dict
 
 from app.models.telegram_user import TelegramUser
@@ -7,6 +8,7 @@ from app.repositories.registration_contest import (
 )
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.services.base.contest import BaseContestService
+from app.utils.datetime import get_saturday_noon_period_start
 
 
 class RegistrationContestService(
@@ -23,6 +25,9 @@ class RegistrationContestService(
             repository_contest_point=repository_contest_point
         )
         self._repository_telegram_user = repository_telegram_user
+
+    def _get_period_start(self) -> datetime:
+        return get_saturday_noon_period_start()
 
     async def _get_user_str_map(
             self,
