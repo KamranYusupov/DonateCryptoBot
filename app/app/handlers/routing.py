@@ -33,8 +33,5 @@ def get_all_routers() -> Router:
         aggregators_router,
         contest_router
     )
-    sponsors_contest_controller.register_to_router(router)
-    registration_contest_controller.register_to_router(router)
-
 
     return router
