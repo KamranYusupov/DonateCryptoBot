@@ -17,6 +17,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from dependency_injector.wiring import inject, Provide
 
 from app.core.container import Container
+from app.keyboards.inline import get_confirm_inline_keyboard
 from app.services.telegram_user_service import TelegramUserService
 from app.keyboards.donate import get_donate_keyboard
 from app.core.config import settings
@@ -145,17 +146,15 @@ async def process_tokens_count(
     await state.update_data(tokens_count=tokens_count)
     await state.set_state(WithdrawalRequestState.confirm_sending)
 
+    reply_markup = get_confirm_inline_keyboard(
+        yes_button_data="send_withdrawal_request",
+        no_button_data="cancel",
+    )
     await message.answer("✍️", reply_markup=get_reply_keyboard(telegram_user))
     await message.answer(
         "Вы уверены? "
         "После создания заявки указанное число спишется с вашего баланса.",
-        reply_markup=get_donate_keyboard(
-            buttons={
-                "Да": f"send_withdrawal_request",
-                "Нет": "cancel",
-            },
-            sizes=(1, 1)
-        )
+        reply_markup=reply_markup
     )
 
 
@@ -319,15 +318,14 @@ async def pay_withdrawal_callback_handler(
     page_number = int(callback.data.split('_')[-1])
     other_page_number = page_number - 1 if page_number > 1 else page_number
 
+    reply_markup = get_confirm_inline_keyboard(
+        yes_button_data=f"conf_withdrawal_{withdrawal_request_id}_{other_page_number}",
+        no_button_data=f"withdrawal_requests_{page_number}",
+    )
+
     await callback.message.edit_text(
         text="<b>Вы уверенны?</b>",
-        reply_markup=get_donate_keyboard(
-            buttons={
-                "Да": f"conf_withdrawal_{withdrawal_request_id}_{other_page_number}",
-                "Нет": f"withdrawal_requests_{page_number}",
-            },
-            sizes=(1, 1)
-        )
+        reply_markup=reply_markup,
     )
 
 

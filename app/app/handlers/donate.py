@@ -36,7 +36,7 @@ from app.models.telegram_user import DonateStatus
 from app.utils.bot import send_message_or_pass, delete_message_or_pass
 from app.utils.bot import get_schema_from_user
 from app.services.statistic_service import AdminStatisticService
-from app.keyboards.inline import get_subscriptions_keyboard
+from app.keyboards.inline import get_subscriptions_keyboard, get_confirm_inline_keyboard
 from app.utils.bot import send_subscription_menu
 from app.states.captcha import CaptchaState
 from app.use_cases.donations import send_donations_menu
@@ -349,6 +349,12 @@ async def confirm_donate(
 
         return
 
+    reply_markup = get_confirm_inline_keyboard(
+        yes_button_data=callback_donate_data,
+        no_button_data="donations",
+        sizes=(2, 1),
+    )
+
     manifest_str = f"<a href='{settings.manifest_link}'>манифестом</a>"
     await callback.message.edit_text(
         text=(
@@ -357,13 +363,7 @@ async def confirm_donate(
             "Продолжить?"
         ),
         disable_web_page_preview=True,
-        reply_markup=get_donate_keyboard(
-            buttons={
-                "Да": callback_donate_data,
-                "Нет": f"donations",
-            },
-            sizes=(2, 1),
-        ),
+        reply_markup=reply_markup,
     )
 
 @donate_router.callback_query(F.data.startswith("donate_"))

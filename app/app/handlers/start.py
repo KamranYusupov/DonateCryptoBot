@@ -13,6 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.sql import func
 
 from app.core.container import Container
+from app.keyboards.inline import get_confirm_inline_keyboard
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.telegram_user_service import TelegramUserService
 from app.schemas.telegram_user import TelegramUserEntity, generate_random_user
@@ -57,11 +58,9 @@ async def command_start(
             f"Вы регистрируетесь по рекомендации {sponsor.first_name}"
             f" {sponsor.last_name if sponsor.last_name else ''}"
             f" - Продолжить регистрацию?",
-            reply_markup=get_donate_keyboard(
-                buttons={
-                    "Да": f"yes_{sponsor_user_id}",
-                    "Нет": "delete_msg",
-                },
+            reply_markup=get_confirm_inline_keyboard(
+                yes_button_data=f"yes_{sponsor_user_id}",
+                no_button_data="delete_msg",
                 sizes=(2, 1),
             ),
         )

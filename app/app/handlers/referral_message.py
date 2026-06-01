@@ -9,6 +9,7 @@ from aiogram.types import Message, CallbackQuery, PhotoSize
 from dependency_injector.wiring import inject, Provide
 
 from app.core.container import Container
+from app.keyboards.inline import get_confirm_inline_keyboard
 from app.services.telegram_user_service import TelegramUserService
 from app.keyboards.donate import get_donate_keyboard
 from app.keyboards.reply import reply_cancel_keyboard
@@ -42,13 +43,11 @@ def get_skip_keyboard():
     )
 
 def get_confirm_referrals_send_keyboard():
-    return get_donate_keyboard(
-        buttons={
-            "Да": f"confirm_referrals_send",
-            "Нет": "cancel",
-        },
-        sizes=(2,)
+    reply_markup = get_confirm_inline_keyboard(
+        yes_button_data="confirm_referrals_send",
+        no_button_data="cancel",
     )
+    return reply_markup
 
 @referral_router.callback_query(
     F.data.startswith("ref_msg_")

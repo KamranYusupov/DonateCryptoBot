@@ -15,6 +15,7 @@ from app.utils.texts import get_user_info_message
 from app.keyboards.reply import get_reply_keyboard
 from app.keyboards.reply import reply_cancel_keyboard
 from app.utils.bot import send_message_or_pass
+from app.keyboards.inline import get_confirm_inline_keyboard
 
 ban_user_router = Router()
 
@@ -82,15 +83,14 @@ async def process_name(
         reply_markup=get_reply_keyboard(current_user)
     )
 
+    reply_markup = get_confirm_inline_keyboard(
+        yes_button_data=f"confirm_ban_{telegram_user.user_id}",
+        no_button_data="donations",
+    )
+
     await message.answer(
         text=html.bold("Вы уверены?"),
-        reply_markup=get_donate_keyboard(
-            buttons={
-                "Да": f"confirm_ban_{telegram_user.user_id}",
-                "Нет": "donations",
-            },
-            sizes=(1, 1)
-        )
+        reply_markup=reply_markup,
     )
 
 
@@ -192,15 +192,14 @@ async def unban_user_callback_handler(
         )
         return
 
+    reply_markup = get_confirm_inline_keyboard(
+        yes_button_data=f"confirm_unban_{telegram_user.user_id}",
+        no_button_data="donations",
+    )
+
     await callback.message.edit_text(
         text=html.bold("Вы уверенны?"),
-        reply_markup=get_donate_keyboard(
-            buttons={
-                "Да": f"confirm_unban_{telegram_user.user_id}",
-                "Нет": "donations",
-            },
-            sizes=(1, 1)
-        )
+        reply_markup=reply_markup
     )
 
 

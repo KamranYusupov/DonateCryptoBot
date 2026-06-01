@@ -10,6 +10,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from dependency_injector.wiring import inject, Provide
 
 from app.core.container import Container
+from app.keyboards.inline import get_confirm_inline_keyboard
 from app.services.telegram_user_service import TelegramUserService
 from app.keyboards.donate import get_donate_keyboard
 from app.core.config import settings
@@ -140,16 +141,15 @@ async def process_amount(
     receiver_username = "@" + receiver_username \
         if receiver_username[0] != "@" else receiver_username
 
+    reply_markup = get_confirm_inline_keyboard(
+        yes_button_data="confirm_transfer",
+        no_button_data="cancel",
+    )
+
     await message.answer(
         f"Перевод {amount} USDT пользователю {receiver_username}.\n\n"
         "Вы уверены?",
-        reply_markup=get_donate_keyboard(
-            buttons={
-                "Да": f"confirm_transfer",
-                "Нет": "cancel",
-            },
-            sizes=(1, 1)
-        )
+        reply_markup=reply_markup,
     )
 
     await state.set_state(TransferState.confirm)

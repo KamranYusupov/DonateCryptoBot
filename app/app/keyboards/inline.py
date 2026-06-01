@@ -84,3 +84,22 @@ def get_inline_buttons_from_dict(dct: Dict[str, str]):
         for text, data in dct.items()
     ]
     return inline_buttons
+
+def get_confirm_inline_keyboard(
+        yes_button_data: str,
+        no_button_data: str,
+        sizes: tuple[int, int] = (1, 1)
+):
+    yes_button = InlineKeyboardButton(
+        text="Да",
+        callback_data=yes_button_data,
+        style="success",
+    )
+    no_button = InlineKeyboardButton(
+        text="Нет",
+        callback_data=no_button_data,
+        style="danger",
+    )
+    keyboard = InlineKeyboardBuilder()
+    keyboard.add(yes_button, no_button)
+    return keyboard.adjust(*sizes).as_markup()

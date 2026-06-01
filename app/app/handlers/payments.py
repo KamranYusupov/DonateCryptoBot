@@ -17,6 +17,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from dependency_injector.wiring import inject, Provide
 
 from app.core.container import Container
+from app.keyboards.inline import get_confirm_inline_keyboard
 from app.services.telegram_user_service import TelegramUserService
 from app.keyboards.donate import get_donate_keyboard
 from app.core.config import settings
@@ -64,15 +65,14 @@ async def process_tokens_count(
         f"Будет создан счет на сумму <b>{tokens_count} USDT</b>",
         reply_markup=get_reply_keyboard(None)
     )
+
+    reply_markup = get_confirm_inline_keyboard(
+        yes_button_data=f"buy_tokens_{message.message_id}_{tokens_count}",
+        no_button_data="donations",
+    )
     await message.answer(
         "<b>Продолжить ?</b>",
-        reply_markup=get_donate_keyboard(
-            buttons={
-                "Да": f"buy_tokens_{message.message_id}_{tokens_count}",
-                "Нет": f"donations",
-            },
-            sizes=(1, 1),
-        )
+        reply_markup=reply_markup,
     )
 
 
