@@ -233,7 +233,7 @@ async def send_donations_menu(
         InlineKeyboardButton(
             text="📤 Вывод USDT",
             callback_data="withdrawal_request",
-        )
+        ),
         InlineKeyboardButton(
             text="📥 Пополнить USDT",
             callback_data="start_buy_tokens_state",
