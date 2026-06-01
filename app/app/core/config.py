@@ -50,6 +50,12 @@ class Settings(BaseSettings):
         title="Минимальное количество токенов для вывода",
         default=10
     )
+    about_image_file_path: str = "app/media/statuses.jpg"
+    about_image_file_id_path: str = "app/media/file_ids/statuses_jpg.txt"
+
+    kod_deneg_video_file_path: str = "app/media/kod_deneg.MP4"
+    kod_deneg_video_file_id_path: str = "app/media/file_ids/kod_deneg_MP4.txt"
+
     # endregion
 
     # region API

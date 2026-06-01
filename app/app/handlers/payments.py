@@ -18,10 +18,6 @@ from dependency_injector.wiring import inject, Provide
 
 from app.core.container import Container
 from app.keyboards.inline import get_confirm_inline_keyboard
-from app.services.telegram_user_service import TelegramUserService
-from app.keyboards.donate import get_donate_keyboard
-from app.core.config import settings
-from app.keyboards.donate import get_donations_keyboard
 from app.services.crypto_bot_api_service import CryptoBotAPIService
 from app.keyboards.reply import reply_cancel_keyboard, get_reply_keyboard
 from app.loader import bot

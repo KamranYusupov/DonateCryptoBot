@@ -9,11 +9,13 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 from dependency_injector.wiring import inject, Provide
 
 from app.core.container import Container
+from app.loader import bot
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.telegram_user_service import TelegramUserService
 from app.keyboards.donate import get_donate_keyboard
 from app.core.config import settings
 from app.services.matrix_service import MatrixService
+from app.use_cases.file import SendFileFromLoadedFileIDOrSaveUseCase
 from app.utils.pagination import Paginator
 from app.utils.matrix import get_active_matrices, get_archived_matrices
 from app.models.telegram_user import status_list, status_emoji_list, DonateStatus
@@ -28,8 +30,6 @@ info_router = Router()
 async def about_handler(
         message: Message,
 ) -> None:
-    base_photo = FSInputFile("app/media/statuses.jpg")
-
     presentation_keyboard = InlineKeyboardBuilder()
     presentation_keyboard.add(
         InlineKeyboardButton(
@@ -63,8 +63,11 @@ async def about_handler(
     )
     presentation_keyboard.add()
 
-    await message.answer_photo(
-        photo=base_photo,
+    await SendFileFromLoadedFileIDOrSaveUseCase.send_photo(
+        bot=bot,
+        chat_id=message.from_user.id,
+        file_path=settings.about_image_file_path,
+        file_id_path=settings.about_image_file_id_path,
         reply_markup=presentation_keyboard.adjust(1).as_markup(),
     )
 
@@ -226,19 +229,6 @@ async def referral_message_handler(
         ),
         reply_markup=keyboard.as_markup()
     )
-
-    file_id_path = "app/media/kod_deneg_MP4_file_id.txt"
-    def load_file_id() -> str | None:
-        if os.path.exists(file_id_path):
-            with open(file_id_path, "r") as f:
-                return f.read().strip()
-
-        return None
-
-    def save_file_id(file_id: str):
-        with open(file_id_path, "w") as f:
-            f.write(file_id)
-
     caption = (
         "💰 «Код Денег» — бот автоматически закрывает 2 места под вами и под каждым партнёром.\n"
         "✅ 10% с каждого закрытого места\n"
@@ -246,7 +236,12 @@ async def referral_message_handler(
         "✅ Подходит даже тем, у кого нет опыта\n\n"
         f"<a href='{settings.presentation_link}'>📖 Подробная текстовая презентация с примерами расчётов.</a>"
     )
-    answer_video_kwargs = dict(
+
+    await SendFileFromLoadedFileIDOrSaveUseCase.send_video(
+        bot=bot,
+        chat_id=message.chat.id,
+        file_path=settings.kod_deneg_video_file_path,
+        file_id_path=settings.kod_deneg_video_file_id_path,
         caption=caption,
         reply_markup=keyboard.as_markup(),
         supports_streaming=True,
@@ -254,32 +249,9 @@ async def referral_message_handler(
         height=1920,
     )
 
-    video_file_id = load_file_id()
-    try:
-        if video_file_id:
-            msg = await message.answer_video(
-                video=video_file_id,
-                **answer_video_kwargs
-            )
-        else:
-            raise ValueError("file_id not found")
-
-    except (TelegramBadRequest, ValueError):
-        video = FSInputFile("app/media/kod_deneg.MP4")
-
-        msg = await message.answer_video(
-            video=video,
-            **answer_video_kwargs
-        )
-
     await message.answer(
         f"Ваша реферальная ссылка: {referral_url}",
     )
-
-    if msg.video:
-        save_file_id(msg.video.file_id)
-
-
 
 
 @inject
