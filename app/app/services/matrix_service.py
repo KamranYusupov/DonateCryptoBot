@@ -67,3 +67,8 @@ class MatrixService:
     async def delete(self, obj_id: uuid.UUID):
         self._repository_matrix.delete(obj_id=obj_id)
 
+    async def get_unique_statuses_by_owner_id(self, owner_id: uuid.UUID):
+        return self._repository_matrix.get_unique_statuses_by_owner_id(
+            owner_id=owner_id
+        )
+

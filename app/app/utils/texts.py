@@ -93,12 +93,23 @@ def get_matrices_statuses_statistic_message(
 
 def get_matrices_length_statistic_message(
         matrices: list[Matrix],
+        triumph_node_downline_count: int | None = None,
 ) -> str:
     message = ""
     sorted_matrices = get_sorted_matrices(matrices, status_list)
 
+
+    if triumph_node_downline_count is not None:
+        brilliant_status = DonateStatus.BRILLIANT
+        emoji = statuses_colors_data.get(brilliant_status)
+
+        message += (
+            f"<b>{emoji} {brilliant_status.value.upper()}</b>: "
+            f"{triumph_node_downline_count}/{settings.triumph_matrix_max_length}\n"
+        )
+
     for matrix in sorted_matrices[::-1]:
-        if matrix.status == DonateStatus.NOT_ACTIVE:
+        if matrix.status in (DonateStatus.NOT_ACTIVE, DonateStatus.BRILLIANT):
             continue
 
         emoji = statuses_colors_data.get(matrix.status)

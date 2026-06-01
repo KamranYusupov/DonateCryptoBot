@@ -5,7 +5,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from dependency_injector.wiring import Provide, inject
 
 from app.core.container import Container
-from app.keyboards.donate import get_donate_keyboard, get_donations_keyboard
+from app.keyboards.donate import get_donate_keyboard, get_donations_buttons
 from app.keyboards.inline import get_inline_buttons_from_dict
 from app.loader import bot
 from app.models import Matrix
@@ -175,19 +175,38 @@ async def send_donations_menu(
         owner_id=current_user.id,
     )
     current_user_main_matrices = get_main_matrices(current_user_matrices)
-    matrices_length_statistic_message = (
-            "\n" + get_matrices_length_statistic_message(current_user_main_matrices)
-    ) if current_user_main_matrices else "не открыты"
+    triumph_node = await matrix_node_service.get_node(owner_id=current_user.id)
+    triumph_node_downline_count = (
+        triumph_node.downline_count if triumph_node else None
+    )
+    if current_user_main_matrices:
+        matrices_length_statistic_message = (
+            "\n" +
+            get_matrices_length_statistic_message(
+                matrices=current_user_main_matrices,
+                triumph_node_downline_count=triumph_node_downline_count,
+            )
+        )
+    else:
+        matrices_length_statistic_message = "не открыты"
+
+    triumph_node = await matrix_node_service.get_node(
+        owner_id=current_user.id,
+    )
 
     buttons = {}
     sponsor = await telegram_user_service.get_telegram_user(
         user_id=current_user.sponsor_user_id
     )
-    buttons.update(get_donations_keyboard())
-
-    triumph_node = await matrix_node_service.get_node(
+    user_statuses = await matrix_service.get_unique_statuses_by_owner_id(
         owner_id=current_user.id,
     )
+    if triumph_node:
+        user_statuses.append(DonateStatus.BRILLIANT)
+
+    donations_inline_buttons = get_donations_buttons(user_statuses=user_statuses)
+
+
     triumph_node_deadline_template = "{0} дней {1}"
     triumph_node_deadline_str = ""
 
@@ -225,9 +244,11 @@ async def send_donations_menu(
 
     message_text = "\n".join(message_parts) + "\n" + message_text
 
-    buttons.update(default_buttons)
-    inline_buttons = get_inline_buttons_from_dict(buttons)
+    inline_buttons = []
+    inline_buttons.extend(donations_inline_buttons)
 
+    if default_buttons:
+        inline_buttons.extend(get_inline_buttons_from_dict(default_buttons))
 
     inline_buttons.extend([
         InlineKeyboardButton(

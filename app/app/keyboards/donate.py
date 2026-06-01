@@ -1,3 +1,5 @@
+from typing import Sequence
+
 import loguru
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 
@@ -14,16 +16,27 @@ def get_donate_keyboard(*, buttons: dict[str, str], sizes: tuple = (1, 1)):
 
     return keyboard.adjust(*sizes).as_markup()
 
-def get_donations_keyboard() -> dict:
-    buttons = {}
-    for status in status_list:
+def get_donations_buttons(user_statuses: Sequence[DonateStatus]) -> list[InlineKeyboardButton]:
+    buttons = []
+    for status in status_list[::-1]:
         donate_sum = status.get_status_donate_value()
+        style = None
+
+        if status in user_statuses:
+            style = "success"
+
         status_color_emoji = statuses_colors_data.get(status)
         button_text = f"{status_color_emoji} {status.value} - ${donate_sum} {status_color_emoji}"
-        buttons[button_text] = f"confirm_donate_🟢_{donate_sum}"
+
+        button = InlineKeyboardButton(
+            text=button_text,
+            callback_data=f"confirm_donate_🟢_{donate_sum}",
+            style=style,
+        )
+        buttons.append(button)
 
 
-    return get_reversed_dict(buttons)
+    return buttons
 
 
 def get_start_inline_keyboard():

@@ -90,6 +90,16 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
 
         return [mapping[str(i)] for i in matrices_ids]
 
+    def get_unique_statuses_by_owner_id(self, owner_id: uuid.UUID) -> Sequence[DonateStatus]:
+        statement = (
+            select(Matrix.status)
+            .filter_by(owner_id=owner_id)
+            .distinct()
+        )
+
+        result = self._session.execute(statement)
+        return result.scalars().all()
+
 
 class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
 
