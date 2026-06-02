@@ -34,7 +34,6 @@ async def update_contests_task_worker(delay: Optional[int] = None) -> None:
             await update_sponsors_contest_task()
             await update_registration_contest_task()
         except Exception as e:
-            raise e
             loguru.logger.error(
                 f"Error during update_contest_tasks: {e}",
                 exc_info=True,
