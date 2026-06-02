@@ -179,12 +179,15 @@ async def send_donations_menu(
     triumph_node = await matrix_node_service.get_node(owner_id=current_user.id)
 
     if current_user_main_matrices or triumph_node:
+        triumph_node_downline_count = (
+            triumph_node.downline_count if triumph_node else None
+        )
         matrices_length_statistic_message = (
-            "\n" +
-            get_matrices_length_statistic_message(
-                matrices=current_user_main_matrices,
-                triumph_node_downline_count=triumph_node.downline_count,
-            )
+                "\n" +
+                get_matrices_length_statistic_message(
+                    matrices=current_user_main_matrices,
+                    triumph_node_downline_count=triumph_node_downline_count,
+                )
         )
     else:
         matrices_length_statistic_message = "не открыты"
@@ -239,7 +242,7 @@ async def send_donations_menu(
     if triumph_node:
         message_parts.append(f"Срок действия площадки <b>🏆 ТРИУМФ</b>: {triumph_node_deadline_str}")
 
-    message_parts.append(f"\nМой куратор: {sponsor.full_username}")
+    message_parts.append(f"Мой куратор: {sponsor.full_username}")
 
     message_text = "\n".join(message_parts) + "\n" + message_text
 
