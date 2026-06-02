@@ -171,20 +171,19 @@ async def send_donations_menu(
         )
         return
 
-    current_user_matrices = await matrix_service.get_user_matrices(
+    current_user_matrices = await matrix_service.get_list(
+        Matrix.status != DonateStatus.BRILLIANT,
         owner_id=current_user.id,
     )
     current_user_main_matrices = get_main_matrices(current_user_matrices)
     triumph_node = await matrix_node_service.get_node(owner_id=current_user.id)
-    triumph_node_downline_count = (
-        triumph_node.downline_count if triumph_node else None
-    )
-    if current_user_main_matrices:
+
+    if current_user_main_matrices or triumph_node:
         matrices_length_statistic_message = (
             "\n" +
             get_matrices_length_statistic_message(
                 matrices=current_user_main_matrices,
-                triumph_node_downline_count=triumph_node_downline_count,
+                triumph_node_downline_count=triumph_node.downline_count,
             )
         )
     else:

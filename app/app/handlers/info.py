@@ -10,6 +10,7 @@ from dependency_injector.wiring import inject, Provide
 
 from app.core.container import Container
 from app.loader import bot
+from app.models import Matrix
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.telegram_user_service import TelegramUserService
 from app.keyboards.donate import get_donate_keyboard
@@ -92,7 +93,8 @@ async def team_inline_handler(
     current_user = await telegram_user_service.get_telegram_user(
         user_id=callback.from_user.id
     )
-    matrices = await matrix_service.get_user_matrices(
+    matrices = await matrix_service.get_list(
+        Matrix.status != DonateStatus.BRILLIANT,
         owner_id=current_user.id,
     )
     archived_matrices = get_archived_matrices(matrices)
