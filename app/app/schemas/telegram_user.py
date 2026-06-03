@@ -20,9 +20,9 @@ class TelegramUserEntity(BaseModel):
         title="Статус", default=DonateStatus.NOT_ACTIVE
     )
     invites_count: int = Field(title="Число приглашений", default=0)
-    donates_sum: int = Field(title="Сумма донатов", default=0)
-    bill_for_activation: int = Field(title="Счет для активации", default=10000000 if settings.debug else 0)
-    bill_for_withdraw: int = Field(title="Счет для вывода", default=0)
+    donates_sum: int | float = Field(title="Сумма донатов", default=0)
+    bill_for_activation: int | float = Field(title="Счет для активации", default=10000000 if settings.debug else 0)
+    bill_for_withdraw: int | float = Field(title="Счет для вывода", default=0)
     is_bot: bool = Field(title="Бот", default=False)
     is_admin: bool = Field(title="Супер пользователь", default=False)
     depth_level: int = Field(title="Уровень глубины")
