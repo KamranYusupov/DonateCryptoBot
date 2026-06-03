@@ -1,10 +1,12 @@
 from io import BytesIO
 
+import loguru
 import pandas as pd
 from dependency_injector.wiring import inject, Provide
 
 from app.core.container import Container
-from app.models.telegram_user import TelegramUser
+from app.models.telegram_user import TelegramUser, DonateStatus
+from app.schemas.telegram_user import TelegramUserEntity
 from app.services.telegram_user_service import TelegramUserService
 from openpyxl.utils import get_column_letter
 from app.utils.datetime import to_main_tz
@@ -62,3 +64,94 @@ async def export_users_to_excel(
 
     with open(file_name, 'wb') as f:
         f.write(output.getvalue())
+
+
+@inject
+async def import_users_from_excel(
+    file_path: str,
+    telegram_user_service: TelegramUserService = Provide[
+        Container.telegram_user_service
+    ],
+):
+    """
+    Загружает пользователей из Excel-файла обратно в базу данных.
+    Данные сортируются по глубине и дате регистрации для сохранения иерархии рефералов.
+    """
+    # 1. Читаем файл через pandas
+    df = pd.read_excel(file_path)
+
+    # 2. Приводим дату к правильному формату datetime для сортировки
+    df["Дата время регистрации"] = pd.to_datetime(
+        df["Дата время регистрации"], format="%d.%m.%Y %H:%M"
+    )
+
+    # 3. Сортируем: сначала глубина (0, 1, 2...), затем дата (от старых к новым)
+    df = df.sort_values(
+        by=["Уровень глубины", "Дата время регистрации"],
+        ascending=[True, True]
+    )
+
+    # Локальный кэш для быстрой связи "username -> user_id",
+    # чтобы не долбить базу лишними SELECT-запросами на каждой строке
+    username_to_id_cache = {}
+
+    loguru.logger.info(f"Начало импорта. Всего строк для обработки: {len(df)}")
+
+    for _, row in df.iterrows():
+        user_id = int(row["Tg ID"])
+        username = str(row["Логин ТГ"]) if pd.notna(row["Логин ТГ"]) else None
+
+        # Запоминаем юзернейм текущего пользователя в кэш для следующих строк
+        if username:
+            username_to_id_cache[username] = user_id
+
+        # 4. Проверяем, существует ли уже пользователь в БД
+        user_exists = await telegram_user_service.exists(user_id=user_id)
+        if user_exists:
+            loguru.logger.info(f"Пользователь {user_id} уже есть в базе. Пропускаем.")
+            continue
+
+        # 5. Парсим ФИО обратно на first_name и last_name
+        full_name = str(row["Имя фамилия"]) if pd.notna(row["Имя фамилия"]) else ""
+        name_parts = full_name.split(maxsplit=1)
+        first_name = name_parts[0] if len(name_parts) > 0 else None
+        last_name = name_parts[1] if len(name_parts) > 1 else None
+
+        # 6. Восстанавливаем статус из Enum по его текстовому значению
+        status_value = row["Статус"]
+        try:
+            user_status = DonateStatus(status_value)
+        except ValueError:
+            user_status = DonateStatus.NOT_ACTIVE
+
+        sponsor_str = str(row["Логин тг пригласителя"]).strip() if pd.notna(row["Логин тг пригласителя"]) else None
+        sponsor_user_id = None
+
+        if sponsor_str and sponsor_str not in ("None", "nan", ""):
+            if sponsor_str in username_to_id_cache:
+                sponsor_user_id = username_to_id_cache[sponsor_str]
+            else:
+                sponsor_db = await telegram_user_service.get_telegram_user(username=sponsor_str)
+                if sponsor_db:
+                    sponsor_user_id = sponsor_db.user_id
+
+
+        # 8. Собираем объект для отправки в сервис / репозиторий
+        user_data = {
+            "user_id": user_id,
+            "username": username,
+            "first_name": first_name,
+            "last_name": last_name,
+            "status": user_status,
+            "sponsor_user_id": sponsor_user_id,
+            "depth_level": int(row["Уровень глубины"]),
+            "invites_count": int(row["Кол-во приглашенных"]),
+            "bill_for_activation": float(row["Баланс для активации"]),
+            "bill_for_withdraw": float(row["Баланс для вывода"]),
+            "donates_sum": float(row["Всего заработано"]),
+            "created_at": row["Дата время регистрации"].to_pydatetime(),
+        }
+        user_schema = TelegramUserEntity(**user_data)
+        await telegram_user_service.create_telegram_user(user_schema)
+
+    loguru.logger.info("Импорт успешно завершен!")
