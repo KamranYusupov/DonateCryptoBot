@@ -36,21 +36,26 @@ async def activate_matrix_handler(
             Container.add_bot_to_matrix_task_service
         ]
 ):
-    try:
-        user_id, status_index = map(int, command.args.split(" "))
-    except (ValueError, AttributeError):
-        await message.answer("Некорректно введены данные")
-        return
+    user_id, status_index = command.args.split(" ")
+    status_index = int(status_index)
 
     try:
-        status = status_list[status_index-1]
+        status = status_list[status_index - 1]
     except IndexError:
         await message.answer("Некорректный номер статуса")
         return
+    try:
+        user_id = int(user_id)
+        current_user = await telegram_user_service.get_telegram_user(
+            user_id=user_id
+        )
+    except:
+        username = user_id[1:] if "@" == user_id[0] else user_id
 
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=user_id
-    )
+        current_user = await telegram_user_service.get_telegram_user(
+            username=username,
+        )
+
     if not current_user:
         await message.answer("Пользователь не найден")
         return
@@ -91,6 +96,11 @@ async def activate_matrix_handler(
         create_tasks_data["obj_id"] = inserted_node.id
         create_tasks_data["engine_type"] = MatrixEngineType.NODES
 
+    if (
+        donate_sum >
+        DonateStatus.get_status_donate_value(current_user.status)
+    ):
+        current_user.status = status
 
     await add_bot_to_matrix_task_service.create_tasks(**create_tasks_data)
 

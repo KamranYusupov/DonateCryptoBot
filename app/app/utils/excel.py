@@ -151,7 +151,6 @@ async def import_users_from_excel(
             "donates_sum": float(row["Всего заработано"]),
             "created_at": row["Дата время регистрации"].to_pydatetime(),
         }
-        user_schema = TelegramUserEntity(**user_data)
-        await telegram_user_service.create_telegram_user(user_schema)
+        await telegram_user_service.raw_create(user_data)
 
     loguru.logger.info("Импорт успешно завершен!")

@@ -103,11 +103,11 @@ async def clear_db(
     session.execute(query)
     await message.answer("База очищена")
 
-    # await import_users_from_excel(
-    #     file_path="telegram_users (5).xlsx",
-    # )
-    # loguru.logger.info("fdsdsd")
-    # return
+    await import_users_from_excel(
+        file_path="telegram_users (5).xlsx",
+    )
+    loguru.logger.info("fdsdsd")
+    return
 
 
 @debug_router.message(F.text.startswith("fake_"))

@@ -43,8 +43,8 @@ class AddBotToMatrixTaskService:
             settings.add_bot_to_matrix_second_task_interval.max_minutes
         )
 
-        first_task_execute_at = now + timedelta(minutes=first_task_minutes_delay)
-        second_task_execute_at = now + timedelta(minutes=second_task_minutes_delay)
+        first_task_execute_at = now + timedelta(seconds=first_task_minutes_delay)
+        second_task_execute_at = now + timedelta(seconds=second_task_minutes_delay)
 
         first_task = AddBotToMatrixTaskSchema(
             execute_at=first_task_execute_at,

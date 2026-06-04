@@ -47,6 +47,8 @@ class TelegramUserService:
             sponsor.invites_count += 1 if not user.is_bot else 0
         return self._repository_telegram_user.create(obj_in=user.model_dump())
 
+    async def raw_create(self, obj_in):
+        return self._repository_telegram_user.create(obj_in=obj_in)
 
     async def create_bot_user(
             self,
