@@ -146,11 +146,11 @@ class Settings(BaseSettings):
 
     add_bot_to_matrix_first_task_interval: IntervalConfig = Field(
         title="Интервал ожидания первой задачи добавления бота в матрицу",
-        default=IntervalConfig(min_minutes=5, max_minutes=10)
+        default=IntervalConfig(min_minutes=1, max_minutes=2)
     )
     add_bot_to_matrix_second_task_interval: IntervalConfig = Field(
         title="Интервал ожидания второй задачи добавления бота в матрицу",
-        default=IntervalConfig(min_minutes=20, max_minutes=30)
+        default=IntervalConfig(min_minutes=3, max_minutes=5)
     )
 
 

@@ -89,51 +89,51 @@ async def add_bot_to_matrix(
             sponsor_id=owner.id,
             status=status,
         )
-        matrix_donations_data = await donate_service.update_donate_data_with_nodes(
-            upline_nodes,
-            donate_sum=donate_sum,
-            transaction_percent=settings.triumph_matrix_transaction_percent,
-        )
-        donations_data.extend(matrix_donations_data)
+        # matrix_donations_data = await donate_service.update_donate_data_with_nodes(
+        #     upline_nodes,
+        #     donate_sum=donate_sum,
+        #     transaction_percent=settings.triumph_matrix_transaction_percent,
+        # )
+        # donations_data.extend(matrix_donations_data)
 
         is_triumph = True
         matrix_max_length = settings.triumph_matrix_max_length
         matrix_id = inserted_node.matrix_id
 
-    donate = await donate_confirm_service.create_donate(
-        telegram_user_id=bot_user.id,
-        donate_data=donations_data,
-        matrix_id=matrix_id,
-        quantity=donate_sum,
-    )
-    await donate_confirm_service.update_bills_by_donate_id(
-        donate_id=donate.id,
-        is_bot=True,
-    )
+    # donate = await donate_confirm_service.create_donate(
+    #     telegram_user_id=bot_user.id,
+    #     donate_data=donations_data,
+    #     matrix_id=matrix_id,
+    #     quantity=donate_sum,
+    # )
+    # await donate_confirm_service.update_bills_by_donate_id(
+    #     donate_id=donate.id,
+    #     is_bot=True,
+    # )
 
-    sender_username = bot_user.username
-    admin_user = await telegram_user_service.get_telegram_user(is_admin=True)
-    admin_telegram_id = admin_user.user_id
-    for data in donations_data:
-        quantity = data["quantity"]
-        await send_transaction_messages(
-            bot=bot,
-            chat_id=data["receiver_chat_id"],
-            quantity=quantity,
-            type_=data["type_"],
-            sender_username=sender_username,
-            status=status,
-            sponsor_depth=data.get("sponsor_depth"),
-            matrix_length=data.get("matrix_length"),
-            matrix_max_length=matrix_max_length,
-            triumph=is_triumph
-        )
-
-        await send_message_or_pass(
-            bot=bot,
-            text=f"<b><em>-{quantity} от системного баланса.</em></b>\n",
-            chat_id=admin_telegram_id,
-        )
+    # sender_username = bot_user.username
+    # admin_user = await telegram_user_service.get_telegram_user(is_admin=True)
+    # admin_telegram_id = admin_user.user_id
+    # for data in donations_data:
+    #     quantity = data["quantity"]
+        # await send_transaction_messages(
+        #     bot=bot,
+        #     chat_id=data["receiver_chat_id"],
+        #     quantity=quantity,
+        #     type_=data["type_"],
+        #     sender_username=sender_username,
+        #     status=status,
+        #     sponsor_depth=data.get("sponsor_depth"),
+        #     matrix_length=data.get("matrix_length"),
+        #     matrix_max_length=matrix_max_length,
+        #     triumph=is_triumph
+        # )
+        #
+        # await send_message_or_pass(
+        #     bot=bot,
+        #     text=f"<b><em>-{quantity} от системного баланса.</em></b>\n",
+        #     chat_id=admin_telegram_id,
+        # )
 
 
 @inject

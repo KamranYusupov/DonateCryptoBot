@@ -63,13 +63,15 @@ class Container(containers.DeclarativeContainer):
             "app.handlers.worker",
             "app.handlers.bill_type",
             "app.handlers.aggregators",
+            "app.handlers.admin",
             "app.handlers.controllers.contest",
 
             "app.use_cases.donations",
 
+            "app.handlers.debug",
+
             "app.middlewares.ban_user",
             "app.middlewares.subscriptions",
-            "app.tasks.donate",
             "app.tasks.matrix",
 
             "app.utils.excel",

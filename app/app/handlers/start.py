@@ -147,17 +147,15 @@ async def admin(
 ):
     """Создание системного аккаунта для тестов"""
     admin_user = await telegram_user_service.get_telegram_user(is_admin=True)
-    if admin_user:
-        return
-
-    user_schema = get_schema_from_user(
-        message.from_user,
-        status=DonateStatus.get_status_list()[-1],
-        depth_level=0,
-        is_admin=True,
-        captcha_verified=True,
-    )
-    admin_user = await telegram_user_service.create_telegram_user(user=user_schema)
+    if not admin_user:
+        user_schema = get_schema_from_user(
+            message.from_user,
+            status=DonateStatus.get_status_list()[-1],
+            depth_level=0,
+            is_admin=True,
+            captcha_verified=True,
+        )
+        admin_user = await telegram_user_service.create_telegram_user(user=user_schema)
 
     for status in status_list:
         matrix_dict = {"owner_id": admin_user.id, "status": status}
