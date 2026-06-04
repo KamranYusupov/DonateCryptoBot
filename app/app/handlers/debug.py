@@ -140,7 +140,7 @@ async def reset_users(
     )
     await message.answer("Загруженны пользователи")
     depth_zero_user = await telegram_user_service.get_telegram_user(
-        depth=0,
+        depth_level=0,
     )
     depth_zero_user.is_admin = True
 
