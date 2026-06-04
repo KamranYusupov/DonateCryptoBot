@@ -6,7 +6,7 @@ from dependency_injector.wiring import inject, Provide
 
 from app.core.container import Container
 from app.models.telegram_user import TelegramUser, DonateStatus
-from app.schemas.telegram_user import TelegramUserEntity
+from app.schemas.telegram_user import FullTelegramUserEntity
 from app.services.telegram_user_service import TelegramUserService
 from openpyxl.utils import get_column_letter
 from app.utils.datetime import to_main_tz
@@ -150,7 +150,10 @@ async def import_users_from_excel(
             "bill_for_withdraw": float(row["Баланс для вывода"]),
             "donates_sum": float(row["Всего заработано"]),
             "created_at": row["Дата время регистрации"].to_pydatetime(),
+            "captcha_verified": True,
+            "is_donate_for_registration_sent": True,
         }
-        await telegram_user_service.raw_create(user_data)
+        user = FullTelegramUserEntity(**user_data)
+        await telegram_user_service.create_telegram_user(user)
 
     loguru.logger.info("Импорт успешно завершен!")

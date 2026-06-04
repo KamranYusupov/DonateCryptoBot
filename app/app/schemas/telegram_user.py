@@ -1,14 +1,14 @@
 import enum
 import random
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
 from app.models.telegram_user import DonateStatus
 
-
-class TelegramUserEntity(BaseModel):
+class BaseUserEntity(BaseModel):
     """Модель пользователя"""
 
     user_id: int = Field(title="ID пользователя")
@@ -32,6 +32,14 @@ class TelegramUserEntity(BaseModel):
         title="Отправлен донат пригласителю за регистрацию",
         default=False,
     )
+
+class TelegramUserEntity(BaseUserEntity):
+    pass
+
+
+class FullTelegramUserEntity(BaseUserEntity):
+    created_at: datetime
+    updated_at: datetime = datetime.now()
 
 
 class BillType(enum.Enum):
