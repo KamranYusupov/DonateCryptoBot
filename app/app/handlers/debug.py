@@ -109,6 +109,58 @@ async def clear_db(
     loguru.logger.info("fdsdsd")
     return
 
+@debug_router.message(Command("reset_users"))
+@inject
+async def reset_users(
+        message,
+        telegram_user_service: TelegramUserService = Provide[
+            Container.telegram_user_service
+        ],
+        matrix_service: MatrixService = Provide[Container.matrix_service],
+        matrix_node_service: MatrixNodeService = Provide[
+            Container.matrix_node_service
+        ],
+        session = Provide[Container.session],
+):
+    query = text(
+        "delete from donate_transactions ; "
+        "delete from donates; delete from add_to_matrix_tasks; "
+        "delete from matrices;delete from withdrawal_requests; "
+        "delete from sponsors_contest_points; delete from sponsors_contests; "
+        "delete from registration_contest_points;"
+        "delete from registration_contests;"
+        "delete from telegram_users;"
+        "update admin_statistic set system_bill = 0, triumph_system_bill = 0, donates_sum_for_registration = 0;"
+    )
+    session.execute(query)
+    await message.answer("База очищена")
+
+    await import_users_from_excel(
+        file_path="telegram_users (5).xlsx",
+    )
+    await message.answer("Загруженны пользователи")
+    depth_zero_user = await telegram_user_service.get_telegram_user(
+        depth=0,
+    )
+    depth_zero_user.is_admin = True
+
+    for status in status_list:
+        matrix_dict = {"owner_id": depth_zero_user.id, "status": status}
+
+        if status == DonateStatus.BRILLIANT:
+            matrix_node_service.create_matrix_with_root_node(
+                **matrix_dict
+            )
+            continue
+
+        await matrix_service.create_matrix(
+            matrix=MatrixEntity(
+                **matrix_dict,
+            )
+        )
+
+    return
+
 
 @debug_router.message(F.text.startswith("fake_"))
 @inject
