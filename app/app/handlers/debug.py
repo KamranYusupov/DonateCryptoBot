@@ -91,6 +91,7 @@ async def clear_db(
         session = Provide[Container.session],
 ):
     query = text(
+        "delete from transfers; "
         "delete from donate_transactions ; "
         "delete from donates; delete from add_to_matrix_tasks; "
         "delete from matrices;delete from withdrawal_requests; "
@@ -104,7 +105,7 @@ async def clear_db(
     await message.answer("База очищена")
 
     await import_users_from_excel(
-        file_path="telegram_users (5).xlsx",
+        file_path="app/telegram_users_old.xlsx",
     )
     loguru.logger.info("fdsdsd")
     return
@@ -136,7 +137,7 @@ async def reset_users(
     await message.answer("База очищена")
 
     await import_users_from_excel(
-        file_path="telegram_users (5).xlsx",
+        file_path="app/telegram_users_old.xlsx",
     )
     await message.answer("Загруженны пользователи")
     depth_zero_user = await telegram_user_service.get_telegram_user(
@@ -160,6 +161,30 @@ async def reset_users(
         )
 
     return
+
+@debug_router.message(Command("import_users"))
+@inject
+async def import_users(
+        message,
+        command: CommandObject,
+        telegram_user_service: TelegramUserService = Provide[
+            Container.telegram_user_service
+        ],
+        matrix_service: MatrixService = Provide[Container.matrix_service],
+        matrix_node_service: MatrixNodeService = Provide[
+            Container.matrix_node_service
+        ],
+        session = Provide[Container.session],
+):
+    if int(command.args) == 1:
+        file_path = "telegram_users_old.xlsx"
+    else:
+        file_path = "telegram_users_new.xlsx"
+
+    await import_users_from_excel(
+        file_path=file_path
+    )
+    await message.answer("Пользователи загруженны")
 
 
 @debug_router.message(F.text.startswith("fake_"))
