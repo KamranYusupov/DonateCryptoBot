@@ -173,6 +173,7 @@ async def send_donations_menu(
 
     current_user_matrices = await matrix_service.get_list(
         Matrix.status != DonateStatus.BRILLIANT,
+        order_by_create_at=True,
         owner_id=current_user.id,
     )
     current_user_main_matrices = get_main_matrices(current_user_matrices)
