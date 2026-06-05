@@ -177,9 +177,9 @@ async def import_users(
         session = Provide[Container.session],
 ):
     if int(command.args) == 1:
-        file_path = "telegram_users_old.xlsx"
+        file_path = "app/telegram_users_old.xlsx"
     else:
-        file_path = "telegram_users_new.xlsx"
+        file_path = "app/telegram_users_new.xlsx"
 
     await import_users_from_excel(
         file_path=file_path
