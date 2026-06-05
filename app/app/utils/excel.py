@@ -106,8 +106,9 @@ async def import_users_from_excel(
             username_to_id_cache[username] = user_id
 
         # 4. Проверяем, существует ли уже пользователь в БД
-        user_exists = await telegram_user_service.exists(user_id=user_id)
-        if user_exists:
+        user = await telegram_user_service.get_telegram_user(user_id=user_id)
+        if user:
+            user.created_at = row["Дата время регистрации"].to_pydatetime()
             loguru.logger.info(f"Пользователь {user_id} уже есть в базе. Пропускаем.")
             continue
 
