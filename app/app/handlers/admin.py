@@ -36,6 +36,13 @@ async def activate_matrix_handler(
             Container.add_bot_to_matrix_task_service
         ]
 ):
+    current_user = await telegram_user_service.get_telegram_user(
+        user_id=message.from_user.id,
+    )
+    if not current_user or not current_user.is_admin:
+        return
+
+
     user_id, status_index = command.args.split(" ")
     status_index = int(status_index)
 
@@ -46,17 +53,17 @@ async def activate_matrix_handler(
         return
     try:
         user_id = int(user_id)
-        current_user = await telegram_user_service.get_telegram_user(
+        user = await telegram_user_service.get_telegram_user(
             user_id=user_id
         )
     except:
         username = user_id[1:] if "@" == user_id[0] else user_id
 
-        current_user = await telegram_user_service.get_telegram_user(
+        user = await telegram_user_service.get_telegram_user(
             username=username,
         )
 
-    if not current_user:
+    if not user:
         await message.answer("Пользователь не найден")
         return
 
