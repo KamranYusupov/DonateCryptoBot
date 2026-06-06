@@ -38,13 +38,13 @@ class AddBotToMatrixTaskService:
             "create_donates": create_donates
         }
 
-        if not first_task_minutes_delay:
+        if first_task_minutes_delay is None:
             first_task_minutes_delay = random.randint(
                 settings.add_bot_to_matrix_first_task_interval.min_minutes,
                 settings.add_bot_to_matrix_first_task_interval.max_minutes
             )
 
-        if not second_task_minutes_delay:
+        if second_task_minutes_delay is None:
             second_task_minutes_delay = random.randint(
                 settings.add_bot_to_matrix_second_task_interval.min_minutes,
                 settings.add_bot_to_matrix_second_task_interval.max_minutes

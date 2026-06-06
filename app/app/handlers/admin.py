@@ -65,6 +65,9 @@ async def activate_matrix_handler(
     create_tasks_data = {
         "donate_sum": donate_sum,
         "create_donates": False,
+        "first_task_minutes_delay": 0,
+        "second_task_minutes_delay": 0,
+
     }
     first_sponsor = await telegram_user_service.get_telegram_user(
         user_id=current_user.sponsor_user_id,
