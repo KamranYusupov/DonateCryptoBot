@@ -77,7 +77,7 @@ async def activate_matrix_handler(
 
     }
     first_sponsor = await telegram_user_service.get_telegram_user(
-        user_id=current_user.sponsor_user_id,
+        user_id=user.sponsor_user_id,
     )
 
     if not is_triumph:
