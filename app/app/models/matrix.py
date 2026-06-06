@@ -157,6 +157,11 @@ class AddBotToMatrixTaskModel(
         UUID(as_uuid=True),
         index=True,
     )
+    create_donates = Column(
+        Boolean,
+        default=True,
+        server_default=text("TRUE"),
+    )
 
     __table_args__ = {"extend_existing": True}
 

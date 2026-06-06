@@ -104,12 +104,6 @@ async def clear_db(
     session.execute(query)
     await message.answer("База очищена")
 
-    await import_users_from_excel(
-        file_path="app/telegram_users_old.xlsx",
-    )
-    loguru.logger.info("fdsdsd")
-    return
-
 @debug_router.message(Command("reset_users"))
 @inject
 async def reset_users(
