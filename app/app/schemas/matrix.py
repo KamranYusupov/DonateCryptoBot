@@ -31,3 +31,4 @@ class AddBotToMatrixTaskSchema(BaseModel):
     donate_sum: int | float
     engine_type: MatrixEngineType = MatrixEngineType.JSON
     obj_id: uuid.UUID # Matrix.id or MatrixNode.id
+    create_donates: bool = True

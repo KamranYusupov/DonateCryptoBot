@@ -36,6 +36,7 @@ async def add_bot_to_matrix(
         obj_id: uuid.UUID,
         donate_sum: int,
         engine_type: MatrixEngineType = MatrixEngineType.JSON,
+        create_donates: bool = True,
         matrix_service: MatrixService = Provide[Container.matrix_service],
         matrix_node_service: MatrixNodeService = Provide[
             Container.matrix_node_service
@@ -100,6 +101,8 @@ async def add_bot_to_matrix(
         matrix_max_length = settings.triumph_matrix_max_length
         matrix_id = inserted_node.matrix_id
 
+    if not create_donates:
+        return
     donate = await donate_confirm_service.create_donate(
         telegram_user_id=bot_user.id,
         donate_data=donations_data,
@@ -144,7 +147,7 @@ async def execute_bot_matrix_tasks(
 ):
     now = datetime.datetime.now()
     tasks = await add_bot_to_matrix_task_service.get_list(
-        AddBotToMatrixTaskModel.execute_at <= now,# + datetime.timedelta(minutes=1),
+        AddBotToMatrixTaskModel.execute_at <= now,
         is_executed=False,
     )
     tasks_data = [
@@ -153,6 +156,7 @@ async def execute_bot_matrix_tasks(
             "obj_id": task.obj_id,
             "donate_sum": task.donate_sum,
             "engine_type": task.engine_type,
+            "create_donates": task.create_donates,
          }
         for task in tasks
     ]
@@ -163,6 +167,7 @@ async def execute_bot_matrix_tasks(
             obj_id=task["obj_id"],
             donate_sum=task["donate_sum"],
             engine_type=task["engine_type"],
+            create_donates=task["create_donates"],
         )
         tasks_ids.append(task["id"])
 

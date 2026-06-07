@@ -19,6 +19,7 @@ async def ban_user_middleware(
     """
     Middleware, для обработки действий от забаненного пользователя.
     """
+
     current_user = await telegram_user_service.get_telegram_user(
         user_id=event.from_user.id
     )

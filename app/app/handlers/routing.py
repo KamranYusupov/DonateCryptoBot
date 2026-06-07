@@ -1,5 +1,6 @@
 from aiogram import Router
 
+from app.core.config import settings
 from .start import start_router
 from .donate import donate_router
 from .info import info_router
@@ -10,7 +11,7 @@ from .withdrawal_request import withdrawal_requests_router
 from .transfer import transfer_router
 from .bill_type import bill_type_router
 from .aggregators import aggregators_router
-from app.core.config import settings
+from .admin import admin_router
 from .controllers.contest import get_router as get_contest_router
 
 
@@ -31,7 +32,8 @@ def get_all_routers() -> Router:
         transfer_router,
         bill_type_router,
         aggregators_router,
-        contest_router
+        contest_router,
+        admin_router,
     )
 
     return router

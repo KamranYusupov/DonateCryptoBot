@@ -1,14 +1,14 @@
 import enum
 import random
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
 from app.models.telegram_user import DonateStatus
 
-
-class TelegramUserEntity(BaseModel):
+class BaseUserEntity(BaseModel):
     """Модель пользователя"""
 
     user_id: int = Field(title="ID пользователя")
@@ -21,7 +21,7 @@ class TelegramUserEntity(BaseModel):
     )
     invites_count: int = Field(title="Число приглашений", default=0)
     donates_sum: int | float = Field(title="Сумма донатов", default=0)
-    bill_for_activation: int | float = Field(title="Счет для активации", default=10000000 if settings.debug else 0)
+    bill_for_activation: int | float = Field(title="Счет для активации", default=0)
     bill_for_withdraw: int | float = Field(title="Счет для вывода", default=0)
     is_bot: bool = Field(title="Бот", default=False)
     is_admin: bool = Field(title="Супер пользователь", default=False)
@@ -32,6 +32,9 @@ class TelegramUserEntity(BaseModel):
         title="Отправлен донат пригласителю за регистрацию",
         default=False,
     )
+
+class TelegramUserEntity(BaseUserEntity):
+    pass
 
 
 class BillType(enum.Enum):

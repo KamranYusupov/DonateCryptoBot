@@ -25,6 +25,9 @@ class AddBotToMatrixTaskService:
             obj_id: uuid.UUID,
             donate_sum: int,
             engine_type: MatrixEngineType,
+            create_donates: bool = True,
+            first_task_minutes_delay: int | None = None,
+            second_task_minutes_delay: int | None = None,
     ):
         now = datetime.now()
 
@@ -32,16 +35,20 @@ class AddBotToMatrixTaskService:
             "obj_id": obj_id,
             "donate_sum": donate_sum,
             "engine_type": engine_type,
+            "create_donates": create_donates
         }
 
-        first_task_minutes_delay = random.randint(
-            settings.add_bot_to_matrix_first_task_interval.min_minutes,
-            settings.add_bot_to_matrix_first_task_interval.max_minutes
-        )
-        second_task_minutes_delay = random.randint(
-            settings.add_bot_to_matrix_second_task_interval.min_minutes,
-            settings.add_bot_to_matrix_second_task_interval.max_minutes
-        )
+        if first_task_minutes_delay is None:
+            first_task_minutes_delay = random.randint(
+                settings.add_bot_to_matrix_first_task_interval.min_minutes,
+                settings.add_bot_to_matrix_first_task_interval.max_minutes
+            )
+
+        if second_task_minutes_delay is None:
+            second_task_minutes_delay = random.randint(
+                settings.add_bot_to_matrix_second_task_interval.min_minutes,
+                settings.add_bot_to_matrix_second_task_interval.max_minutes
+            )
 
         first_task_execute_at = now + timedelta(minutes=first_task_minutes_delay)
         second_task_execute_at = now + timedelta(minutes=second_task_minutes_delay)
