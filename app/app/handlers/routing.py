@@ -36,8 +36,4 @@ def get_all_routers() -> Router:
         admin_router,
     )
 
-    if settings.debug:
-        from .debug import debug_router
-        router.include_router(debug_router)
-
     return router

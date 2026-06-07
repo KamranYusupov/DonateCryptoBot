@@ -68,8 +68,6 @@ class Container(containers.DeclarativeContainer):
 
             "app.use_cases.donations",
 
-            "app.handlers.debug",
-
             "app.middlewares.ban_user",
             "app.middlewares.subscriptions",
             "app.tasks.matrix",
