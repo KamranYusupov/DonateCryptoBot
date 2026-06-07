@@ -36,10 +36,10 @@ async def activate_matrix_handler(
             Container.add_bot_to_matrix_task_service
         ]
 ):
-    current_user = await telegram_user_service.get_telegram_user(
+    sender_user = await telegram_user_service.get_telegram_user(
         user_id=message.from_user.id,
     )
-    if not current_user or not current_user.is_admin:
+    if not sender_user or not sender_user.is_admin:
         return
 
 
@@ -53,17 +53,17 @@ async def activate_matrix_handler(
         return
     try:
         user_id = int(user_id)
-        user = await telegram_user_service.get_telegram_user(
+        current_user = await telegram_user_service.get_telegram_user(
             user_id=user_id
         )
     except:
         username = user_id[1:] if "@" == user_id[0] else user_id
 
-        user = await telegram_user_service.get_telegram_user(
+        current_user = await telegram_user_service.get_telegram_user(
             username=username,
         )
 
-    if not user:
+    if not current_user:
         await message.answer("Пользователь не найден")
         return
 
@@ -77,7 +77,7 @@ async def activate_matrix_handler(
 
     }
     first_sponsor = await telegram_user_service.get_telegram_user(
-        user_id=user.sponsor_user_id,
+        user_id=current_user.sponsor_user_id,
     )
 
     if not is_triumph:
