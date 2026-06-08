@@ -23,8 +23,7 @@ def get_saturday_noon_period_start(dt_now: datetime | None = None) -> datetime:
     если сейчас позднее субботы 12:00 текущей недели.
     """
 
-    now = to_main_tz(dt_now or datetime.now()) + timedelta(days=7)
-
+    now = to_main_tz(dt_now or datetime.now())
     is_before_saturday_noon = now.weekday() < 5 or (now.weekday() == 5 and now.hour < 12)
 
     if is_before_saturday_noon:
