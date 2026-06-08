@@ -1,17 +1,13 @@
-from uuid import UUID
-from typing import Dict, Any
-
 import loguru
-from aiogram.exceptions import TelegramAPIError
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, BackgroundTasks
 from starlette.responses import Response
 from starlette import status
 
+from app.background_tasks.crypto_bot import handle_invoice_webhook_in_bot
 from app.core.container import Container
-from app.services.crypto_bot_api_service import CryptoBotAPIService
-from app.use_cases.donations import send_donations_menu
-from app.loader import bot
+from app.services.crypto_bot_processed_webhook_service import CryptoBotProcessedWebhookService
+from app import loader
 from app.api.schemas.crypto_bot import UpdateWebhookSchema, CryptoInvoiceSchema
 from app.services.telegram_user_service import TelegramUserService
 from app.db.commit_decorator import commit_and_close_session
@@ -26,23 +22,24 @@ router = APIRouter(tags=['CryptoBot'], prefix='/crypto-bot')
 @commit_and_close_session
 async def updates_webhook(
         body: UpdateWebhookSchema,
+        background_tasks: BackgroundTasks,
         telegram_user_service: TelegramUserService = Depends(
             Provide[Container.telegram_user_service]
         ),
-        crypto_bot_api_service: CryptoBotAPIService = Depends(
-            Provide[Container.crypto_bot_api_service],
+        processed_webhook_service: CryptoBotProcessedWebhookService = Depends(
+            Provide[Container.crypto_bot_processed_webhook_service],
         )
 ) -> Response:
     if body.update_type != "invoice_paid":
         return Response(status_code=status.HTTP_400_BAD_REQUEST)
 
-    request_invoice = CryptoInvoiceSchema(**body.payload)
-    existing_invoice = await crypto_bot_api_service.get_invoice_by_id(
-        invoice_id=request_invoice.invoice_id
+    is_processed = await processed_webhook_service.exists(
+        update_id=body.update_id
     )
-
-    if existing_invoice and existing_invoice["status"] == "paid":
+    if is_processed:
         return Response(status_code=status.HTTP_200_OK)
+
+    request_invoice = CryptoInvoiceSchema(**body.payload)
 
     if request_invoice.status == "paid":
         telegram_id = request_invoice.payload.telegram_id
@@ -51,24 +48,14 @@ async def updates_webhook(
         telegram_user = await telegram_user_service.get_telegram_user(user_id=telegram_id)
         telegram_user.bill_for_activation += tokens_count
 
+        await processed_webhook_service.create_by_request_body(body=body)
 
-        for message_id in request_invoice.payload.messages_to_delete_ids:
-            try:
-                await bot.delete_message(
-                    chat_id=telegram_id,
-                    message_id=message_id,
-            )
-            except TelegramAPIError:
-                pass
-
-        await bot.send_message(
-            chat_id=telegram_id,
-            text="Оплата прошла успешно ✅\n\n"
-                 f"На баланс зачислено {tokens_count} USDT.",
-        )
-        await send_donations_menu(
-            from_user_id=telegram_id,
-            telegram_method=bot.send_message
+        background_tasks.add_task(
+            handle_invoice_webhook_in_bot,
+            bot=loader.bot,
+            telegram_id=telegram_id,
+            tokens_count=tokens_count,
+            messages_to_delete_ids=request_invoice.payload.messages_to_delete_ids
         )
         return Response(status_code=status.HTTP_200_OK)
 
