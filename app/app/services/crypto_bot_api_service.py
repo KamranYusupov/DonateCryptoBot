@@ -1,3 +1,5 @@
+from typing import Dict, Optional
+
 import aiohttp
 import loguru
 
@@ -46,3 +48,16 @@ class CryptoBotAPIService:
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as resp:
                 return await resp.json()
+
+    async def get_invoice_by_id(self, invoice_id: int) -> Optional[Dict]:
+        response_data = await self.get_invoices()
+        invoices = response_data.get("result", {}).get("items")
+
+        if not invoices:
+            return None
+
+        for iv in invoices:
+            if iv["invoice_id"] == invoice_id:
+                return iv
+
+        return None
