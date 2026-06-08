@@ -122,7 +122,8 @@ class ContestCallbackController:
         for contest in page:
             button_text = get_period_message(
                 contest.start_at,
-                period_days=self.period_days
+                period_days=self.period_days,
+                show_time=self.show_time,
             )
             detail_page_number += 1
             buttons[button_text] = f"{self.prefix}_{page_number}_{detail_page_number}"
@@ -175,7 +176,8 @@ def get_router(
         title="🏆 Топ‑10 кураторов",
         prefix=settings.sponsors_contest_callback_prefix,
         service=sponsors_contests_service,
-        results_text_formatter=get_contest_top_10_rating_message
+        results_text_formatter=get_contest_top_10_rating_message,
+        show_time=True,
     )
     registration_contest_controller = ContestCallbackController(
         title="🏆 Топ‑10 пригласителей",
