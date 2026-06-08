@@ -2,7 +2,9 @@ from dependency_injector import containers, providers
 
 from app.core.config import Settings
 from app.db.session import SyncSession
+from app.models import ProcessedCryptoBotPaymentWebhook
 from app.repositories.donate import RepositoryDonate, RepositoryDonateTransaction
+from app.repositories.processed_crypto_bot_payment_webhook import RepositoryProcessedCryptoBotPaymentWebhook
 from app.repositories.registration_contest import RepositoryRegistrationContest, RepositoryRegistrationContestPoint
 
 from app.repositories.telegram_user import RepositoryTelegramUser
@@ -29,6 +31,7 @@ from app.models.contest import (
 )
 from app.models.transfer import Transfer
 from app.models.statistic import AdminStatistic
+from app.services.crypto_bot_processed_webhook_service import CryptoBotProcessedWebhookService
 
 from app.services.donate_confirm_service import DonateConfirmService
 from app.services.registration_contest_service import RegistrationContestService
@@ -127,6 +130,11 @@ class Container(containers.DeclarativeContainer):
     repository_admin_statistic = providers.Factory(
         RepositoryAdminStatistic, model=AdminStatistic, session=session
     )
+    repository_processed_webhook = providers.Factory(
+        RepositoryProcessedCryptoBotPaymentWebhook,
+        model=ProcessedCryptoBotPaymentWebhook,
+        session=session,
+    )
     # endregion
 
     # region services
@@ -193,6 +201,10 @@ class Container(containers.DeclarativeContainer):
     admin_statistic_service = providers.Factory(
         AdminStatisticService,
         repository_admin_statistic=repository_admin_statistic,
+    )
+    crypto_bot_processed_webhook_service = providers.Factory(
+        CryptoBotProcessedWebhookService,
+        repository_processed_webhook=repository_processed_webhook,
     )
     # endregion
 
