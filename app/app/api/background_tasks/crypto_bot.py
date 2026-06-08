@@ -27,9 +27,7 @@ async def handle_invoice_webhook_in_bot(
              f"На баланс зачислено {tokens_count} USDT.",
     )
 
-    commit_and_close_session(
-        await send_donations_menu(
-            from_user_id=telegram_id,
-            telegram_method=bot.send_message
-        )
+    await send_donations_menu(
+        from_user_id=telegram_id,
+        telegram_method=bot.send_message
     )

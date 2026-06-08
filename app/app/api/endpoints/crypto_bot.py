@@ -1,10 +1,10 @@
 import loguru
 from dependency_injector.wiring import Provide, inject
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends
 from starlette.responses import Response
 from starlette import status
 
-from app.background_tasks.crypto_bot import handle_invoice_webhook_in_bot
+from app.api.background_tasks.crypto_bot import handle_invoice_webhook_in_bot
 from app.core.container import Container
 from app.services.crypto_bot_processed_webhook_service import CryptoBotProcessedWebhookService
 from app import loader
@@ -22,7 +22,6 @@ router = APIRouter(tags=['CryptoBot'], prefix='/crypto-bot')
 @commit_and_close_session
 async def updates_webhook(
         body: UpdateWebhookSchema,
-        background_tasks: BackgroundTasks,
         telegram_user_service: TelegramUserService = Depends(
             Provide[Container.telegram_user_service]
         ),
@@ -50,8 +49,7 @@ async def updates_webhook(
 
         await processed_webhook_service.create_by_request_body(body=body)
 
-        background_tasks.add_task(
-            handle_invoice_webhook_in_bot,
+        await handle_invoice_webhook_in_bot(
             bot=loader.bot,
             telegram_id=telegram_id,
             tokens_count=tokens_count,
