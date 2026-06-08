@@ -46,6 +46,10 @@ async def about_handler(
             url="https://t.me/kod_deneg_film/15"
         ),
         InlineKeyboardButton(
+            text="Фильм «КОД СОСТОЯНИЯ»",
+            url="https://t.me/kod_deneg_film/43"
+        ),
+        InlineKeyboardButton(
             text="📎 Инструкция к фильму",
             url="https://t.me/kod_deneg_film/12"
         ),
