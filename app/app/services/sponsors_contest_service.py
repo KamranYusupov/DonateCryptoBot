@@ -1,9 +1,9 @@
-import uuid
-from collections import Counter
+from datetime import datetime, time
 from typing import Dict
 
 import loguru
 
+from app.core.config import settings
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.repositories.sponsors_contest import (
     RepositorySponsorsContest,
@@ -11,6 +11,7 @@ from app.repositories.sponsors_contest import (
 )
 from app.services.base.contest import BaseContestService
 from app.models.telegram_user import TelegramUser
+from app.utils.datetime import get_start_of_week
 
 
 class SponsorsContestService(
@@ -27,6 +28,16 @@ class SponsorsContestService(
             repository_contest_point=repository_contest_point
         )
         self._repository_telegram_user = repository_telegram_user
+
+    def _get_period_start(self) -> datetime:
+        start_of_week = get_start_of_week()
+
+        start_at = datetime.combine(
+            start_of_week,
+            time(12, 0, 0),
+            tzinfo=settings.timezone_info
+        )
+        return start_at
 
     async def _get_user_str_map(
             self,
