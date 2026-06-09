@@ -50,35 +50,6 @@ from app.services.matrix_node_service import MatrixNodeService
 
 
 class Container(containers.DeclarativeContainer):
-    wiring_config = containers.WiringConfiguration(
-        modules=[
-            "app.api.endpoints.crypto_bot",
-
-            "app.handlers.routing",
-            "app.handlers.donate",
-            "app.handlers.start",
-            "app.handlers.info",
-            "app.handlers.ban_user",
-            "app.handlers.referral_message",
-            "app.handlers.payments",
-            "app.handlers.withdrawal_request",
-            "app.handlers.transfer",
-            "app.handlers.worker",
-            "app.handlers.bill_type",
-            "app.handlers.aggregators",
-            "app.handlers.admin",
-            "app.handlers.controllers.contest",
-
-            "app.use_cases.donations",
-
-            "app.middlewares.ban_user",
-            "app.middlewares.subscriptions",
-            "app.tasks.matrix",
-
-            "app.utils.excel",
-        ]
-    )
-
     settings = providers.Factory(Settings)
     db = providers.Singleton(SyncSession, db_url=settings.provided.postgres_url)
     session = providers.Factory(db().create_session)
@@ -207,4 +178,35 @@ class Container(containers.DeclarativeContainer):
         repository_processed_webhook=repository_processed_webhook,
     )
     # endregion
+
+    wiring_modules = [
+        "app.api.endpoints.crypto_bot",
+
+        "app.handlers.routing",
+        "app.handlers.donate",
+        "app.handlers.start",
+        "app.handlers.info",
+        "app.handlers.ban_user",
+        "app.handlers.referral_message",
+        "app.handlers.payments",
+        "app.handlers.withdrawal_request",
+        "app.handlers.transfer",
+        "app.handlers.worker",
+        "app.handlers.bill_type",
+        "app.handlers.aggregators",
+        "app.handlers.admin",
+        "app.handlers.controllers.contest",
+
+        "app.use_cases.donations",
+
+        "app.middlewares.ban_user",
+        "app.middlewares.subscriptions",
+        "app.tasks.matrix",
+
+        "app.utils.excel",
+    ]
+
+    wiring_config = containers.WiringConfiguration(
+        modules=wiring_modules
+    )
 

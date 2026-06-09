@@ -4,6 +4,7 @@ import uuid
 from datetime import timedelta, datetime
 from typing import Dict, Any, Optional
 
+import loguru
 from aiogram import Bot
 from aiogram.enums import ChatMemberStatus
 from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
@@ -263,16 +264,28 @@ def serialize_reply_markup(reply_markup) -> Dict[str, Any]:
     return None
 
 
-async def send_message_or_pass(bot: Bot, *args, **kwargs):
+async def send_message_or_pass(
+        bot: Bot,
+        *args,
+        log_exception: bool = True,
+        **kwargs
+):
     try:
         await bot.send_message(*args, **kwargs)
-    except TelegramBadRequest:
+    except TelegramBadRequest as e:
+        if log_exception:
+            loguru.logger.error(str(e))
         pass
 
-async def delete_message_or_pass(message: Message) -> None:
+async def delete_message_or_pass(
+        message: Message,
+        log_exception: bool = True,
+) -> None:
     try:
         await message.delete()
-    except TelegramBadRequest:
+    except TelegramBadRequest as e:
+        if log_exception:
+            loguru.logger.error(str(e))
         pass
 
 async def send_transaction_messages(
@@ -283,7 +296,7 @@ async def send_transaction_messages(
         sender_username: str,
         sponsor_depth: None | int,
         status: DonateStatus,
-        matrix_length: int | None = None,
+        matrix_length: int,
         matrix_max_length: int = settings.matrix_max_length,
         triumph: bool = False,
         max_donates_sum_from_matrix: int = settings.triumph_max_donates_sum_from_matrix
@@ -332,7 +345,7 @@ async def send_transaction_messages(
         statistic_line = (
             f"📦 <b>{matrix_length} из {matrix_max_length}</b> мест занято"
             if not triumph else
-            f"🏦 Получено: <b>${quantity} из ${max_donates_sum_from_matrix}</b>"
+            f"🏦 Получено: <b>${int(quantity) * matrix_length} из ${max_donates_sum_from_matrix}</b>"
         )
         message_text = message_text.format(statistic_line)
 
@@ -340,6 +353,7 @@ async def send_transaction_messages(
             bot=bot,
             text=message_text,
             chat_id=chat_id,
+            log_exception=False,
         )
         await send_message_or_pass(
             bot=bot,
