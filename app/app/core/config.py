@@ -83,6 +83,18 @@ class Settings(BaseSettings):
     }
     # endregion
 
+    # region Настройки Redis
+    redis_host: str = Field(title="Хост redis", default="redis")
+    redis_port: int | str = Field(title="Порт redis", default=6379)
+    # endregion
+
+    # region Настройки TaskIQ
+    taskqi_result_backend_result_ex_time: int = Field(
+        title="Время хранения результатов задач в секундах",
+        default=3600,
+    )
+    # endregion
+
     # region Настройки CryptoBot
     crypto_bot_api_token: str = Field(title="CryptoBot API token")
     crypto_bot_api_base_url: str = Field(
@@ -183,6 +195,21 @@ class Settings(BaseSettings):
             port=self.postgres_port,
             path=f"{self.postgres_db}",
         )
+
+    @computed_field
+    @property
+    def redis_url(self) -> str:
+        return f"redis://{self.redis_host}:{self.redis_port}/"
+
+    @computed_field
+    @property
+    def taskiq_broker_url(self) -> str:
+        return f"{self.redis_url}/0"
+
+    @computed_field
+    @property
+    def taskiq_backend_url(self) -> str:
+        return f"{self.redis_url}/1"
 
 
 class Config:
