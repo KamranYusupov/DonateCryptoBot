@@ -29,6 +29,7 @@ pandas = "^2.3.3"
 fastapi = "^0.135.2"
 uvicorn = "^0.42.0"
 nest-asyncio = "^1.6.0"
+taskiq = "^0.12.4"
 
 
 [build-system]
