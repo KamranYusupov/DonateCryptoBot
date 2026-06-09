@@ -2,51 +2,56 @@ from dependency_injector import containers, providers
 
 from app.core.config import Settings
 from app.db.session import SyncSession
-from app.models import ProcessedCryptoBotPaymentWebhook
-from app.repositories.donate import RepositoryDonate, RepositoryDonateTransaction
-from app.repositories.processed_crypto_bot_payment_webhook import RepositoryProcessedCryptoBotPaymentWebhook
-from app.repositories.registration_contest import RepositoryRegistrationContest, RepositoryRegistrationContestPoint
 
-from app.repositories.telegram_user import RepositoryTelegramUser
-from app.repositories.admin_user import RepositoryAdminUser
-from app.repositories.matrix import (
-    RepositoryMatrix,
-    RepositoryMatrixNode,
-)
-from app.repositories.withdrawal_request import RepositoryWithdrawalRequest
-from app.repositories.sponsors_contest import RepositorySponsorsContest, RepositorySponsorsContestPoint
-from app.repositories.transfer import RepositoryTransfer
-from app.repositories.statistic import RepositoryAdminStatistic
-
-from app.models.telegram_user import TelegramUser
-from app.models.admin_user import AdminUser
-from app.models.donate import Donate, DonateTransaction
-from app.models.matrix import Matrix, MatrixNode
-from app.models.withdrawal_request import WithdrawalRequest
-from app.models.contest import (
+from app.models import (
+    AdminUser,
+    TelegramUser,
+    Matrix,
+    MatrixNode,
+    AddBotToMatrixTaskModel,
+    Donate,
+    DonateTransaction,
+    WithdrawalRequest,
     SponsorsContest,
     SponsorsContestPoint,
     RegistrationContest,
     RegistrationContestPoint,
+    Transfer,
+    AdminStatistic,
+    ProcessedCryptoBotPaymentWebhook,
 )
-from app.models.transfer import Transfer
-from app.models.statistic import AdminStatistic
-from app.services.crypto_bot_processed_webhook_service import CryptoBotProcessedWebhookService
-
-from app.services.donate_confirm_service import DonateConfirmService
-from app.services.registration_contest_service import RegistrationContestService
-from app.services.telegram_user_service import TelegramUserService
-from app.services.matrix_service import MatrixService
-from app.services.donate_service import DonateService
-from app.services.crypto_bot_api_service import CryptoBotAPIService
-from app.services.withdrawal_request import WithdrawalRequestService
-from app.models.matrix import AddBotToMatrixTaskModel
-from app.repositories.matrix import RepositoryAddBotToMatrixTaskModel
-from app.services.add_bot_to_matrix_task_service import AddBotToMatrixTaskService
-from app.services.sponsors_contest_service import SponsorsContestService
-from app.services.transfer_service import TransferService
-from app.services.statistic_service import AdminStatisticService
-from app.services.matrix_node_service import MatrixNodeService
+from app.repositories import (
+    RepositoryDonate,
+    RepositoryDonateTransaction,
+    RepositoryProcessedCryptoBotPaymentWebhook,
+    RepositoryRegistrationContest,
+    RepositoryRegistrationContestPoint,
+    RepositoryTelegramUser,
+    RepositoryAdminUser,
+    RepositoryMatrix,
+    RepositoryMatrixNode,
+    RepositoryWithdrawalRequest,
+    RepositorySponsorsContest,
+    RepositorySponsorsContestPoint,
+    RepositoryTransfer,
+    RepositoryAdminStatistic,
+    RepositoryAddBotToMatrixTaskModel,
+)
+from app.services import (
+    TelegramUserService,
+    DonateService,
+    DonateConfirmService,
+    RegistrationContestService,
+    SponsorsContestService,
+    CryptoBotProcessedWebhookService,
+    CryptoBotAPIService,
+    WithdrawalRequestService,
+    AddBotToMatrixTaskService,
+    TransferService,
+    AdminStatisticService,
+    MatrixService,
+    MatrixNodeService,
+)
 
 
 class Container(containers.DeclarativeContainer):
