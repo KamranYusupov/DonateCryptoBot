@@ -12,6 +12,15 @@ x-function: &python
   env_file:
     .env
 
+x-taskiq: &taskiq
+  <<: *python
+  build:
+    context: .
+    dockerfile: backend.dockerfile
+  entrypoint: taskiq
+  depends_on:
+    - redis
+
 services:
 
   app_db:
@@ -52,6 +61,29 @@ services:
     ports:
       - "8000:8000"
     restart: on-failure
+
+  redis:
+    image: redis:7.0.11-alpine
+    hostname: redis
+    container_name: ${PROJECT_SLUG}_redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT}:${REDIS_PORT}"
+    networks:
+      - internal
+    env_file:
+      - .env
+    restart: always
+
+  worker:
+    <<: *taskiq
+    hostname: worker
+    container_name: ${PROJECT_SLUG}_worker
+    command: >
+      worker app.core.taskiq:broker app.tasks.taskiq
+    restart: always
 
   nginx:
     container_name: ${PROJECT_SLUG}_nginx
@@ -98,6 +130,7 @@ volumes:
   app_db-template:
   poetry-volume:
   telegram-bot-api-data:
+  redis_data:
 
 networks:
   internal:
