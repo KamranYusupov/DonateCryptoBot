@@ -557,10 +557,10 @@ async def donate_handler(
             triumph=is_triumph
         )
 
-        await matrix_notifier_service.notify_invited_users_about_activation(
-            sponsor_user_id=callback.from_user.id,
-            status=status,
-        )
+    await matrix_notifier_service.notify_invited_users_about_activation(
+        sponsor_user_id=callback.from_user.id,
+        status=status,
+    )
 
 
 @donate_router.callback_query(F.data == "transactions")
