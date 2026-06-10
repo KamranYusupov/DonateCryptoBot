@@ -27,7 +27,7 @@ class MatrixService:
             **kwargs
         )
 
-    async def get_matrix(self, **kwargs) -> Matrix:
+    async def get_matrix(self, **kwargs) -> Matrix | None:
         return self._repository_matrix.get(**kwargs)
 
     async def get_user_matrices(

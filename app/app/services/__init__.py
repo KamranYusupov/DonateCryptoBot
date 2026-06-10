@@ -1,7 +1,7 @@
 from app.services.donate_confirm_service import DonateConfirmService
 from app.services.registration_contest_service import RegistrationContestService
 from app.services.telegram_user_service import TelegramUserService
-from app.services.legacy_matrix_service import MatrixService
+from app.services.matrix_service import MatrixService
 from app.services.donate_service import DonateService
 from app.services.crypto_bot_api_service import CryptoBotAPIService
 from app.services.crypto_bot_processed_webhook_service import CryptoBotProcessedWebhookService
@@ -12,6 +12,7 @@ from app.services.sponsors_contest_service import SponsorsContestService
 from app.services.transfer_service import TransferService
 from app.services.statistic_service import AdminStatisticService
 from app.services.matrix_node_service import MatrixNodeService
+from app.services.matrix_notifier_service import MatrixNotifierService
 
 __all__ = (
     "TelegramUserService",
@@ -27,4 +28,5 @@ __all__ = (
     "AdminStatisticService",
     "MatrixService",
     "MatrixNodeService",
+    "MatrixNotifierService",
 )
