@@ -51,6 +51,7 @@ from app.services import (
     AdminStatisticService,
     MatrixService,
     MatrixNodeService,
+    MatrixNotifierService,
 )
 
 
@@ -168,7 +169,6 @@ class Container(containers.DeclarativeContainer):
         repository_contest_point=repository_registration_contest_point,
         repository_telegram_user=repository_telegram_user,
     )
-
     transfer_service = providers.Factory(
         TransferService,
         repository_transfer=repository_transfer,
@@ -181,6 +181,10 @@ class Container(containers.DeclarativeContainer):
     crypto_bot_processed_webhook_service = providers.Factory(
         CryptoBotProcessedWebhookService,
         repository_processed_webhook=repository_processed_webhook,
+    )
+    matrix_notifier_service = providers.Factory(
+        MatrixNotifierService,
+        repository_telegram_user=repository_telegram_user,
     )
     # endregion
 

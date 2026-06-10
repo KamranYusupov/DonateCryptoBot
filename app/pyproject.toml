@@ -21,7 +21,7 @@ asyncpg = "^0.29.0"
 flask-login = "^0.6.3"
 watchdog = "^3.0.0"
 aiogram-tonconnect = "^0.13.5"
-redis = "^5.0.4"
+redis = "^7"
 gevent = "^25.9.1"
 celery = "^5.5.3"
 openpyxl = "^3.1.5"
@@ -30,6 +30,7 @@ fastapi = "^0.135.2"
 uvicorn = "^0.42.0"
 nest-asyncio = "^1.6.0"
 taskiq = "^0.12.4"
+taskiq-redis = "^1.2.2"
 
 
 [build-system]

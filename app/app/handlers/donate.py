@@ -12,6 +12,7 @@ from aiogram.types import Message
 from dependency_injector.wiring import inject, Provide
 
 from app.core.container import Container
+from app.services import MatrixNotifierService
 from app.services.donate_confirm_service import DonateConfirmService
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.registration_contest_service import RegistrationContestService
@@ -385,6 +386,9 @@ async def donate_handler(
         ],
         add_bot_to_matrix_task_service: AddBotToMatrixTaskService = Provide[
             Container.add_bot_to_matrix_task_service
+        ],
+        matrix_notifier_service: MatrixNotifierService = Provide[
+            Container.matrix_notifier_service
         ]
 ) -> None:
     bill_type = callback.data.split("_")[-1]
@@ -528,6 +532,7 @@ async def donate_handler(
     ):
         current_user.status = status
 
+
     await callback.message.delete()
     await callback.message.answer("🎉")
     await callback.message.answer(
@@ -550,6 +555,11 @@ async def donate_handler(
             matrix_length=data.get("matrix_length"),
             matrix_max_length=matrix_max_length,
             triumph=is_triumph
+        )
+
+        await matrix_notifier_service.notify_invited_users_about_activation(
+            sponsor_user_id=callback.from_user.id,
+            status=status,
         )
 
 

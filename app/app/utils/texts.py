@@ -368,3 +368,24 @@ places_emoji_list = (
     "9⃣",
     "🔟",
 )
+
+
+sponsor_activation_text_template = html.bold(
+"🏆 КУРАТОР СДЕЛАЛ АКТИВАЦИЮ\n\n"
+"👤 @{username}\n"
+"{status}\n\n"
+"📊 Выше площадка — больше бонусов."
+)
+
+
+def get_sponsor_activation_text(
+        username: str,
+        status: DonateStatus,
+) -> str:
+    status_color_emoji = statuses_colors_data.get(status)
+    status_str = f"{status_color_emoji} {status.value.upper()}"
+
+    return sponsor_activation_text_template.format(
+        username=username,
+        status=status_str,
+    )
