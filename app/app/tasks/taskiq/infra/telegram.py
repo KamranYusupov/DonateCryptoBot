@@ -2,7 +2,7 @@ import time
 
 import loguru
 from aiogram import Bot
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramAPIError
 
 from app import loader
 from app.core.taskiq import broker
@@ -21,5 +21,5 @@ async def send_message_task(
             text=text,
             **kwargs,
         )
-    except TelegramBadRequest as e:
+    except TelegramAPIError as e:
         loguru.logger.error(str(e))

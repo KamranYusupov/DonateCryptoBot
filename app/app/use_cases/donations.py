@@ -68,6 +68,8 @@ async def send_donations_menu(
             "Транзакции 💳": f"transactions",
         })
 
+    created_at_date_str = current_user.created_at.strftime("%d.%m.%Y")
+
     message_text = (
         f"Место в конкурсе: <b>{current_user_place}</b>\n"
         f"Лично приглашенных: <b>{current_user.invites_count}</b>\n"
