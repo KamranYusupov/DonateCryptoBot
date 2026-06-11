@@ -68,6 +68,8 @@ async def send_donations_menu(
             "Транзакции 💳": f"transactions",
         })
 
+    created_at_date_str = current_user.created_at.strftime("%d.%m.%Y")
+
     message_text = (
         f"Место в конкурсе: <b>{current_user_place}</b>\n"
         f"Лично приглашенных: <b>{current_user.invites_count}</b>\n"
@@ -244,6 +246,7 @@ async def send_donations_menu(
         message_parts.append(f"Срок действия площадки <b>🏆 ТРИУМФ</b>: {triumph_node_deadline_str}")
 
     message_parts.append(f"Мой куратор: {sponsor.full_username}")
+    message_parts.append(f"Дата регистрации: <b>{created_at_date_str}</b>")
 
     message_text = "\n".join(message_parts) + "\n" + message_text
 
