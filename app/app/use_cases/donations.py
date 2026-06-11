@@ -246,6 +246,7 @@ async def send_donations_menu(
         message_parts.append(f"Срок действия площадки <b>🏆 ТРИУМФ</b>: {triumph_node_deadline_str}")
 
     message_parts.append(f"Мой куратор: {sponsor.full_username}")
+    message_parts.append(f"Дата регистрации: <b>{created_at_date_str}</b>")
 
     message_text = "\n".join(message_parts) + "\n" + message_text
 
