@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional
 import loguru
 from aiogram import Bot
 from aiogram.enums import ChatMemberStatus
-from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
+from aiogram.exceptions import TelegramAPIError
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     Message,
@@ -272,7 +272,7 @@ async def send_message_or_pass(
 ):
     try:
         await bot.send_message(*args, **kwargs)
-    except TelegramBadRequest as e:
+    except TelegramAPIError as e:
         if log_exception:
             loguru.logger.error(str(e))
         pass
@@ -283,7 +283,7 @@ async def delete_message_or_pass(
 ) -> None:
     try:
         await message.delete()
-    except TelegramBadRequest as e:
+    except TelegramAPIError as e:
         if log_exception:
             loguru.logger.error(str(e))
         pass
