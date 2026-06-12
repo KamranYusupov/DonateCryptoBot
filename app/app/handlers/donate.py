@@ -1,3 +1,4 @@
+import asyncio
 import math
 import os
 from datetime import datetime, timedelta
@@ -12,7 +13,7 @@ from aiogram.types import Message
 from dependency_injector.wiring import inject, Provide
 
 from app.core.container import Container
-from app.services import MatrixNotifierService
+from app.services import MatrixActivationNotifierService
 from app.services.donate_confirm_service import DonateConfirmService
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.registration_contest_service import RegistrationContestService
@@ -27,7 +28,7 @@ from app.utils.pagination import Paginator
 from app.utils.excel import export_users_to_excel
 from app.models.donate import DonateTransactionType
 from app.loader import bot
-from app.utils.bot import send_transaction_messages, send_captcha
+from app.utils.bot import send_captcha
 from app.models.telegram_user import TelegramUser
 from app.models.matrix import Matrix, MatrixEngineType
 from app.keyboards.donate import get_start_inline_keyboard
@@ -387,8 +388,8 @@ async def donate_handler(
         add_bot_to_matrix_task_service: AddBotToMatrixTaskService = Provide[
             Container.add_bot_to_matrix_task_service
         ],
-        matrix_notifier_service: MatrixNotifierService = Provide[
-            Container.matrix_notifier_service
+        matrix_activation_notifier_service: MatrixActivationNotifierService = Provide[
+            Container.matrix_activation_notifier_service
         ]
 ) -> None:
     bill_type = callback.data.split("_")[-1]
@@ -428,9 +429,11 @@ async def donate_handler(
     if callback.from_user.username != current_user.username:
         current_user.username = callback.from_user.username
 
-    donate_data = await donate_service.update_donate_data_with_sponsors(
+    transactions_data = await donate_service.update_transactions_data_with_sponsors(
+        current_user,
         *sponsors,
         donate_sum=donate_sum,
+        status=status,
     )
     first_sponsor = sponsors[0]
     is_triumph = (status in (DonateStatus.BRILLIANT, ))
@@ -443,7 +446,7 @@ async def donate_handler(
             current_user,
             first_sponsor,
             donate_sum,
-            donate_data,
+            transactions_data,
             status,
         )
         if not result:
@@ -459,36 +462,34 @@ async def donate_handler(
         create_tasks_data["obj_id"] = created_matrix.id
         create_tasks_data["engine_type"] = MatrixEngineType.JSON
         matrix_id = matrix.id
-        matrix_max_length = settings.matrix_max_length
-
     else:
         inserted_node, upline_nodes = await matrix_node_service.activate_matrix_node(
             current_user_id=current_user.id,
             sponsor_id=first_sponsor.id,
             status=status,
         )
-        matrix_donate_data = await donate_service.update_donate_data_with_nodes(
+        matrix_transactions_data = await donate_service.update_transactions_data_with_nodes(
             upline_nodes,
             donate_sum=donate_sum,
+            status=status,
             transaction_percent=settings.triumph_matrix_transaction_percent,
         )
-        donate_data.extend(matrix_donate_data)
+        transactions_data.extend(matrix_transactions_data)
 
         create_tasks_data["obj_id"] = inserted_node.id
         create_tasks_data["engine_type"] = MatrixEngineType.NODES
-        matrix_max_length = settings.triumph_matrix_max_length
         matrix_id = inserted_node.matrix_id
 
     await add_bot_to_matrix_task_service.create_tasks(**create_tasks_data)
 
-    donate_service.update_donate_data_with_system_transaction(
-        donate_data,
+    donate_service.update_transactions_data_with_system_transaction(
+        transactions_data,
         donate_sum=donate_sum,
     )
 
     donate = await donate_confirm_service.create_donate(
         telegram_user_id=current_user.id,
-        donate_data=donate_data,
+        transactions=transactions_data,
         matrix_id=matrix_id,
         quantity=donate_sum,
     )
@@ -543,24 +544,20 @@ async def donate_handler(
         bot.send_message,
     )
 
-    for data in donate_data:
-        await send_transaction_messages(
-            bot=bot,
-            chat_id=data["receiver_chat_id"],
-            quantity=data["quantity"],
-            type_=data["type_"],
-            sender_username=callback.from_user.username,
+    coroutines = [
+        matrix_activation_notifier_service.notify_invited_users(
+            sponsor_user_id=callback.from_user.id,
             status=status,
-            sponsor_depth=data.get("sponsor_depth"),
-            matrix_length=data.get("matrix_length"),
-            matrix_max_length=matrix_max_length,
-            triumph=is_triumph
         )
-
-    await matrix_notifier_service.notify_invited_users_about_activation(
-        sponsor_user_id=callback.from_user.id,
-        status=status,
+    ]
+    coroutines.extend(
+        matrix_activation_notifier_service.send_transaction_message(
+            transaction
+        )
+        for transaction in transactions_data
     )
+    await asyncio.gather(*coroutines)
+
 
 
 @donate_router.callback_query(F.data == "transactions")

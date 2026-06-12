@@ -389,3 +389,84 @@ def get_sponsor_activation_text(
         username=username,
         status=status_str,
     )
+
+def format_digit(digit: float | int) -> str:
+    return str(int(digit)) if int(digit) == digit else str(digit)
+
+
+def get_sponsor_transaction_message_text(
+        *,
+        sender_str: str,
+        status: DonateStatus,
+        sponsor_depth: int,
+        quantity: int | float,
+        is_public: bool = False,
+) -> str:
+    display_name = "ПАРТНЁР" if is_public else sender_str
+    template = (
+        "<b>👥 {sender_str} АКТИВИРОВАЛ \n"
+        "<b>{status_color} {status_name}</b>\n"
+        "🎁 Бонус от {sponsor_depth} линии: +{quantity_str}$\n</b>"
+        "🤝 Команда растёт\n\n"
+        "🔥 На Шаг ближе к Триумфу!"
+    )
+    status_color = statuses_colors_data.get(status)
+    status_name = status.value.upper()
+
+    return template.format(
+        sender_str=display_name,
+        status_color=status_color,
+        status_name=status_name,
+        sponsor_depth=sponsor_depth,
+        quantity_str=format_digit(quantity),
+    )
+
+def get_system_transaction_message_text(
+        *,
+        quantity: int | float,
+) -> str:
+    template = "Системный аккаунт <b>${quantity_str}</b>"
+
+    return template.format(
+        quantity_str=format_digit(quantity),
+    )
+
+def get_matrix_transaction_message_text(
+        *,
+        receiver_str: str,
+        status: DonateStatus,
+        quantity: int | float,
+        matrix_length: int,
+        matrix_max_length: int = settings.matrix_max_length,
+        triumph: bool = False,
+        is_public: bool = False,
+):
+    template = (
+        "<b>🤖 БОТ ЗАКРЫЛ МЕСТО {receiver_str}</b>\n"
+        "💸 <b>+{quantity_str}$</b> на счёт\n"
+        "🎯 Площадка: <b>{status_str}</b> \n"
+        "{statistic_line}\n\n"
+        "🔥 Делитесь <b>KOD💵DENEG</b> — получайте бонусы."
+    )
+
+    receiver_str = "" if is_public else receiver_str
+    status_color = statuses_colors_data.get(status, "")
+    status_name = status.value.upper()
+    status_str = f"{status_color} {status_name}"
+
+    if triumph:
+        current_sum_str = format_digit(quantity * matrix_length)
+        statistic_line = (
+            f"🏦 Получено: <b>${current_sum_str} "
+            f"из ${settings.triumph_max_donates_sum_from_matrix}</b>"
+        )
+    else:
+        statistic_line = f"📦 <b>{matrix_length} из {matrix_max_length}</b> мест занято"
+
+    return template.format(
+        receiver_str=receiver_str,
+        status_str=status_str,
+        statistic_line=statistic_line,
+        quantity_str=format_digit(quantity),
+    )
+

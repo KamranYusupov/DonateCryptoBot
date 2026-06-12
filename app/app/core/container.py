@@ -51,7 +51,7 @@ from app.services import (
     AdminStatisticService,
     MatrixService,
     MatrixNodeService,
-    MatrixNotifierService,
+    MatrixActivationNotifierService,
 )
 
 
@@ -182,8 +182,8 @@ class Container(containers.DeclarativeContainer):
         CryptoBotProcessedWebhookService,
         repository_processed_webhook=repository_processed_webhook,
     )
-    matrix_notifier_service = providers.Factory(
-        MatrixNotifierService,
+    matrix_activation_notifier_service = providers.Factory(
+        MatrixActivationNotifierService,
         repository_telegram_user=repository_telegram_user,
     )
     # endregion
