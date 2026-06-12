@@ -9,7 +9,7 @@ from app.db.backup import create_backup
 @broker.task(
     schedule=[
         {
-            "cron": "* * * * *",
+            "cron": "*/30 * * * *",
         }
     ]
 )
