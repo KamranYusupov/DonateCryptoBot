@@ -48,7 +48,10 @@ services:
       context: .
       dockerfile: backend.dockerfile
     command: >
-      python app/main.py 
+      python app/main.py
+    depends_on:
+      - telegram-server
+      - api
 
   api:
     <<: *python
@@ -118,8 +121,6 @@ services:
       - ${TELEGRAM_SERVER_PORT}:${TELEGRAM_SERVER_PORT}
     networks:
       - internal
-    depends_on:
-      - app
     env_file:
       - .env
 
