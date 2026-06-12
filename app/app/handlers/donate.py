@@ -621,7 +621,7 @@ async def get_transactions_list_to_me(
     if len(buttons) == 2:
         sizes = (2, 1)
 
-    message = "Транзакции от пользователей Вам.\n\n"
+    message = "Транзакции от Вам.\n\n"
     transactions = paginator.get_page()
 
     if transactions:
@@ -782,7 +782,7 @@ async def get_all_transactions(
                         f"Сумма: ${transaction.quantity}\n"
                         f"От кого: @{user.username}\n"
                         f"Кому: @{sponsor.username}\n"
-                        f"Тип: <b>{transaction.type_.value.upper()}.</b>\n"
+                        f"Тип: <b>{transaction.type_.value.upper()}</b>\n"
                     )
                     if user.is_bot:
                         message += \
