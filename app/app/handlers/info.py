@@ -216,9 +216,8 @@ async def referral_message_handler(
         return
 
     referral_url = current_user.referral_url
-    keyboard = InlineKeyboardBuilder()
-
-    keyboard.add(
+    first_message_keyboard = InlineKeyboardBuilder()
+    first_message_keyboard.add(
         InlineKeyboardButton(
             text="🔑 Получить доступ",
             url=referral_url
@@ -233,14 +232,14 @@ async def referral_message_handler(
             " Ты начинаешь замечать деньги там, где раньше видел стены.\n\n"
             "📎 Всё, что нужно — фильм, инструкция и чат. Внутри бота."
         ),
-        reply_markup=keyboard.as_markup()
+        reply_markup=first_message_keyboard.as_markup()
     )
-    caption = (
-        "💰 «Код Денег» — бот автоматически закрывает 2 места под вами и под каждым партнёром.\n"
-        "✅ 10% с каждого закрытого места\n"
-        "✅ Реферальные бонусы 20% / 10% / 5%\n"
-        "✅ Подходит даже тем, у кого нет опыта\n\n"
-        f"<a href='{settings.presentation_link}'>📖 Подробная текстовая презентация с примерами расчётов.</a>"
+    second_message_keyboard = InlineKeyboardBuilder()
+    second_message_keyboard.add(
+        InlineKeyboardButton(
+            text="🎬 СМОТРЕТЬ KOD💵DENEG",
+            url=referral_url
+        )
     )
 
     await SendFileFromLoadedFileIDOrSaveUseCase.send_video(
@@ -248,8 +247,7 @@ async def referral_message_handler(
         chat_id=message.chat.id,
         file_path=settings.kod_deneg_video_file_path,
         file_id_path=settings.kod_deneg_video_file_id_path,
-        caption=caption,
-        reply_markup=keyboard.as_markup(),
+        reply_markup=second_message_keyboard.as_markup(),
         supports_streaming=True,
         width=1080,
         height=1920,
