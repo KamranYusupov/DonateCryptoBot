@@ -54,9 +54,9 @@ class AbstractTelegramUser:
         return " ".join(filter(None, parts))
 
     @property
-    def full_username(self) -> str | None:
+    def full_username(self) -> str:
         """Получение username пользователя с возможностью перейти к нему."""
-        return f"@{self.username}" if self.username else None
+        return f"@{self.username}" if self.username else ""
 
     @property
     def referral_url(self) -> str:

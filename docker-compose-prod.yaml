@@ -48,7 +48,10 @@ services:
       context: .
       dockerfile: backend.dockerfile
     command: >
-      python app/main.py 
+      python app/main.py
+    depends_on:
+      - telegram-server
+      - api
 
   api:
     <<: *python
@@ -81,6 +84,13 @@ services:
     command: >
       worker app.core.taskiq:broker app.tasks.taskiq
     restart: always
+
+  scheduler:
+    <<: *taskiq
+    hostname: scheduler
+    container_name: ${PROJECT_SLUG}_scheduler
+    command: >
+      scheduler app.core.taskiq:scheduler app.tasks.taskiq
 
   nginx:
     container_name: ${PROJECT_SLUG}_nginx
@@ -118,8 +128,6 @@ services:
       - ${TELEGRAM_SERVER_PORT}:${TELEGRAM_SERVER_PORT}
     networks:
       - internal
-    depends_on:
-      - app
     env_file:
       - .env
 

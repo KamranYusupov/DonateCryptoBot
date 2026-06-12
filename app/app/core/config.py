@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     presentation_link: str = Field(title="Ссылка на презентацию")
     donates_channel_id: int = Field(title="ID канала с донатами")
     donates_channel_link: str = Field(title="Ссылка на канал с донатами")
+    private_donates_channel_id: int = Field(title="ID приватного канала с донатами")
     web_app_link: str = Field(title="Ссылка на web app")
     manifest_link: str = Field(title="Ссылка на манифест")
     message_per_second: int = Field(title="Кол-во сообщений в секунду", default=1)

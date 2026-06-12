@@ -11,19 +11,17 @@ from app.repositories.telegram_user import RepositoryTelegramUser
 from app.repositories.matrix import RepositoryMatrix
 from app.repositories.donate import RepositoryDonate
 from app.models.telegram_user import TelegramUser, DonateStatus
-from app.models.matrix import Matrix, MatrixNode, MatrixEngineType
-from app.services.matrix_service import MatrixService
-from app.services.telegram_user_service import TelegramUserService
+from app.models.matrix import Matrix, MatrixNode
 from app.schemas.matrix import MatrixEntity
-from app.utils.matrix import get_matrices_length
-from app.utils.matrix import find_first_level_matrix_id
-from app.utils.sort import get_reversed_dict
 from app.core.config import settings
 from app.utils.matrix import find_free_place_in_matrix, insert_into_matrices
 from app.repositories.matrix import RepositoryAddBotToMatrixTaskModel
-from app.schemas.matrix import AddBotToMatrixTaskSchema
-from app.models.donate import DonateTransactionType
-
+from app.schemas.transaction import (
+    SponsorTransactionContextSchema,
+    SystemTransactionContextSchema,
+    MatrixTransactionContextSchema,
+    DonateTransactionContextSchema, TransactionReceiverSchema,
+)
 
 class DonateService:
     def __init__(
@@ -53,14 +51,6 @@ class DonateService:
 
         return None
 
-    @staticmethod
-    def _extend_donations_data(data: dict, sponsor: TelegramUser, donate: int | float):
-        if data.get(sponsor):
-            data[sponsor] += donate
-        else:
-            data[sponsor] = donate
-        return data
-
     def get_matrix_parents(
             self,
             matrix: Matrix,
@@ -82,13 +72,16 @@ class DonateService:
 
 
     @staticmethod
-    async def update_donate_data_with_sponsors(
+    async def update_transactions_data_with_sponsors(
+            current_user: TelegramUser,
             first_sponsor: Optional[TelegramUser],
             second_sponsor: Optional[TelegramUser],
             third_sponsor: Optional[TelegramUser],
             donate_sum: int | float,
-    ) -> list[dict[str, Any]]:
-        donations_data = []
+            status: DonateStatus,
+    ) -> list[SponsorTransactionContextSchema]:
+
+        transactions_data = []
         sponsor_donate_percents = (
             (first_sponsor, settings.first_sponsor_donate_percent,),
             (second_sponsor, settings.second_sponsor_donate_percent,),
@@ -100,73 +93,81 @@ class DonateService:
                 continue
 
             if sponsor.status != DonateStatus.NOT_ACTIVE:
-                donations_data.append({
-                    "receiver": sponsor,
-                    "receiver_chat_id": sponsor.user_id,
-                    "sponsor_depth": sponsor_depth + 1,
-                    "quantity": donate_sum * percent / 100,
-                    "type_": DonateTransactionType.SPONSOR,
-                 })
+                receiver_schema = TransactionReceiverSchema.model_validate(sponsor)
+                transaction = SponsorTransactionContextSchema(
+                    receiver=receiver_schema,
+                    sender_str=current_user.full_username,
+                    sponsor_depth=sponsor_depth + 1,
+                    status=status,
+                    quantity=donate_sum * percent / 100,
+                )
+                transactions_data.append(transaction)
 
-        return donations_data
+        return transactions_data
 
-    def update_donate_data_with_system_transaction(
+    def update_transactions_data_with_system_transaction(
             self,
-            donate_data: list[dict],
+            transactions_data: list[DonateTransactionContextSchema],
             donate_sum: int | float,
-    ) -> list[dict[str, Any]]:
+    ) -> list[DonateTransactionContextSchema]:
         transactions_quantities = [
-            transaction["quantity"] for transaction in donate_data
+            transaction.quantity
+            for transaction in transactions_data
         ]
         transactions_sum = sum(transactions_quantities)
         donate_reminder = donate_sum - transactions_sum
 
         if donate_reminder:
             admin_user = self._repository_telegram_user.get(is_admin=True)
-            donate_data.append({
-                "receiver": admin_user,
-                "receiver_chat_id": admin_user.user_id,
-                "quantity": donate_reminder,
-                "type_": DonateTransactionType.SYSTEM,
-            })
+            receiver_schema = TransactionReceiverSchema.model_validate(admin_user)
+            transaction = SystemTransactionContextSchema(
+                receiver=receiver_schema,
+                quantity=donate_reminder,
+            )
+            transactions_data.append(transaction)
 
-        return donate_data
+        return transactions_data
 
 
-    async def update_donate_data_with_nodes(
+    async def update_transactions_data_with_nodes(
             self,
             nodes: list[MatrixNode],
             donate_sum: int | float,
+            status: DonateStatus,
             transaction_percent: int = settings.triumph_matrix_transaction_percent,
-    ) -> list[dict[str, Any]]:
+    ) -> list[DonateTransactionContextSchema]:
         transaction_quantity = donate_sum * transaction_percent / 100
 
         owner_ids_node_map = {node.owner_id: node for node in nodes}
         receivers = self._repository_telegram_user.get_active_users_by_ids(
             ids=list(owner_ids_node_map.keys()),
         )
-        donations_data = [
-            {
-                "receiver": receiver,
-                "receiver_chat_id": receiver.user_id,
-                "quantity": transaction_quantity,
-                "type_": DonateTransactionType.MATRIX,
-                "matrix_length": owner_ids_node_map[receiver.id].downline_count
-            }
+
+        triumph = (status == DonateStatus.BRILLIANT)
+
+        transactions_data = [
+            MatrixTransactionContextSchema(
+                receiver=TransactionReceiverSchema.model_validate(receiver),
+                quantity=transaction_quantity,
+                matrix_length=owner_ids_node_map[receiver.id].downline_count,
+                status=status,
+                triumph=triumph,
+            )
             for receiver in receivers
         ]
 
-        return donations_data
+        return transactions_data
 
-    async def _update_donate_data_with_matrix_receivers(
+    async def _update_transactions_data_with_matrix_receivers(
             self,
             matrix: Matrix,
             donate_sum: int | float,
-            donations_data: list,
+            status: DonateStatus,
+            transactions_data: list[DonateTransactionContextSchema],
             free_place_path: list[uuid.UUID | str],
             parents: list[Matrix],
             transaction_percent: int = settings.matrix_donate_transaction_percent,
-    ) -> list[dict[str, Any]]:
+    ) -> list[DonateTransactionContextSchema]:
         transaction_quantity = donate_sum * transaction_percent / 100
 
         path_matrices = list(self._repository_matrix.get_matrices_by_ids_list(free_place_path))
@@ -184,17 +185,16 @@ class DonateService:
             is_bot=False,
         )
 
-        donations_data.extend([
-            {
-                "receiver": receiver,
-                "receiver_chat_id": receiver.user_id,
-                "quantity": transaction_quantity,
-                "type_": DonateTransactionType.MATRIX,
-                "matrix_length": len(path_matrices_ids_map[receiver.id].telegram_users) + 1
-            }
+        transactions_data.extend([
+            MatrixTransactionContextSchema(
+                receiver=TransactionReceiverSchema.model_validate(receiver),
+                quantity=transaction_quantity,
+                matrix_length=len(path_matrices_ids_map[receiver.id].telegram_users) + 1,
+                status=status,
+            )
             for receiver in donate_receivers
         ])
-        return donations_data
+        return transactions_data
 
     async def add_to_matrix(
             self,
@@ -263,7 +263,7 @@ class DonateService:
             current_user: TelegramUser,
             sponsor: TelegramUser,
             donate_sum: int,
-            donations_data: list,
+            transactions_data: list,
             status: DonateStatus,
             level_length: int = settings.level_length,
             found_matrix: Matrix | None = None
@@ -273,7 +273,8 @@ class DonateService:
                 found_matrix,
                 current_user,
                 donate_sum,
-                donations_data,
+                status,
+                transactions_data,
                 level_length,
             )
             return found_matrix, None
@@ -290,7 +291,8 @@ class DonateService:
                     matrix,
                     current_user,
                     donate_sum,
-                    donations_data,
+                    status,
+                    transactions_data,
                     level_length,
                 )
                 return matrix, created_matrix
@@ -306,7 +308,8 @@ class DonateService:
                     matrix,
                     current_user,
                     donate_sum,
-                    donations_data,
+                    status,
+                    transactions_data,
                     level_length,
                 )
                 return matrix, created_matrix
@@ -315,7 +318,7 @@ class DonateService:
                 current_user,
                 donate_sum,
                 status,
-                donations_data,
+                transactions_data,
                 level_length=settings.level_length,
             )
 
@@ -325,7 +328,8 @@ class DonateService:
             free_matrix: Matrix,
             current_user: TelegramUser,
             donate_sum: int | float,
-            donations_data: list,
+            status: DonateStatus,
+            transactions_data: list,
             level_length: int = settings.level_length,
     ):
         free_place_path = find_free_place_in_matrix(free_matrix.matrices, level_length)
@@ -335,10 +339,11 @@ class DonateService:
             count=settings.matrix_max_level - free_place_level
         )
 
-        await self._update_donate_data_with_matrix_receivers(
+        await self._update_transactions_data_with_matrix_receivers(
             free_matrix,
             donate_sum,
-            donations_data,
+            status,
+            transactions_data,
             free_place_path,
             parents,
         )
@@ -355,7 +360,7 @@ class DonateService:
             user_to_add: TelegramUser,
             donate_sum: int | float,
             status: DonateStatus,
-            donations_data: list,
+            transactions_data: list,
             level_length: int,
             max_iterations: int = 10000,
     ) -> Tuple[Matrix, Optional[Matrix]]:
@@ -390,7 +395,8 @@ class DonateService:
                         matrix,
                         current_user,
                         donate_sum,
-                        donations_data,
+                        status,
+                        transactions_data,
                         level_length,
                     )
                     return matrix, created_matrix
@@ -406,7 +412,8 @@ class DonateService:
                     matrix,
                     current_user,
                     donate_sum,
-                    donations_data,
+                    status,
+                    transactions_data,
                     level_length,
                 )
                 return matrix, created_matrix

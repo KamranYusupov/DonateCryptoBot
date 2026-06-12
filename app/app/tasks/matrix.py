@@ -3,32 +3,22 @@ import datetime
 import uuid
 
 import loguru
-from aiogram.exceptions import TelegramAPIError
 from dependency_injector.wiring import Provide, inject
 
 from app.models.matrix import Matrix, MatrixEngineType, MatrixNode
-from app.models.telegram_user import TelegramUser, statuses_colors_data
-from app.schemas.matrix import AddBotToMatrixTaskSchema
+from app.services import MatrixActivationNotifierService
 from app.services.donate_confirm_service import DonateConfirmService
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.telegram_user_service import TelegramUserService
-from app.keyboards.donate import get_donate_keyboard
-from app.loader import bot
-from app.models.telegram_user import DonateStatus
 from app.core.config import settings
 from app.models.matrix import Matrix
-from app.schemas.telegram_user import generate_random_user
-from app.core.container import Container
 from app.services.donate_service import DonateService
 from app.services.matrix_service import MatrixService
 from app.services.add_bot_to_matrix_task_service import AddBotToMatrixTaskService
 from app.db.commit_decorator import commit_and_close_session
 from app.core.container import Container
 from app.models.matrix import AddBotToMatrixTaskModel
-from app.models.donate import DonateTransactionType
-from app.utils.bot import send_message_or_pass, send_transaction_messages
-from app.services.statistic_service import AdminStatisticService
-
+from app.tasks.taskiq.infra.telegram import send_message_task
 
 @inject
 @commit_and_close_session
@@ -41,9 +31,16 @@ async def add_bot_to_matrix(
         matrix_node_service: MatrixNodeService = Provide[
             Container.matrix_node_service
         ],
-        telegram_user_service: TelegramUserService = Provide[Container.telegram_user_service],
+        telegram_user_service: TelegramUserService = Provide[
+            Container.telegram_user_service
+        ],
         donate_service: DonateService = Provide[Container.donate_service],
-        donate_confirm_service: DonateConfirmService = Provide[Container.donate_confirm_service],
+        donate_confirm_service: DonateConfirmService = Provide[
+            Container.donate_confirm_service
+        ],
+        matrix_activation_notifier_service: MatrixActivationNotifierService = Provide[
+            Container.matrix_activation_notifier_service
+        ]
 ) -> None:
     if engine_type == MatrixEngineType.JSON:
         obj: Matrix = await matrix_service.get_matrix(id=obj_id)
@@ -66,14 +63,14 @@ async def add_bot_to_matrix(
         sponsor_user_id=owner.user_id,
     )
 
-    donations_data = []
+    transactions_data = []
 
     if engine_type == MatrixEngineType.JSON:
         result = await donate_service.handle_matrix_activation(
             bot_user,
             owner,
             donate_sum,
-            donations_data,
+            transactions_data,
             obj.status,
             found_matrix=obj,
         )
@@ -90,22 +87,22 @@ async def add_bot_to_matrix(
             sponsor_id=owner.id,
             status=status,
         )
-        matrix_donations_data = await donate_service.update_donate_data_with_nodes(
+        matrix_transactions_data = await donate_service.update_transactions_data_with_nodes(
             upline_nodes,
+            status=status,
             donate_sum=donate_sum,
             transaction_percent=settings.triumph_matrix_transaction_percent,
         )
-        donations_data.extend(matrix_donations_data)
+        transactions_data.extend(matrix_transactions_data)
 
         is_triumph = True
-        matrix_max_length = settings.triumph_matrix_max_length
         matrix_id = inserted_node.matrix_id
 
     if not create_donates:
         return
     donate = await donate_confirm_service.create_donate(
         telegram_user_id=bot_user.id,
-        donate_data=donations_data,
+        transactions=transactions_data,
         matrix_id=matrix_id,
         quantity=donate_sum,
     )
@@ -114,29 +111,22 @@ async def add_bot_to_matrix(
         is_bot=True,
     )
 
-    sender_username = bot_user.username
     admin_user = await telegram_user_service.get_telegram_user(is_admin=True)
     admin_telegram_id = admin_user.user_id
-    for data in donations_data:
-        quantity = data["quantity"]
-        await send_transaction_messages(
-            bot=bot,
-            chat_id=data["receiver_chat_id"],
-            quantity=quantity,
-            type_=data["type_"],
-            sender_username=sender_username,
-            status=status,
-            sponsor_depth=data.get("sponsor_depth"),
-            matrix_length=data.get("matrix_length"),
-            matrix_max_length=matrix_max_length,
-            triumph=is_triumph
+
+    coroutines = []
+    for transaction in transactions_data:
+        coroutines.extend([
+            matrix_activation_notifier_service.send_transaction_message(
+                transaction
+            ),
+            send_message_task.kiq(
+                text=f"<b><em>-{transaction.quantity} от системного баланса.</em></b>\n",
+                chat_id=admin_telegram_id,
+            )]
         )
 
-        await send_message_or_pass(
-            bot=bot,
-            text=f"<b><em>-{quantity} от системного баланса.</em></b>\n",
-            chat_id=admin_telegram_id,
-        )
+    await asyncio.gather(*coroutines)
 
 
 @inject

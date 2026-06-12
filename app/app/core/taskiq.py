@@ -19,6 +19,8 @@ redis_source = taskiq_redis.RedisScheduleSource(
 )
 scheduler = TaskiqScheduler(
     broker=broker,
-    sources=[LabelScheduleSource(broker)],
+    sources=[
+        LabelScheduleSource(broker),
+        redis_source,
+    ],
 )
-

@@ -47,16 +47,18 @@ services:
       context: .
       dockerfile: backend.dockerfile
     command: >
-      python app/reloader.py 
+      python app/main.py
+    depends_on:
+      - telegram-server
 
-  api:
-    <<: *python
-    container_name: ${PROJECT_SLUG}_api
-    build:
-      context: .
-      dockerfile: api.dockerfile
-    ports:
-      - "8000:8000"
+#  api:
+#    <<: *python
+#    container_name: ${PROJECT_SLUG}_api
+#    build:
+#      context: .
+#      dockerfile: api.dockerfile
+#    ports:
+#      - "8000:8000"
 
   redis:
     image: redis:7.0.11-alpine
@@ -79,15 +81,24 @@ services:
     command: >
       worker app.core.taskiq:broker app.tasks.taskiq
 
-  nginx:
-    container_name: ${PROJECT_SLUG}_nginx
-    build: ./app/nginx
-    ports:
-      - "80:80"
+  scheduler:
+    <<: *taskiq
+    container_name: ${PROJECT_SLUG}_scheduler
+    command: >
+      scheduler app.core.taskiq:scheduler app.tasks.taskiq
     depends_on:
-      - api
-    networks:
-      - internal
+      - redis
+      - app_db
+#
+#  nginx:
+#    container_name: ${PROJECT_SLUG}_nginx
+#    build: ./app/nginx
+#    ports:
+#      - "80:80"
+#    depends_on:
+#      - api
+#    networks:
+#      - internal
 
   telegram-server:
     image: aiogram/telegram-bot-api:latest
@@ -101,8 +112,6 @@ services:
       - ${TELEGRAM_SERVER_PORT}:${TELEGRAM_SERVER_PORT}
     networks:
       - internal
-    depends_on:
-      - app
     env_file:
       - .env
 

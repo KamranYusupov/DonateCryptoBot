@@ -3,7 +3,7 @@ import random
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from app.core.config import settings
 from app.models.telegram_user import DonateStatus
@@ -33,8 +33,12 @@ class BaseUserEntity(BaseModel):
         default=False,
     )
 
+    @property
+    def full_username(self) -> str:
+        return f"@{self.username}" if self.username else ""
+
 class TelegramUserEntity(BaseUserEntity):
-    pass
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BillType(enum.Enum):

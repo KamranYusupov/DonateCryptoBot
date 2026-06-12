@@ -15,6 +15,7 @@ from app.schemas.donate import (
 )
 from app.models.donate import DonateTransactionType
 from app.schemas.telegram_user import BillType
+from app.schemas.transaction import DonateTransactionContextSchema
 
 
 class DonateConfirmService:
@@ -56,9 +57,9 @@ class DonateConfirmService:
     async def create_donate(
         self,
         telegram_user_id: uuid.UUID,
-        donate_data: list[dict[str, Any]],
+        transactions: list[DonateTransactionContextSchema],
         matrix_id: uuid.UUID,
-        quantity: float,
+        quantity: float | int,
     ):
         """Создание сущности доната"""
         donate_dict = {
@@ -69,31 +70,31 @@ class DonateConfirmService:
         donate = DonateEntity(**donate_dict)
         donate_obj = self._repository_donate.create(obj_in=donate.model_dump())
         await self._create_donate_transaction(
-            donate_id=donate_obj.id, donate_data=donate_data
+            donate_id=donate_obj.id, transactions=transactions
         )
         return donate_obj
 
     async def _create_donate_transaction(
             self,
             donate_id: uuid.UUID,
-            donate_data: list[dict[str, Any]],
+            transactions: list[DonateTransactionContextSchema],
     ):
         """
         Создание конкретной транзакции (часть доната), перечисляемой одному спонсору.
         При создании доната через create_donate - создаются автоматически.
         Всю инфу берет из donate_data.
         """
-        for transaction_data in donate_data:
-            sponsor = transaction_data["receiver"]
+        for transaction in transactions:
+            receiver = transaction.receiver
 
-            if sponsor.is_banned:
-                sponsor = self._repository_telegram_user.get(is_admin=True)
+            if receiver.is_banned:
+                receiver = self._repository_telegram_user.get(is_admin=True)
 
             donate_transaction_dict_obj = CreateDonateTransactionSchema(
-                sponsor_id=sponsor.id,
+                sponsor_id=receiver.id,
                 donate_id=donate_id,
-                quantity=transaction_data["quantity"],
-                type_=transaction_data["type_"],
+                quantity=transaction.quantity,
+                type_=transaction.type_,
             )
             self._repository_donate_transaction.create(
                 obj_in=donate_transaction_dict_obj.model_dump()
