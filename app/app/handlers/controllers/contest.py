@@ -184,7 +184,6 @@ def get_router(
         prefix=settings.registration_contest_callback_prefix,
         service=registration_contests_service,
         results_text_formatter=get_contest_top_10_rating_message,
-        period_days=8,
         show_time=True,
     )
 

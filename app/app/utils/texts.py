@@ -311,7 +311,7 @@ def get_period_message(
         show_time: bool = False,
 ) -> str:
     start_at = to_main_tz(start_at)
-    end_date = start_at + timedelta(days=period_days - 1)
+    end_date = start_at + timedelta(days=period_days)
     parse_format = "%d.%m.%Y" + (" %H:%M" if show_time else "")
 
     start_str = start_at.strftime(parse_format)
