@@ -1,24 +1,11 @@
 import enum
+from decimal import Decimal
 
 from sqlalchemy import (
     Column,
-    Integer,
-    Float,
-    ForeignKey,
-    Enum,
-    UUID,
-    Boolean,
-    BigInteger,
-    UniqueConstraint,
-    String,
-    Date,
-    text,
+    Numeric,
 )
-from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.ext.mutable import MutableDict, MutableList
-from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func, text
 
 from app.db.base import Base
 from app.models.mixins import TimestampedMixin, UUIDMixin, AbstractContest, AbstractContestPoint
@@ -41,8 +28,8 @@ class SponsorsContestPoint(
 class RegistrationContest(Base, AbstractContest, UUIDMixin):
     __tablename__ = "registration_contests"
 
-    prize_fund = Column(Integer, default=0, server_default=text("0"))
-    init_prize_fund = Column(Integer, default=0, server_default=text("0"))
+    prize_fund = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"), server_default=text("0"))
+    init_prize_fund = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"), server_default=text("0"))
 
 
 class RegistrationContestPoint(Base,

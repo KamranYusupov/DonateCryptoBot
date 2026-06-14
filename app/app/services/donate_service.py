@@ -2,6 +2,7 @@ import time
 import uuid
 from copy import copy
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Tuple, Any, Sequence, Optional
 
 import loguru
@@ -38,7 +39,7 @@ class DonateService:
 
 
     @staticmethod
-    def get_sponsor_depth(transaction_quantity: float | int, donate_quantity: int) -> int | None:
+    def get_sponsor_depth(transaction_quantity: Decimal, donate_quantity: int) -> int | None:
         transaction_percent = int(transaction_quantity * 100 / donate_quantity)
 
         sponsors_percents = [
@@ -77,7 +78,7 @@ class DonateService:
             first_sponsor: Optional[TelegramUser],
             second_sponsor: Optional[TelegramUser],
             third_sponsor: Optional[TelegramUser],
-            donate_sum: int | float,
+            donate_sum: Decimal,
             status: DonateStatus,
     ) -> list[SponsorTransactionContextSchema]:
 
@@ -108,7 +109,7 @@ class DonateService:
     def update_transactions_data_with_system_transaction(
             self,
             transactions_data: list[DonateTransactionContextSchema],
-            donate_sum: int | float,
+            donate_sum: Decimal,
     ) -> list[DonateTransactionContextSchema]:
         transactions_quantities = [
             transaction.quantity
@@ -132,9 +133,9 @@ class DonateService:
     async def update_transactions_data_with_nodes(
             self,
             nodes: list[MatrixNode],
-            donate_sum: int | float,
+            donate_sum: Decimal,
             status: DonateStatus,
-            transaction_percent: int = settings.triumph_matrix_transaction_percent,
+            transaction_percent: Decimal = settings.triumph_matrix_transaction_percent,
     ) -> list[DonateTransactionContextSchema]:
         transaction_quantity = donate_sum * transaction_percent / 100
 
@@ -161,12 +162,12 @@ class DonateService:
     async def _update_transactions_data_with_matrix_receivers(
             self,
             matrix: Matrix,
-            donate_sum: int | float,
+            donate_sum: Decimal,
             status: DonateStatus,
             transactions_data: list[DonateTransactionContextSchema],
             free_place_path: list[uuid.UUID | str],
             parents: list[Matrix],
-            transaction_percent: int = settings.matrix_donate_transaction_percent,
+            transaction_percent: Decimal = settings.matrix_donate_transaction_percent,
     ) -> list[DonateTransactionContextSchema]:
         transaction_quantity = donate_sum * transaction_percent / 100
 
@@ -262,7 +263,7 @@ class DonateService:
             self,
             current_user: TelegramUser,
             sponsor: TelegramUser,
-            donate_sum: int,
+            donate_sum: Decimal,
             transactions_data: list,
             status: DonateStatus,
             level_length: int = settings.level_length,
@@ -327,7 +328,7 @@ class DonateService:
             self,
             free_matrix: Matrix,
             current_user: TelegramUser,
-            donate_sum: int | float,
+            donate_sum: Decimal,
             status: DonateStatus,
             transactions_data: list,
             level_length: int = settings.level_length,
@@ -358,7 +359,7 @@ class DonateService:
     async def _find_free_matrix(
             self,
             user_to_add: TelegramUser,
-            donate_sum: int | float,
+            donate_sum: Decimal,
             status: DonateStatus,
             transactions_data: list,
             level_length: int,

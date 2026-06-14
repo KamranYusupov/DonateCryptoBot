@@ -1,4 +1,5 @@
 import enum
+from decimal import Decimal
 
 from sqlalchemy import (
     Column,
@@ -11,6 +12,7 @@ from sqlalchemy import (
     BigInteger,
     UniqueConstraint,
     String,
+    Numeric,
 )
 from sqlalchemy.orm import relationship
 
@@ -31,20 +33,20 @@ class DonateStatus(enum.Enum):
     @classmethod
     def get_donations_data(cls):
         return {
-            cls.TEST: 10,
-            cls.BASE: 25,
-            cls.BRONZE: 50,
-            cls.SILVER: 100,
-            cls.GOLD: 250,
-            cls.PLATINUM: 500,
-            cls.BRILLIANT: 1000,
+            cls.TEST: Decimal("10"),
+            cls.BASE: Decimal("25"),
+            cls.BRONZE: Decimal("50"),
+            cls.SILVER: Decimal("100"),
+            cls.GOLD: Decimal("250"),
+            cls.PLATINUM: Decimal("500"),
+            cls.BRILLIANT: Decimal("1000"),
         }
 
     def get_status_donate_value(
             self,
-    ) -> int:
+    ) -> Decimal:
         """Получение суммы доната"""
-        return self.get_donations_data().get(self, 0)
+        return self.get_donations_data().get(self, Decimal("0"))
 
     @classmethod
     def get_status_list(cls) -> list:
@@ -92,9 +94,10 @@ class TelegramUser(UUIDMixin, TimestampedMixin, AbstractTelegramUser, Base):
         index=True,
     )
     invites_count = Column(Integer, default=0)
-    donates_sum = Column(Float, default=0.0)
-    bill_for_activation = Column(Float, default=0.0)
-    bill_for_withdraw = Column(Float, default=0.0)
+    donates_sum = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"))
+    bill_for_activation = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"))
+    bill_for_withdraw = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"))
+    triumph_bill = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"))
     is_admin = Column(Boolean, index=True, default=False)
     wallet_address = Column(String, nullable=True)
     depth_level = Column(Integer, default=0)

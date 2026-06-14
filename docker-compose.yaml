@@ -51,14 +51,14 @@ services:
     depends_on:
       - telegram-server
 
-#  api:
-#    <<: *python
-#    container_name: ${PROJECT_SLUG}_api
-#    build:
-#      context: .
-#      dockerfile: api.dockerfile
-#    ports:
-#      - "8000:8000"
+  api:
+    <<: *python
+    container_name: ${PROJECT_SLUG}_api
+    build:
+      context: .
+      dockerfile: api.dockerfile
+    ports:
+      - "8000:8000"
 
   redis:
     image: redis:7.0.11-alpine
@@ -89,16 +89,16 @@ services:
     depends_on:
       - redis
       - app_db
-#
-#  nginx:
-#    container_name: ${PROJECT_SLUG}_nginx
-#    build: ./app/nginx
-#    ports:
-#      - "80:80"
-#    depends_on:
-#      - api
-#    networks:
-#      - internal
+
+  nginx:
+    container_name: ${PROJECT_SLUG}_nginx
+    build: ./app/nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    networks:
+      - internal
 
   telegram-server:
     image: aiogram/telegram-bot-api:latest

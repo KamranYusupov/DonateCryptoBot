@@ -1,20 +1,19 @@
 from typing import Optional
+from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict
 
-digit_type = float | int
-
 
 class AdminStatisticSchema(BaseModel):
-    system_bill: digit_type
-    triumph_system_bill: digit_type
-    donates_sum_for_registration: digit_type
+    system_bill: Decimal
+    triumph_system_bill: Decimal
+    donates_sum_for_registration: Decimal
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class UpdateAdminStatisticSchema(BaseModel):
-    system_bill: Optional[digit_type] = None
-    triumph_system_bill: Optional[digit_type] = None
-    donates_sum_for_registration: Optional[digit_type] = None
+    system_bill: Optional[Decimal] = None
+    triumph_system_bill: Optional[Decimal] = None
+    donates_sum_for_registration: Optional[Decimal] = None
 

@@ -1,5 +1,6 @@
 import os
 import secrets
+from decimal import Decimal
 from enum import Enum
 from zoneinfo import ZoneInfo
 
@@ -105,16 +106,24 @@ class Settings(BaseSettings):
     # endregion
 
     # region Настройки донатов
-    first_sponsor_donate_percent: int = Field(title="Процент доната первому спонсору", default=20)
-    second_sponsor_donate_percent: int = Field(title="Процент доната второму спонсору", default=10)
-    third_sponsor_donate_percent: int = Field(title="Процент доната третьему спонсору", default=5)
-    matrix_donate_transaction_percent: int = Field(
-        title="Процент транзакции от доната для матрицы",
-        default=10,
+    first_sponsor_donate_percent: Decimal = Field(
+        title="Процент доната первому спонсору",
+        default=Decimal("20"))
+    second_sponsor_donate_percent: Decimal = Field(
+        title="Процент доната второму спонсору",
+        default=Decimal("10")
     )
-    triumph_matrix_transaction_percent: int = Field(
+    third_sponsor_donate_percent: Decimal = Field(
+        title="Процент доната третьему спонсору",
+        default=Decimal("5"),
+    )
+    matrix_donate_transaction_percent: Decimal = Field(
+        title="Процент транзакции от доната для матрицы",
+        default=Decimal("10"),
+    )
+    triumph_matrix_transaction_percent: Decimal = Field(
         title="Процент транзакции от доната для матрицы Триумф",
-        default=2,
+        default=Decimal("2"),
     )
     triumph_max_donates_sum_from_matrix: int = 327640
     # endregion

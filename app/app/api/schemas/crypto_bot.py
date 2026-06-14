@@ -1,3 +1,4 @@
+from decimal import Decimal
 from pydantic import BaseModel, field_validator
 from typing import Optional, Any, Dict
 from datetime import datetime
@@ -22,9 +23,9 @@ class CryptoInvoiceSchema(BaseModel):
     currency_type: str
     asset: str
 
-    amount: float
+    amount: Decimal
     paid_asset: str
-    paid_amount: float
+    paid_amount: Decimal
 
     description: str
     status: str
@@ -32,8 +33,8 @@ class CryptoInvoiceSchema(BaseModel):
     created_at: datetime
     paid_at: datetime
 
-    paid_usd_rate: float
-    usd_rate: float
+    paid_usd_rate: Decimal
+    usd_rate: Decimal
 
     payload: InvoicePayloadSchema
 

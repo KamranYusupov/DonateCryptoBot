@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
@@ -10,6 +12,7 @@ from app.services.donate_confirm_service import DonateConfirmService
 from app.services.telegram_user_service import TelegramUserService
 from app.models.telegram_user import status_list
 from app.services.donate_service import DonateService
+from app.utils.texts import format_decimal
 
 bill_type_router = Router()
 
@@ -32,9 +35,9 @@ async def bill_type_handler(
             user_id=aiogram_type.from_user.id
         )
         buttons = {
-            f"Для вывода {current_user.bill_for_withdraw} USDT":
+            f"Для вывода {format_decimal(current_user.bill_for_withdraw)} USDT":
                 f"{callback_data}_{BillType.WITHDRAW.value}",
-            f"Для активации {current_user.bill_for_activation} USDT":
+            f"Для активации {format_decimal(current_user.bill_for_activation)} USDT":
                 f"{callback_data}_{BillType.ACTIVATION.value}",
         }
 
@@ -42,7 +45,7 @@ async def bill_type_handler(
             buttons["🔙 Назад"] = "donations"
 
         await telegram_method(
-            "Выберите баланс для перевода:",
+            "Выберите баланс:",
             reply_markup=get_donate_keyboard(
                 buttons=buttons, sizes=(1, 1, 1)
         ))
@@ -59,8 +62,6 @@ async def bill_type_handler(
     telegram_method = callback.message.edit_text
 
     if callback.data.startswith("confirm_donate_"):
-        donate_sum = float(callback_data[-1])
-        status = donate_confirm_service.get_donate_status(donate_sum)
         callback_data = "send_" + "_".join(callback_data[1:])
 
     elif callback.data.startswith("start_transfer"):

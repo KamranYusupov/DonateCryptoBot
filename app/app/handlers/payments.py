@@ -2,6 +2,7 @@ import os
 from datetime import datetime, timedelta
 import uuid
 import json
+from decimal import Decimal
 
 import loguru
 from aiogram import Router, F, Bot
@@ -87,11 +88,11 @@ async def buy_tokens_handler(
     except ValueError:
         pass
 
-    tokens_count = int(callback.data.split("_")[-1])
+    tokens_count = Decimal(callback.data.split("_")[-1])
 
     payload = {
         "telegram_id": callback.from_user.id,
-        "tokens_count": tokens_count,
+        "tokens_count": str(tokens_count),
         "messages_to_delete_ids": messages_to_delete_ids,
     }
     response = await crypto_bot_api_service.create_invoice(
@@ -101,7 +102,7 @@ async def buy_tokens_handler(
         asset="USDT",
     )
     if not response.get("ok"):
-        loguru.logger.info(response["error"])
+        loguru.logger.error(response["error"])
         await callback.message.edit_text(
             "Произошла ошибка при создании платежа. Попробуйте позже."
         )

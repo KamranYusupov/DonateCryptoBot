@@ -20,7 +20,7 @@ from app.utils.matrix import get_main_matrices
 from app.utils.texts import (
     places_emoji_list,
     get_matrices_statuses_statistic_message,
-    get_matrices_length_statistic_message,
+    get_matrices_length_statistic_message, format_decimal,
 )
 
 
@@ -74,11 +74,11 @@ async def send_donations_menu(
         f"Место в конкурсе: <b>{current_user_place}</b>\n"
         f"Лично приглашенных: <b>{current_user.invites_count}</b>\n"
         f"Баланс для активации: "
-        f"<b>${current_user.bill_for_activation}</b>\n"
+        f"<b>${format_decimal(current_user.bill_for_activation)}</b>\n"
         "Баланс для вывода: "
-        f"<b>${current_user.bill_for_withdraw}</b>\n"
+        f"<b>${format_decimal(current_user.bill_for_withdraw)}</b>\n"
         "Всего заработано: "
-        f"<b>${current_user.donates_sum}</b>\n"
+        f"<b>${format_decimal(current_user.donates_sum)}</b>\n"
     )
 
     if current_user.status != DonateStatus.NOT_ACTIVE:
@@ -128,19 +128,19 @@ async def send_donations_menu(
             f"\n{matrix_statuses_statistic_message}"
             f"🆓: {users_count_with_not_active_status}\n\n"
             "Всего подарили: "
-            f"<b>${donates_sum}</b>\n"
+            f"<b>${format_decimal(donates_sum)}</b>\n"
             "Системный баланс: "
-            f"<b>${admin_statistic.system_bill}</b>\n"
+            f"<b>${format_decimal(admin_statistic.system_bill)}</b>\n"
             "Системный баланс Триумф: "
-            f"<b>${admin_statistic.triumph_system_bill}</b>\n"
+            f"<b>${format_decimal(admin_statistic.triumph_system_bill)}</b>\n"
             "Число отправленных $ за регистрацию: "
-            f"<b>${admin_statistic.donates_sum_for_registration}</b>\n"
+            f"<b>${format_decimal(admin_statistic.donates_sum_for_registration)}</b>\n"
             "Общий баланс для активации: "
-            f"<b>${bills_for_activation_sum}</b>\n"
+            f"<b>${format_decimal(bills_for_activation_sum)}</b>\n"
             "Общий баланс для вывода: "
-            f"<b>${bills_for_withdraw_sum}</b>\n"
+            f"<b>${format_decimal(bills_for_withdraw_sum)}</b>\n"
             "Общий баланс для вывода +10$: "
-            f"<b>${bills_for_withdraw_gte_10_sum}</b>\n"
+            f"<b>${format_decimal(bills_for_withdraw_gte_10_sum)}</b>\n"
             "Число пользователей с балансом для вывода +10: "
             f"<b>{users_count_with_bill_for_withdraw_gte_10}</b>\n\n"
         ) + message_text

@@ -1,4 +1,6 @@
-from sqlalchemy import Column, Float, text, CheckConstraint, Integer
+from decimal import Decimal
+
+from sqlalchemy import Column, CheckConstraint, Integer, Numeric
 
 from app.db.base import Base
 
@@ -12,6 +14,6 @@ class AdminStatistic(Base):
         CheckConstraint("id = 1", name="admin_statistic_singleton"),
     )
 
-    system_bill = Column(Float, default=0.0)
-    triumph_system_bill = Column(Float, default=0.0)
-    donates_sum_for_registration = Column(Float, default=0.0)
+    system_bill = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"))
+    triumph_system_bill = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"))
+    donates_sum_for_registration = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"))

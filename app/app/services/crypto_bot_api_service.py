@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Dict, Optional
 
 import aiohttp
@@ -18,10 +19,10 @@ class CryptoBotAPIService:
 
     async def create_invoice(
             self,
-            amount: float,
+            amount: Decimal,
             description: str,
+            payload: str,
             asset: str = "USDT",
-            payload: dict = {},
     ):
         method = "createInvoice"
         url = f"{self.base_url}{method}"
@@ -30,7 +31,7 @@ class CryptoBotAPIService:
 
         data = {
             "asset": asset,
-            "amount": amount,
+            "amount": str(amount),
             "description": description,
             "payload": payload,
         }

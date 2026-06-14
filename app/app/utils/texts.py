@@ -1,5 +1,6 @@
 import copy
 from datetime import date, timedelta, datetime
+from decimal import Decimal
 from typing import Any, List
 import uuid
 
@@ -390,16 +391,21 @@ def get_sponsor_activation_text(
         status=status_str,
     )
 
-def format_digit(digit: float | int) -> str:
-    return str(int(digit)) if int(digit) == digit else str(digit)
 
+def format_decimal(decimal: Decimal) -> str:
+    s = f"{decimal:f}"
+
+    if '.' in s:
+        s = s.rstrip('0').rstrip('.')
+
+    return s
 
 def get_sponsor_transaction_message_text(
         *,
         sender_str: str,
         status: DonateStatus,
         sponsor_depth: int,
-        quantity: int | float,
+        quantity: Decimal,
         is_public: bool = False,
 ) -> str:
     display_name = "ПАРТНЁР" if is_public else sender_str
@@ -418,24 +424,24 @@ def get_sponsor_transaction_message_text(
         status_color=status_color,
         status_name=status_name,
         sponsor_depth=sponsor_depth,
-        quantity_str=format_digit(quantity),
+        quantity_str=format_decimal(quantity),
     )
 
 def get_system_transaction_message_text(
         *,
-        quantity: int | float,
+        quantity: Decimal,
 ) -> str:
     template = "Системный аккаунт <b>${quantity_str}</b>"
 
     return template.format(
-        quantity_str=format_digit(quantity),
+        quantity_str=format_decimal(quantity),
     )
 
 def get_matrix_transaction_message_text(
         *,
         receiver_str: str,
         status: DonateStatus,
-        quantity: int | float,
+        quantity: Decimal,
         matrix_length: int,
         matrix_max_length: int = settings.matrix_max_length,
         triumph: bool = False,
@@ -455,7 +461,7 @@ def get_matrix_transaction_message_text(
     status_str = f"{status_color} {status_name}"
 
     if triumph:
-        current_sum_str = format_digit(quantity * matrix_length)
+        current_sum_str = format_decimal(quantity * matrix_length)
         statistic_line = (
             f"🏦 Получено: <b>${current_sum_str} "
             f"из ${settings.triumph_max_donates_sum_from_matrix}</b>"
@@ -467,6 +473,6 @@ def get_matrix_transaction_message_text(
         receiver_str=receiver_str,
         status_str=status_str,
         statistic_line=statistic_line,
-        quantity_str=format_digit(quantity),
+        quantity_str=format_decimal(quantity),
     )
 

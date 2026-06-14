@@ -1,5 +1,6 @@
 import uuid
 import enum
+from decimal import Decimal
 
 from sqlalchemy import (
     Column,
@@ -11,11 +12,11 @@ from sqlalchemy import (
     DateTime,
     BigInteger,
     Index,
-    text,
     UniqueConstraint,
     func,
-
+    Numeric,
 )
+from sqlalchemy.sql import text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from sqlalchemy.orm import relationship
@@ -152,7 +153,7 @@ class AddBotToMatrixTaskModel(
     execute_at = Column(DateTime, index=True)
     is_executed = Column(Boolean, default=False, index=True)
 
-    donate_sum = Column(Integer)
+    donate_sum = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"))
     obj_id = Column(
         UUID(as_uuid=True),
         index=True,

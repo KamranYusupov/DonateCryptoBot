@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import uuid
+from decimal import Decimal
 
 import loguru
 from dependency_injector.wiring import Provide, inject
@@ -19,12 +20,14 @@ from app.db.commit_decorator import commit_and_close_session
 from app.core.container import Container
 from app.models.matrix import AddBotToMatrixTaskModel
 from app.tasks.taskiq.infra.telegram import send_message_task
+from app.utils.texts import format_decimal
+
 
 @inject
 @commit_and_close_session
 async def add_bot_to_matrix(
         obj_id: uuid.UUID,
-        donate_sum: int,
+        donate_sum: Decimal,
         engine_type: MatrixEngineType = MatrixEngineType.JSON,
         create_donates: bool = True,
         matrix_service: MatrixService = Provide[Container.matrix_service],
@@ -78,8 +81,6 @@ async def add_bot_to_matrix(
             return
 
         matrix, _ = result
-        matrix_max_length = settings.matrix_max_length
-        is_triumph = False
         matrix_id = matrix.id
     else:
         inserted_node, upline_nodes = await matrix_node_service.activate_matrix_node(
@@ -94,8 +95,6 @@ async def add_bot_to_matrix(
             transaction_percent=settings.triumph_matrix_transaction_percent,
         )
         transactions_data.extend(matrix_transactions_data)
-
-        is_triumph = True
         matrix_id = inserted_node.matrix_id
 
     if not create_donates:
@@ -121,7 +120,10 @@ async def add_bot_to_matrix(
                 transaction
             ),
             send_message_task.kiq(
-                text=f"<b><em>-{transaction.quantity} от системного баланса.</em></b>\n",
+                text=(
+                    f"<b><em>-{format_decimal(transaction.quantity)} "
+                    f"от системного баланса.</em></b>\n"
+                ),
                 chat_id=admin_telegram_id,
             )]
         )

@@ -9,8 +9,6 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart, CommandObject, Command
 from dependency_injector.wiring import inject, Provide
-from sqlalchemy import text
-from sqlalchemy.sql import func
 
 from app.core.container import Container
 from app.keyboards.inline import get_confirm_inline_keyboard

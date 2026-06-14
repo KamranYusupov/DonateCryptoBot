@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 from typing import Literal, Annotated, Union
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -22,7 +23,7 @@ class TransactionReceiverSchema(BaseModel):
 
 class BaseTransactionContextSchema(BaseModel):
     receiver: TransactionReceiverSchema
-    quantity: float | int
+    quantity: Decimal
 
 
 class SystemTransactionContextSchema(BaseTransactionContextSchema):

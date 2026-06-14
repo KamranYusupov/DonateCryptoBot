@@ -90,9 +90,6 @@ class MatrixActivationNotifierService:
                 triumph=context.triumph,
                 is_public=True,
             )
-            loguru.logger.info(private_message_text)
-            loguru.logger.info(public_message_text)
-
 
             messages.extend([
                 SendTextMessageTuple(

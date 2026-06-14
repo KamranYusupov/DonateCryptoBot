@@ -2,6 +2,7 @@ import enum
 import random
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -20,9 +21,9 @@ class BaseUserEntity(BaseModel):
         title="Статус", default=DonateStatus.NOT_ACTIVE
     )
     invites_count: int = Field(title="Число приглашений", default=0)
-    donates_sum: int | float = Field(title="Сумма донатов", default=0)
-    bill_for_activation: int | float = Field(title="Счет для активации", default=0)
-    bill_for_withdraw: int | float = Field(title="Счет для вывода", default=0)
+    donates_sum: Decimal = Field(title="Сумма донатов", default=0)
+    bill_for_activation: Decimal = Field(title="Счет для активации", default=0)
+    bill_for_withdraw: Decimal = Field(title="Счет для вывода", default=0)
     is_bot: bool = Field(title="Бот", default=False)
     is_admin: bool = Field(title="Супер пользователь", default=False)
     depth_level: int = Field(title="Уровень глубины")

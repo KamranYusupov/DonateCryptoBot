@@ -1,17 +1,14 @@
 import enum
 import uuid
+from decimal import Decimal
 
 from sqlalchemy import (
     Column,
     Integer,
-    Float,
     ForeignKey,
     Enum,
     UUID,
-    Boolean,
-    BigInteger,
-    UniqueConstraint,
-    String,
+    Numeric,
 )
 from sqlalchemy.orm import relationship
 
@@ -31,8 +28,8 @@ class Donate(UUIDMixin, TimestampedMixin, Base):
         index=True,
     )
     quantity = Column(
-        Float,
-        default=0,
+        Numeric(18, 6, asdecimal=True),
+        default=Decimal("0.0")
     )
     matrix_id = Column(
         UUID(as_uuid=True),
@@ -73,8 +70,8 @@ class DonateTransaction(UUIDMixin, TimestampedMixin, Base):
         index=True,
     )
     quantity = Column(
-        Float,
-        default=0,
+        Numeric(18, 6, asdecimal=True),
+        default=Decimal("0.0")
     )
     type_ = Column(Enum(DonateTransactionType, name="donate_transaction_enum"))
     sponsor_depth = Column(

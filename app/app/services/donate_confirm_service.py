@@ -1,5 +1,6 @@
 import math
 import uuid
+from decimal import Decimal
 from typing import Tuple, Any, Optional, List
 
 import loguru
@@ -35,7 +36,7 @@ class DonateConfirmService:
 
     @staticmethod
     def get_donate_status(
-            donate_sum: int,
+            donate_sum: int | Decimal,
     ) -> DonateStatus | None:
         if donate_sum == 10:
             return DonateStatus.TEST
@@ -59,7 +60,7 @@ class DonateConfirmService:
         telegram_user_id: uuid.UUID,
         transactions: list[DonateTransactionContextSchema],
         matrix_id: uuid.UUID,
-        quantity: float | int,
+        quantity: Decimal,
     ):
         """Создание сущности доната"""
         donate_dict = {
@@ -222,7 +223,7 @@ class DonateConfirmService:
     async def get_donates_by_matrices_ids(self, matrices_ids: List[uuid.UUID | str]):
         return self._repository_donate.get_donates_by_matrices_ids(matrices_ids)
 
-    async def get_system_bill(self) -> int:
+    async def get_system_bill(self) -> Decimal:
         transactions_quantities = (
             self._repository_donate_transaction.get_transactions_quantities(
                 type_=DonateTransactionType.SYSTEM
@@ -233,7 +234,7 @@ class DonateConfirmService:
 
         return sum(transactions_quantities) - sum(bots_transactions_quantities)
 
-    async def get_donates_sum(self, *args, **kwargs) -> int:
+    async def get_donates_sum(self, *args, **kwargs) -> Decimal:
         return sum(self._repository_donate.get_donates_quantities(*args, **kwargs))
 
     async def get_transactions_sum(self, *args, **kwargs):

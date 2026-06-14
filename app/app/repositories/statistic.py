@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from sqlalchemy import select, update
 
 from app.models.statistic import AdminStatistic
@@ -13,7 +15,7 @@ class RepositoryAdminStatistic(RepositoryBase[AdminStatistic]):
 
     def increment_system_bill(
             self,
-            quantity: int | float,
+            quantity: Decimal,
             triumph: bool = True,
     ) -> None:
         system_bill_field_name = "system_bill"

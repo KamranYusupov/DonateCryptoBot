@@ -3,6 +3,7 @@ import math
 import os
 from datetime import datetime, timedelta
 import uuid
+from decimal import Decimal
 from typing import Optional
 
 import loguru
@@ -42,6 +43,7 @@ from app.keyboards.inline import get_subscriptions_keyboard, get_confirm_inline_
 from app.utils.bot import send_subscription_menu
 from app.states.captcha import CaptchaState
 from app.use_cases.donations import send_donations_menu
+from app.utils.texts import format_decimal
 
 donate_router = Router()
 
@@ -329,7 +331,7 @@ async def confirm_donate(
 ) -> None:
 
     callback_donate_data = "_".join(callback.data.split("_")[1:])
-    donate_sum = float(callback_donate_data.split("_")[-2])
+    donate_sum = Decimal(callback_donate_data.split("_")[-2])
     bill_type = callback_donate_data.split("_")[-1]
     current_user = await telegram_user_service.get_telegram_user(
         user_id=callback.from_user.id
@@ -393,7 +395,7 @@ async def donate_handler(
         ]
 ) -> None:
     bill_type = callback.data.split("_")[-1]
-    donate_sum = int(callback.data.split("_")[-2])
+    donate_sum = Decimal(callback.data.split("_")[-2])
 
     current_user, *sponsors = await telegram_user_service.get_telegram_user_with_sponsors(
         user_id=callback.from_user.id
@@ -533,17 +535,6 @@ async def donate_handler(
     ):
         current_user.status = status
 
-
-    await callback.message.delete()
-    await callback.message.answer("🎉")
-    await callback.message.answer(
-        "<b>Площадка успешно активирована, бот начал свою работу ✅</b>"
-    )
-    await send_donations_menu(
-        callback.from_user.id,
-        bot.send_message,
-    )
-
     coroutines = [
         matrix_activation_notifier_service.notify_invited_users(
             sponsor_user_id=callback.from_user.id,
@@ -557,6 +548,18 @@ async def donate_handler(
         for transaction in transactions_data
     )
     await asyncio.gather(*coroutines)
+
+    await callback.message.delete()
+    await callback.message.answer("🎉")
+    await callback.message.answer(
+        "<b>Площадка успешно активирована, бот начал свою работу ✅</b>"
+    )
+    await send_donations_menu(
+        callback.from_user.id,
+        bot.send_message,
+    )
+
+
 
 
 
@@ -625,9 +628,10 @@ async def get_transactions_list_to_me(
         for transaction in transactions:
             created_at_format = \
                 to_main_tz(transaction.created_at).strftime("%d.%m.%Y %H:%M")
+            quantity_str = format_decimal(transaction.quantity)
             message += (
                 f"ID: {transaction.id}\n"
-                f"Сумма: ${transaction.quantity}\n"
+                f"Сумма: ${quantity_str}\n"
                 f"Дата и время: {created_at_format}\n"
             )
             if transaction.type_ == DonateTransactionType.SYSTEM:
@@ -696,9 +700,10 @@ async def get_transactions_list_from_me(
         for donate, transactions in donates:
             created_at_format = \
                 to_main_tz(donate.created_at).strftime("%d.%m.%Y %H:%M")
+            quantity_str = format_decimal(donate.quantity)
             message += (
                 f"<b><u>Подарок на сумму: "
-                f"${donate.quantity}</u></b>\n"
+                f"${quantity_str}</u></b>\n"
                 f"ID: {donate.id}\n"
                 f"Дата и время: {created_at_format}\n\n"
             )
@@ -761,10 +766,11 @@ async def get_all_transactions(
             )
             created_at_format = \
                 to_main_tz(donate.created_at).strftime("%d.%m.%Y %H:%M")
+            quantity_str = format_decimal(donate.quantity)
 
             message += (
                 f"<b><u>Подарок на сумму: "
-                f"${donate.quantity}</u></b>\n"
+                f"${quantity_str}</u></b>\n"
                 f"ID: {donate.id}\n"
                 f"Дата и время: {created_at_format}\n"
             )
@@ -774,16 +780,17 @@ async def get_all_transactions(
                     sponsor = await telegram_user_service.get_telegram_user(
                         id=transaction.sponsor_id
                     )
+                    quantity_str = format_decimal(donate.quantity)
                     message += (
                         f"ID: {transaction.id}\n"
-                        f"Сумма: ${transaction.quantity}\n"
+                        f"Сумма: ${quantity_str}\n"
                         f"От кого: @{user.username}\n"
                         f"Кому: @{sponsor.username}\n"
                         f"Тип: <b>{transaction.type_.value.upper()}</b>\n"
                     )
                     if user.is_bot:
                         message += \
-                            f"<b><em>-{transaction.quantity} от системного баланса.</em></b>\n"
+                            f"<b><em>-{quantity_str} от системного баланса.</em></b>\n"
 
                     message += "\n"
 

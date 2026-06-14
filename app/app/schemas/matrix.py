@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -28,7 +29,7 @@ class MatrixNodeSchema(BaseModel):
 class AddBotToMatrixTaskSchema(BaseModel):
     execute_at: datetime
     is_executed: bool = False
-    donate_sum: int | float
+    donate_sum: Decimal
     engine_type: MatrixEngineType = MatrixEngineType.JSON
     obj_id: uuid.UUID # Matrix.id or MatrixNode.id
     create_donates: bool = True

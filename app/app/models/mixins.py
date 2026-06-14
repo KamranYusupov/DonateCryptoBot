@@ -1,5 +1,6 @@
 import typing
 import uuid
+from decimal import Decimal
 from typing import TypeVar, Generic, Type
 
 from urllib.parse import urljoin
@@ -16,11 +17,11 @@ from sqlalchemy import (
     String,
     Boolean,
     Integer,
-    Date,
-    text, ForeignKey,
+    ForeignKey,
+    Numeric,
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, text
 
 
 class UUIDMixin:
@@ -87,8 +88,8 @@ class AbstractAdminUser:
 class AbstractContest:
     """Абстрактная модель конкурса."""
     start_at = Column(DateTime(timezone=True), unique=True, index=True)
-    prize_fund = Column(Integer, default=100, server_default=text("100"))
-    init_prize_fund = Column(Integer, default=100, server_default=text("100"))
+    prize_fund = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"), server_default=text("100"))
+    init_prize_fund = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"), server_default=text("100"))
     top_10_rating = Column(MutableList.as_mutable(JSONB), default=list)
     results = Column(MutableDict.as_mutable(JSONB), index=True, default=dict)
     is_archived = Column(Boolean, default=False)

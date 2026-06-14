@@ -1,7 +1,8 @@
+from decimal import Decimal
 from uuid import UUID
 from typing import Optional
 
-from sqlalchemy import select, text, func, update
+from sqlalchemy import select, func, update
 from sqlalchemy.orm import joinedload, aliased
 
 from .base import RepositoryBase
@@ -137,7 +138,7 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
             *args,
             bill_type: BillType,
             **kwargs,
-    ) -> list[float]:
+    ) -> list[Decimal]:
         bill_field = getattr(TelegramUser, f"bill_for_{bill_type.value}")
         statement = select(bill_field).filter(*args).filter_by(**kwargs)
         return self._session.execute(statement).scalars().all()
@@ -146,7 +147,7 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
             self,
             telegram_user_id: UUID,
             bill_type: BillType,
-            quantity: int | float,
+            quantity: Decimal,
     ) -> None:
         bill_field_name = f"bill_for_{bill_type.value}"
         donates_sum_field_name = "donates_sum"
