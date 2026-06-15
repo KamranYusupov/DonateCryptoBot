@@ -8,6 +8,7 @@ from sqlalchemy.orm import joinedload, aliased
 from .base import RepositoryBase
 from app.models.telegram_user import TelegramUser, DonateStatus
 from app.schemas.telegram_user import BillType
+from app.core.config import settings
 
 
 class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
@@ -147,22 +148,52 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
             self,
             telegram_user_id: UUID,
             bill_type: BillType,
-            quantity: Decimal,
+            amount: Decimal,
+            with_donate_sum: bool = False,
     ) -> None:
         bill_field_name = f"bill_for_{bill_type.value}"
         donates_sum_field_name = "donates_sum"
 
         bill = getattr(TelegramUser, bill_field_name)
         donates_sum = getattr(TelegramUser, donates_sum_field_name)
-        update_values = {
-            bill_field_name: bill + quantity,
-            donates_sum_field_name: donates_sum + quantity,
-        }
+        update_values = {bill_field_name: bill + amount}
+
+        if with_donate_sum:
+            update_values["donates_sum"] = donates_sum + amount
 
         statement = (
             update(TelegramUser)
             .where(TelegramUser.id == telegram_user_id)
             .values(**update_values)
+        )
+
+        self._session.execute(statement)
+
+    def increment_triumph_bill(
+            self,
+            user_id: int,
+            amount: int,
+    ):
+        statement = (
+            update(TelegramUser)
+            .where(TelegramUser.user_id == user_id)
+            .values(triumph_bill=TelegramUser.triumph_bill + amount)
+        )
+
+        self._session.execute(statement)
+
+    def increase_triumph_bills_by_percent(
+            self,
+            percent: Decimal = settings.triumph_bill_increase_percent,
+    ) -> None:
+        multiplier = percent / 100
+        statement = (
+            update(TelegramUser)
+            .where(TelegramUser.triumph_bill.is_not(None))
+            .values(triumph_bill=(
+                TelegramUser.triumph_bill
+                + TelegramUser.triumph_bill * multiplier
+            ))
         )
 
         self._session.execute(statement)

@@ -1,4 +1,5 @@
 from typing import Optional, Dict
+from decimal import Decimal
 
 import loguru
 from aiogram import Bot
@@ -7,7 +8,8 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.core.config import settings
-
+from app.schemas.telegram_user import BillType
+from app.utils.texts import format_decimal
 
 links_buttons = [
     InlineKeyboardButton(
@@ -103,3 +105,18 @@ def get_confirm_inline_keyboard(
     keyboard = InlineKeyboardBuilder()
     keyboard.add(yes_button, no_button)
     return keyboard.adjust(*sizes).as_markup()
+
+
+def get_bill_type_choice_buttons(
+        bill_for_withdraw: Decimal,
+        bill_for_activation: Decimal,
+        callback_prefix: str
+):
+    buttons = {
+        f"Для вывода {format_decimal(bill_for_withdraw)} USDT":
+            f"{callback_prefix}_{BillType.WITHDRAW.value}",
+        f"Для активации {format_decimal(bill_for_activation)} USDT":
+            f"{callback_prefix}_{BillType.ACTIVATION.value}",
+    }
+    
+    return buttons

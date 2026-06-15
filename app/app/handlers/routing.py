@@ -12,6 +12,7 @@ from .transfer import transfer_router
 from .bill_type import bill_type_router
 from .aggregators import aggregators_router
 from .admin import admin_router
+from .triumph_bill import triumph_bill_router
 from .controllers.contest import get_router as get_contest_router
 
 
@@ -34,6 +35,7 @@ def get_all_routers() -> Router:
         aggregators_router,
         contest_router,
         admin_router,
+        triumph_bill_router,
     )
 
     return router

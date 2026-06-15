@@ -2,72 +2,57 @@ from decimal import Decimal
 
 from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
 from dependency_injector.wiring import Provide, inject
 
 from app.keyboards.donate import get_donate_keyboard
-from app.schemas.telegram_user import BillType
+from app.keyboards.inline import get_bill_type_choice_buttons
 from app.core.container import Container
-from app.services.donate_confirm_service import DonateConfirmService
 from app.services.telegram_user_service import TelegramUserService
-from app.models.telegram_user import status_list
-from app.services.donate_service import DonateService
-from app.utils.texts import format_decimal
 
 bill_type_router = Router()
 
 
-@bill_type_router.message(Command("transfer"))
 @bill_type_router.callback_query(F.data.startswith("confirm_donate_"))
 @bill_type_router.callback_query(F.data == "start_transfer")
+@bill_type_router.callback_query(F.data == "increment_trumph_bill")
 @inject
 async def bill_type_handler(
-        aiogram_type: Message | CallbackQuery,
+        callback: CallbackQuery,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
-        donate_confirm_service: DonateConfirmService = Provide[
-            Container.donate_confirm_service
-        ],
 ) -> None:
-    async def send_bill_type_choice(add_back_button: bool = True):
-        current_user = await telegram_user_service.get_telegram_user(
-            user_id=aiogram_type.from_user.id
-        )
-        buttons = {
-            f"Для вывода {format_decimal(current_user.bill_for_withdraw)} USDT":
-                f"{callback_data}_{BillType.WITHDRAW.value}",
-            f"Для активации {format_decimal(current_user.bill_for_activation)} USDT":
-                f"{callback_data}_{BillType.ACTIVATION.value}",
-        }
+    callback_data = callback.data.split("_")
 
-        if add_back_button:
-            buttons["🔙 Назад"] = "donations"
+    callback_prefix = None
+    if callback.data.startswith("confirm_donate_"):
+        callback_prefix = "send_" + "_".join(callback_data[1:])
 
-        await telegram_method(
-            "Выберите баланс:",
-            reply_markup=get_donate_keyboard(
-                buttons=buttons, sizes=(1, 1, 1)
-        ))
+    elif callback.data == "start_transfer":
+        callback_prefix = "transfer"
 
+    elif callback.data == "increment_trumph_bill":
+        callback_prefix = "start_increment_trumph_bill"
 
-    if isinstance(aiogram_type, Message):
-        telegram_method = aiogram_type.answer
-        callback_data = "transfer"
-        await send_bill_type_choice(add_back_button=False)
+    if not callback_prefix:
         return
 
-    callback = aiogram_type
-    callback_data = callback.data.split("_")
-    telegram_method = callback.message.edit_text
-
-    if callback.data.startswith("confirm_donate_"):
-        callback_data = "send_" + "_".join(callback_data[1:])
-
-    elif callback.data.startswith("start_transfer"):
-        callback_data = "transfer"
-        
-
-    await send_bill_type_choice()
+    current_user = await telegram_user_service.get_telegram_user(
+        user_id=callback.from_user.id,
+    )
+    buttons = get_bill_type_choice_buttons(
+        bill_for_withdraw=current_user.bill_for_withdraw,
+        bill_for_activation=current_user.bill_for_activation,
+        callback_prefix=callback_prefix,
+    )
+    buttons["🔙 Назад"] = "donations"
+    await callback.message.edit_text(
+        "Выберите баланс:",
+        reply_markup=get_donate_keyboard(
+            buttons=buttons,
+            sizes=(1, 1, 1),
+        )
+    )
 
 

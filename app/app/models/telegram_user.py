@@ -15,6 +15,7 @@ from sqlalchemy import (
     Numeric,
 )
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import text
 
 from app.db.base import Base
 from app.models.mixins import TimestampedMixin, UUIDMixin, AbstractTelegramUser
@@ -97,7 +98,10 @@ class TelegramUser(UUIDMixin, TimestampedMixin, AbstractTelegramUser, Base):
     donates_sum = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"))
     bill_for_activation = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"))
     bill_for_withdraw = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"))
-    triumph_bill = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"))
+    triumph_bill = Column(
+        Numeric(18, 6, asdecimal=True),
+        default=None,
+    )
     is_admin = Column(Boolean, index=True, default=False)
     wallet_address = Column(String, nullable=True)
     depth_level = Column(Integer, default=0)
