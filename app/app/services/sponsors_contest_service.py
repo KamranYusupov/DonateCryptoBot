@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from typing import Dict
 
 import loguru
@@ -29,11 +29,15 @@ class SponsorsContestService(
         )
         self._repository_telegram_user = repository_telegram_user
 
-    def _get_period_start(self) -> datetime:
-        start_of_week = get_start_of_week()
+    def _get_period_start() -> datetime:
+        now = datetime.now()
+        if now.weekday() == 1 and now.time() >= time(12, 0, 0):
+            start_date = get_start_of_week()
+        else:
+            start_date = get_start_of_week() - timedelta(days=7)
 
         start_at = datetime.combine(
-            start_of_week,
+            start_date,
             time(12, 0, 0),
             tzinfo=settings.timezone_info
         )
