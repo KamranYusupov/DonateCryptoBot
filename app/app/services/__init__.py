@@ -13,6 +13,7 @@ from app.services.transfer_service import TransferService
 from app.services.statistic_service import AdminStatisticService
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.matrix_notifier_service import MatrixActivationNotifierService
+from app.services.triumph_bill_service import TriumphBillService
 
 __all__ = (
     "TelegramUserService",
@@ -29,4 +30,5 @@ __all__ = (
     "MatrixService",
     "MatrixNodeService",
     "MatrixActivationNotifierService",
+    "TriumphBillService",
 )

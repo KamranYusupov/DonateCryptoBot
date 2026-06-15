@@ -128,6 +128,8 @@ class Settings(BaseSettings):
     triumph_max_donates_sum_from_matrix: int = 327640
     # endregion
 
+    triumph_bill_increase_percent: Decimal = Field(default=Decimal("0.1"))
+
     # region Настройки длины бинарной матрицы с 4 уровнями глубины
     level_length: int = Field(title="Длина первого уровня матрицы", default=2)
     second_level_length: int = Field(title="Длина второго уровня матрицы", default=4)

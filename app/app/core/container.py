@@ -52,6 +52,7 @@ from app.services import (
     MatrixService,
     MatrixNodeService,
     MatrixActivationNotifierService,
+    TriumphBillService,
 )
 
 
@@ -186,6 +187,10 @@ class Container(containers.DeclarativeContainer):
         MatrixActivationNotifierService,
         repository_telegram_user=repository_telegram_user,
     )
+    triumph_bill_service = providers.Factory(
+        TriumphBillService,
+        repository_telegram_user=repository_telegram_user,
+    )
     # endregion
 
     wiring_modules = [
@@ -204,6 +209,7 @@ class Container(containers.DeclarativeContainer):
         "app.handlers.bill_type",
         "app.handlers.aggregators",
         "app.handlers.admin",
+        "app.handlers.triumph_bill",
         "app.handlers.controllers.contest",
 
         "app.use_cases.donations",
