@@ -29,9 +29,9 @@ class SponsorsContestService(
         )
         self._repository_telegram_user = repository_telegram_user
 
-    def _get_period_start() -> datetime:
+    def _get_period_start(self) -> datetime:
         now = datetime.now()
-        if now.weekday() == 1 and now.time() >= time(12, 0, 0):
+        if now.weekday() == 0 and now.time() >= time(12, 0, 0):
             start_date = get_start_of_week()
         else:
             start_date = get_start_of_week() - timedelta(days=7)
