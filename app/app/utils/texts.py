@@ -477,7 +477,7 @@ def get_matrix_transaction_message_text(
     )
 
 
-increase_triumph_bills_message_text = (
+increase_triumph_bills_message_text = html.bold(
     f"🏦 СЕЙФ «ТРИУМФ» +{settings.triumph_bill_increase_percent}%\n\n"
     "⚡️ Активации площадок = рост сейфа\n\n"
     "🌀 Состояние → Действие → Результат\n\n"
