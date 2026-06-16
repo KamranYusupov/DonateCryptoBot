@@ -42,11 +42,6 @@ class TelegramUserEntity(BaseUserEntity):
     model_config = ConfigDict(from_attributes=True)
 
 
-class BillType(enum.Enum):
-    ACTIVATION = "activation"
-    WITHDRAW = "withdraw"
-
-
 def generate_random_user():
     return TelegramUserEntity(
         user_id=random.randint(1, 100000000),

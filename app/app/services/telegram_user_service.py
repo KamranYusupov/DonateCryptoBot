@@ -4,8 +4,7 @@ from typing import Tuple, Any, List, Optional
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.models.telegram_user import TelegramUser, DonateStatus
 from app.schemas.telegram_user import TelegramUserEntity, generate_random_user
-from app.models.matrix import Matrix
-from app.schemas.telegram_user import BillType
+from app.models.telegram_user import BillType
 
 
 class TelegramUserService:
@@ -24,6 +23,9 @@ class TelegramUserService:
             join_sponsor=join_sponsor,
             **kwargs
         )
+
+    async def get_user_ids(self, *args, **kwargs) -> list[int]:
+        return self._repository_telegram_user.get_user_ids(*args, **kwargs)
 
     async def get_telegram_user(self, **kwargs) -> TelegramUser:
         return self._repository_telegram_user.get(**kwargs)

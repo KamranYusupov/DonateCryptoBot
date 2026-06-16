@@ -8,7 +8,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.core.config import settings
-from app.schemas.telegram_user import BillType
+from app.models.telegram_user import BillType
 from app.utils.texts import format_decimal
 
 links_buttons = [
@@ -108,9 +108,10 @@ def get_confirm_inline_keyboard(
 
 
 def get_bill_type_choice_buttons(
+        callback_prefix: str,
         bill_for_withdraw: Decimal,
         bill_for_activation: Decimal,
-        callback_prefix: str
+        triumph_bill: Decimal | None = None,
 ):
     buttons = {
         f"Для вывода {format_decimal(bill_for_withdraw)} USDT":
@@ -118,5 +119,12 @@ def get_bill_type_choice_buttons(
         f"Для активации {format_decimal(bill_for_activation)} USDT":
             f"{callback_prefix}_{BillType.ACTIVATION.value}",
     }
+
+    if triumph_bill is not None:
+        loguru.logger.info(str(triumph_bill))
+        buttons.update({
+            f"Сейф Триумф: {format_decimal(triumph_bill, round_digits=0)} USDT":
+                f"{callback_prefix}_{BillType.TRIUMPH.value}"
+        })
     
     return buttons

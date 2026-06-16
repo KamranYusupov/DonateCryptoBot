@@ -15,7 +15,7 @@ from app.schemas.donate import (
     DonateTransactionSchema,
 )
 from app.models.donate import DonateTransactionType
-from app.schemas.telegram_user import BillType
+from app.models.telegram_user import BillType
 from app.schemas.transaction import DonateTransactionContextSchema
 
 

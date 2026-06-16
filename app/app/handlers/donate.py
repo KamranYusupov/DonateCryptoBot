@@ -26,12 +26,13 @@ from app.core.config import settings
 from app.services.matrix_service import MatrixService
 from app.keyboards.reply import get_reply_keyboard
 from app.tasks.taskiq.business.triumph_bill import increase_triumph_bills_task
+from app.tasks.taskiq.infra.telegram import send_message_task
 from app.utils.pagination import Paginator
 from app.utils.excel import export_users_to_excel
 from app.models.donate import DonateTransactionType
 from app.loader import bot
 from app.utils.bot import send_captcha
-from app.models.telegram_user import TelegramUser
+from app.models.telegram_user import TelegramUser, BillType
 from app.models.matrix import Matrix, MatrixEngineType
 from app.keyboards.donate import get_start_inline_keyboard
 from app.utils.datetime import to_main_tz
@@ -44,7 +45,7 @@ from app.keyboards.inline import get_subscriptions_keyboard, get_confirm_inline_
 from app.utils.bot import send_subscription_menu
 from app.states.captcha import CaptchaState
 from app.use_cases.donations import send_donations_menu
-from app.utils.texts import format_decimal
+from app.utils.texts import format_decimal, increase_triumph_bills_message_text, registration_donate_text
 
 donate_router = Router()
 
@@ -261,6 +262,15 @@ async def subscription_checker(
     )
     if registration_count != 0 and is_increase_triumph_bills_step:
         await increase_triumph_bills_task.kiq()
+        chat_ids = await telegram_user_service.get_user_ids()
+        chat_ids.append(settings.donates_channel_id)
+        await asyncio.gather(*[
+            send_message_task.kiq(
+                chat_id=chat_id,
+                text=increase_triumph_bills_message_text,
+            )
+            for chat_id in chat_ids
+        ])
 
     if not settings.send_donate_for_registration:
         return
@@ -283,20 +293,16 @@ async def subscription_checker(
             donates_sum_for_registration=admin_statistic.donates_sum_for_registration + 1
         )
 
-        donate_text = (
-            "<b>🎁 ПРОМО: БОНУС ЗА КАЖДОГО</b>\n\n"
-            "💸 <b>+1$</b> уже на счёте\n\n"
-            "<b>🔥 Больше первых линий = больше бонусов</b>"
-        )
+
         await send_message_or_pass(
-            bot=callback.bot,
+            bot=bot,
             chat_id=sponsor.user_id,
-            text=donate_text,
+            text=registration_donate_text,
         )
         await send_message_or_pass(
-            bot=callback.bot,
+            bot=bot,
             chat_id=settings.donates_channel_id,
-            text=donate_text,
+            text=registration_donate_text,
         )
 
 @donate_router.callback_query(F.data.startswith("donations"))
@@ -347,8 +353,12 @@ async def confirm_donate(
     current_user = await telegram_user_service.get_telegram_user(
         user_id=callback.from_user.id
     )
+    bill = current_user.get_bill_by_type(bill_type)
+    if not bill:
+        return
 
-    need_to_buy_tokens = getattr(current_user, f"bill_for_{bill_type}") - donate_sum
+    need_to_buy_tokens = bill - donate_sum
+
     if need_to_buy_tokens < 0:
         need_to_buy_tokens = int(abs(need_to_buy_tokens))
         await callback.message.edit_text(
@@ -410,14 +420,17 @@ async def donate_handler(
 ) -> None:
     bill_type = callback.data.split("_")[-1]
     donate_sum = Decimal(callback.data.split("_")[-2])
-
     current_user, *sponsors = await telegram_user_service.get_telegram_user_with_sponsors(
         user_id=callback.from_user.id
     )
+    bill = current_user.get_bill_by_type(bill_type)
+    if not bill:
+        return
 
-    need_to_buy_tokens = getattr(current_user, f"bill_for_{bill_type}") - donate_sum
-    if need_to_buy_tokens < 0:
-        need_to_buy_tokens = int(abs(need_to_buy_tokens))
+    updated_bill = bill - donate_sum
+
+    if updated_bill < 0:
+        need_to_buy_tokens = int(abs(updated_bill))
         await callback.message.edit_text(
             f"Для активации уровня нехватает {need_to_buy_tokens} USDT.",
             reply_markup=get_donate_keyboard(
@@ -534,10 +547,12 @@ async def donate_handler(
         )
 
     bill_field = f"bill_for_{bill_type}"
-    bill_value = getattr(current_user, bill_field)
+    if bill_type == BillType.TRIUMPH.value:
+        bill_field = "triumph_bill"
+
     await telegram_user_service.update(
         obj_id=current_user.id,
-        obj_in={bill_field: bill_value - donate_sum},
+        obj_in={bill_field: updated_bill},
     )
     await donate_confirm_service.update_bills_by_donate_id(
         donate_id=donate.id,
@@ -558,6 +573,16 @@ async def donate_handler(
     )
     if matrix_activations_count != 0 and is_increase_triumph_bills_step:
         coroutines.append(increase_triumph_bills_task.kiq())
+        chat_ids = await telegram_user_service.get_user_ids()
+        chat_ids.append(settings.donates_channel_id)
+        coroutines.extend([
+            send_message_task.kiq(
+                chat_id=chat_id,
+                text=increase_triumph_bills_message_text,
+            )
+            for chat_id in chat_ids
+        ])
+
 
     coroutines.append(
         matrix_activation_notifier_service.notify_invited_users(

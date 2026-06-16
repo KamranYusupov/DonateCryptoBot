@@ -129,7 +129,7 @@ class Settings(BaseSettings):
     # endregion
 
     # Настройки сейфов Триумф
-    triumph_bill_increase_percent: Decimal = Field(default=Decimal("0.1"))
+    triumph_bill_increase_percent: Decimal = Field(default=Decimal("1"))
     triumph_bills_increase_activation_interval: int = Field(default=10)
     triumph_bills_increase_registration_interval: int = Field(default=100)
     # endregion

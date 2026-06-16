@@ -7,7 +7,7 @@ from sqlalchemy.orm import joinedload, aliased
 
 from .base import RepositoryBase
 from app.models.telegram_user import TelegramUser, DonateStatus
-from app.schemas.telegram_user import BillType
+from app.models.telegram_user import BillType
 from app.core.config import settings
 
 
@@ -37,6 +37,14 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
     def get_ids(self, *args, **kwargs) -> list[UUID]:
         statement = (
             select(TelegramUser.id)
+            .filter(*args)
+            .filter_by(**kwargs)
+        )
+        return self._session.execute(statement).scalars().all()
+
+    def get_user_ids(self, *args, **kwargs) -> list[int]:
+        statement = (
+            select(TelegramUser.user_id)
             .filter(*args)
             .filter_by(**kwargs)
         )

@@ -476,3 +476,15 @@ def get_matrix_transaction_message_text(
         quantity_str=format_decimal(quantity),
     )
 
+
+increase_triumph_bills_message_text = (
+    f"🏦 СЕЙФ «ТРИУМФ» +{settings.triumph_bill_increase_percent}%\n\n"
+    "⚡️ Активации площадок = рост сейфа\n\n"
+    "🌀 Состояние → Действие → Результат\n\n"
+)
+
+registration_donate_text = (
+    "<b>🎁 ПРОМО: БОНУС ЗА КАЖДОГО</b>\n\n"
+    f"💸 <b>+{settings.donate_for_registration}$</b> уже на счёте\n\n"
+    "<b>🔥 Больше первых линий = больше бонусов</b>"
+)

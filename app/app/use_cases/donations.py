@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+import loguru
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from dependency_injector.wiring import Provide, inject
@@ -52,6 +53,8 @@ async def send_donations_menu(
     current_user = await telegram_user_service.get_telegram_user(
         user_id=from_user_id
     )
+    if not current_user:
+        return
     current_sponsors_contest, _ = \
         await sponsors_contests_service.get_or_create_current_contest()
     current_user_contest_result = current_sponsors_contest.results.get(
@@ -256,7 +259,7 @@ async def send_donations_menu(
     if default_buttons:
         inline_buttons.extend(get_inline_buttons_from_dict(default_buttons))
 
-    if current_user.triumph_bill:
+    if current_user.triumph_bill is not None:
         inline_buttons.append(
             InlineKeyboardButton(
                 text=f"Сейф Триумф: ${format_decimal(current_user.triumph_bill)}",
@@ -270,14 +273,17 @@ async def send_donations_menu(
                 callback_data="increment_trumph_bill",
             )
         )
+    sizes = (1, ) * len(inline_buttons)
 
     inline_buttons.extend([
         InlineKeyboardButton(
-            text="📤 Вывод USDT",
+            text="📤 Вывести USDT",
             callback_data="withdrawal_request",
+            style="primary"
+
         ),
         InlineKeyboardButton(
-            text="📥 Пополнить USDT",
+            text="Пополнить USDT 📥",
             callback_data="start_buy_tokens_state",
             style="primary"
         ),
@@ -289,8 +295,7 @@ async def send_donations_menu(
     ])
     keyboard = InlineKeyboardBuilder()
     keyboard.add(*inline_buttons)
-    sizes = ((1, ) * len(buttons)) + (1, 1)
-
+    sizes += (2, 1)
     await telegram_method(
         **telegram_method_kwargs,
         text=message_text,

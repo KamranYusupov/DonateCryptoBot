@@ -20,6 +20,11 @@ from sqlalchemy.sql import text
 from app.db.base import Base
 from app.models.mixins import TimestampedMixin, UUIDMixin, AbstractTelegramUser
 
+class BillType(enum.Enum):
+    ACTIVATION = "activation"
+    WITHDRAW = "withdraw"
+    TRIUMPH = "triumph"
+
 
 class DonateStatus(enum.Enum):
     NOT_ACTIVE = "не активирован"
@@ -139,3 +144,12 @@ class TelegramUser(UUIDMixin, TimestampedMixin, AbstractTelegramUser, Base):
             self.username if self.username
             else f"Пользователь: {self.user_id}"
         )
+
+    def get_bill_by_type(self, bill_type) -> Decimal | None:
+        if bill_type == BillType.TRIUMPH.value:
+            return self.triumph_bill
+
+        if bill_type in (BillType.WITHDRAW.value, BillType.ACTIVATION.value):
+            return getattr(self, f"bill_for_{bill_type}")
+
+        return None
