@@ -41,6 +41,7 @@ async def export_users_to_excel(
             "Кол-во приглашенных": user.invites_count,
             "Баланс для активации": user.bill_for_activation,
             "Баланс для вывода": user.bill_for_withdraw,
+            "Сейф Триумф": user.triumph_bill if user.triumph_bill else "",
             "Всего заработано": user.donates_sum,
             "Tg ID": user.user_id,
             "Дата время регистрации": \
