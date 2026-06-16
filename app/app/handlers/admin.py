@@ -85,7 +85,7 @@ async def activate_matrix_handler(
             current_user,
             first_sponsor,
             donate_sum,
-            donations_data=[],
+            transactions_data=[],
             status=status,
         )
         if not result:
