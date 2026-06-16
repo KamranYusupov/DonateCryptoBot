@@ -105,7 +105,9 @@ class TelegramUser(UUIDMixin, TimestampedMixin, AbstractTelegramUser, Base):
     bill_for_withdraw = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"))
     triumph_bill = Column(
         Numeric(18, 6, asdecimal=True),
-        default=None,
+        default=Decimal("0.0"),
+        server_default=text("0.0"),
+        nullable=False
     )
     is_admin = Column(Boolean, index=True, default=False)
     wallet_address = Column(String, nullable=True)
