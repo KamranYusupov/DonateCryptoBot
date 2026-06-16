@@ -35,7 +35,6 @@ async def export_users_to_excel(
             "Порядок": count,
             "Уровень глубины": user.depth_level,
             "Логин ТГ": user.username,
-            "Имя фамилия": user.full_name,
             "Логин тг пригласителя": user.sponsor,
             "Статус": user.status.value,
             "Кол-во приглашенных": user.invites_count,
@@ -45,7 +44,8 @@ async def export_users_to_excel(
             "Всего заработано": user.donates_sum,
             "Tg ID": user.user_id,
             "Дата время регистрации": \
-                to_main_tz(user.created_at).strftime("%d.%m.%Y %H:%M")
+                to_main_tz(user.created_at).strftime("%d.%m.%Y %H:%M"),
+            "Имя фамилия": user.full_name,
         })
         count += 1
 
