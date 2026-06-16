@@ -52,7 +52,7 @@ async def triumph_bill_handler(
     )
     buttons = [
         InlineKeyboardButton(
-            text="Пополнить счет",
+            text="Пополнить сейф",
             style="primary",
             callback_data="increment_trumph_bill",
         ),

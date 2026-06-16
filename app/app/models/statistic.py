@@ -30,3 +30,14 @@ class MatrixStatistic(Base):
 
     activation_count = Column(Integer, default=0, nullable=False)
 
+
+class RegistrationStatistic(Base):
+    __tablename__ = "registration_statistic"
+
+    id = Column(Integer, primary_key=True, default=1)
+
+    __table_args__ = (
+        CheckConstraint("id = 1", name="registration_statistic_singleton"),
+    )
+
+    count = Column(Integer, default=0, nullable=False)

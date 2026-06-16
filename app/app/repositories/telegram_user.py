@@ -187,13 +187,20 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
             percent: Decimal = settings.triumph_bill_increase_percent,
     ) -> None:
         multiplier = percent / 100
+        new_bill_expr = (
+            TelegramUser.triumph_bill +
+            TelegramUser.triumph_bill * multiplier
+        )
+        triumph_amount = Decimal(DonateStatus.BRILLIANT.get_status_donate_value())
         statement = (
             update(TelegramUser)
-            .where(TelegramUser.triumph_bill.is_not(None))
-            .values(triumph_bill=(
-                TelegramUser.triumph_bill
-                + TelegramUser.triumph_bill * multiplier
-            ))
+            .where(
+                TelegramUser.triumph_bill.is_not(None),
+                TelegramUser.triumph_bill < triumph_amount
+            )
+            .values(
+                triumph_bill=func.least(new_bill_expr, triumph_amount)
+            )
         )
 
         self._session.execute(statement)

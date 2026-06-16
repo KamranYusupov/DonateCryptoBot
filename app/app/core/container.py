@@ -37,7 +37,7 @@ from app.repositories import (
     RepositoryTransfer,
     RepositoryAdminStatistic,
     RepositoryMatrixStatistic,
-    RepositoryAddBotToMatrixTaskModel,
+    RepositoryAddBotToMatrixTaskModel, RepositoryRegistrationStatistic,
 )
 from app.services import (
     TelegramUserService,
@@ -113,6 +113,11 @@ class Container(containers.DeclarativeContainer):
     repository_matrix_statistic = providers.Factory(
         RepositoryMatrixStatistic, model=MatrixStatistic, session=session
     )
+    repository_registration_statistic = providers.Factory(
+        RepositoryRegistrationStatistic,
+        model=RepositoryRegistrationStatistic,
+        session=session
+    )
     repository_processed_webhook = providers.Factory(
         RepositoryProcessedCryptoBotPaymentWebhook,
         model=ProcessedCryptoBotPaymentWebhook,
@@ -183,7 +188,8 @@ class Container(containers.DeclarativeContainer):
     statistic_service = providers.Factory(
         StatisticService,
         repository_admin_statistic=repository_admin_statistic,
-        repository_matrix_statistic=repository_matrix_statistic
+        repository_matrix_statistic=repository_matrix_statistic,
+        repository_registration_statistic=repository_registration_statistic,
     )
     crypto_bot_processed_webhook_service = providers.Factory(
         CryptoBotProcessedWebhookService,

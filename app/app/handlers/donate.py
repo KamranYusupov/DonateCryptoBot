@@ -247,8 +247,22 @@ async def subscription_checker(
     await registration_contests_service.create_contest_point(
         user_id=sponsor_user_id,
     )
+    if current_user.is_donate_for_registration_sent:
+        return
 
-    if not settings.send_donate_for_registration or current_user.is_donate_for_registration_sent:
+    await telegram_user_service.update(
+        obj_id=current_user.id,
+        obj_in=dict(is_donate_for_registration_sent=True)
+    )
+    registration_count = statistic_service.increment_registrations_count()
+    is_increase_triumph_bills_step = (
+        registration_count
+        % settings.triumph_bills_increase_registration_interval == 0
+    )
+    if registration_count != 0 and is_increase_triumph_bills_step:
+        await increase_triumph_bills_task.kiq()
+
+    if not settings.send_donate_for_registration:
         return
 
     if (int(DonateStatus.BRONZE.get_status_donate_value())
@@ -267,10 +281,6 @@ async def subscription_checker(
         admin_statistic = statistic_service.get_admin_statistic()
         statistic_service.update_admin_statistic(
             donates_sum_for_registration=admin_statistic.donates_sum_for_registration + 1
-        )
-        await telegram_user_service.update(
-            obj_id=current_user.id,
-            obj_in=dict(is_donate_for_registration_sent=True)
         )
 
         donate_text = (
@@ -542,11 +552,11 @@ async def donate_handler(
     coroutines = []
     matrix_activations_count = statistic_service.increment_matrix_activations_count()
 
-    is_increase_activation_step = (
+    is_increase_triumph_bills_step = (
         matrix_activations_count
-        % settings.triumph_bill_increase_activation_interval == 0
+        % settings.triumph_bills_increase_activation_interval == 0
     )
-    if matrix_activations_count != 0 and is_increase_activation_step:
+    if matrix_activations_count != 0 and is_increase_triumph_bills_step:
         coroutines.append(increase_triumph_bills_task.kiq())
 
     coroutines.append(

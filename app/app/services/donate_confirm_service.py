@@ -5,7 +5,7 @@ from typing import Tuple, Any, Optional, List
 
 import loguru
 
-from app.repositories.statistic import RepositoryAdminStatistic
+from app.repositories.admin_statistic import RepositoryAdminStatistic
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.repositories.donate import RepositoryDonate, RepositoryDonateTransaction
 from app.models.telegram_user import TelegramUser, DonateStatus
