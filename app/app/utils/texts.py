@@ -392,8 +392,8 @@ def get_sponsor_activation_text(
     )
 
 
-def format_decimal(decimal: Decimal) -> str:
-    s = f"{decimal:f}"
+def format_decimal(decimal: Decimal, round_digits: int = 2) -> str:
+    s = f"{round(decimal, round_digits):f}"
 
     if '.' in s:
         s = s.rstrip('0').rstrip('.')

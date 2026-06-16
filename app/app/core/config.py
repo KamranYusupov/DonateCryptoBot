@@ -128,7 +128,10 @@ class Settings(BaseSettings):
     triumph_max_donates_sum_from_matrix: int = 327640
     # endregion
 
-    triumph_bill_increase_percent: Decimal = Field(default=Decimal("0.1"))
+    # Настройки сейфов Триумф
+    triumph_bill_increase_percent: Decimal = Field(default=Decimal("1"))
+    triumph_bill_increase_activation_interval: int = Field(default=1)
+    # endregion
 
     # region Настройки длины бинарной матрицы с 4 уровнями глубины
     level_length: int = Field(title="Длина первого уровня матрицы", default=2)

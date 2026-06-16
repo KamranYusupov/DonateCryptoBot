@@ -10,7 +10,7 @@ from app.services.withdrawal_request import WithdrawalRequestService
 from app.services.add_bot_to_matrix_task_service import AddBotToMatrixTaskService
 from app.services.sponsors_contest_service import SponsorsContestService
 from app.services.transfer_service import TransferService
-from app.services.statistic_service import AdminStatisticService
+from app.services.statistic_service import StatisticService
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.matrix_notifier_service import MatrixActivationNotifierService
 from app.services.triumph_bill_service import TriumphBillService
@@ -26,7 +26,7 @@ __all__ = (
     "WithdrawalRequestService",
     "AddBotToMatrixTaskService",
     "TransferService",
-    "AdminStatisticService",
+    "StatisticService",
     "MatrixService",
     "MatrixNodeService",
     "MatrixActivationNotifierService",

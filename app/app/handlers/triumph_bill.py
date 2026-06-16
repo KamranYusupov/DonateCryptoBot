@@ -47,7 +47,7 @@ async def triumph_bill_handler(
         user_id=callback.from_user.id
     )
     message_text = html.bold(
-        "Счет Триумф: "
+        "Сейф Триумф: "
         f"{format_decimal(current_user.triumph_bill)} UDST."
     )
     buttons = [
@@ -161,7 +161,7 @@ async def process_amount(
     await state.update_data(amount=amount)
 
     message_text_template = (
-        "{0} счета Триумф на "
+        "{0} сейф Триумф на "
         + html.bold(f"{amount} USDT.\n\n"
         "Вы уверены?")
     )
@@ -233,7 +233,7 @@ async def confirm_triumph_bill_increment_handler(
         reply_markup=get_reply_keyboard(current_user),
     )
     await callback.message.answer(
-        html.bold(f"Счет Триумф успешно пополнен на {amount} USDT ✅"),
+        html.bold(f"Сейф Триумф успешно пополнен на {amount} USDT ✅"),
         reply_markup=get_donate_keyboard(
             buttons={"⚡️ Активация": "donations"}
         )

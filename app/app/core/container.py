@@ -18,6 +18,7 @@ from app.models import (
     RegistrationContestPoint,
     Transfer,
     AdminStatistic,
+    MatrixStatistic,
     ProcessedCryptoBotPaymentWebhook,
 )
 from app.repositories import (
@@ -35,6 +36,7 @@ from app.repositories import (
     RepositorySponsorsContestPoint,
     RepositoryTransfer,
     RepositoryAdminStatistic,
+    RepositoryMatrixStatistic,
     RepositoryAddBotToMatrixTaskModel,
 )
 from app.services import (
@@ -48,7 +50,7 @@ from app.services import (
     WithdrawalRequestService,
     AddBotToMatrixTaskService,
     TransferService,
-    AdminStatisticService,
+    StatisticService,
     MatrixService,
     MatrixNodeService,
     MatrixActivationNotifierService,
@@ -107,6 +109,9 @@ class Container(containers.DeclarativeContainer):
     )
     repository_admin_statistic = providers.Factory(
         RepositoryAdminStatistic, model=AdminStatistic, session=session
+    )
+    repository_matrix_statistic = providers.Factory(
+        RepositoryMatrixStatistic, model=MatrixStatistic, session=session
     )
     repository_processed_webhook = providers.Factory(
         RepositoryProcessedCryptoBotPaymentWebhook,
@@ -175,9 +180,10 @@ class Container(containers.DeclarativeContainer):
         repository_transfer=repository_transfer,
         repository_telegram_user=repository_telegram_user,
     )
-    admin_statistic_service = providers.Factory(
-        AdminStatisticService,
+    statistic_service = providers.Factory(
+        StatisticService,
         repository_admin_statistic=repository_admin_statistic,
+        repository_matrix_statistic=repository_matrix_statistic
     )
     crypto_bot_processed_webhook_service = providers.Factory(
         CryptoBotProcessedWebhookService,
@@ -216,7 +222,9 @@ class Container(containers.DeclarativeContainer):
 
         "app.middlewares.ban_user",
         "app.middlewares.subscriptions",
+
         "app.tasks.matrix",
+        "app.tasks.taskiq.business.triumph_bill",
 
         "app.utils.excel",
     ]

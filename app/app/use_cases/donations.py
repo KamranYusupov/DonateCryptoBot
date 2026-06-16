@@ -14,7 +14,7 @@ from app.services.donate_confirm_service import DonateConfirmService
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.matrix_service import MatrixService
 from app.services.sponsors_contest_service import SponsorsContestService
-from app.services.statistic_service import AdminStatisticService
+from app.services.statistic_service import StatisticService
 from app.services.telegram_user_service import TelegramUserService
 from app.utils.matrix import get_main_matrices
 from app.utils.texts import (
@@ -41,8 +41,8 @@ async def send_donations_menu(
         sponsors_contests_service: SponsorsContestService = Provide[
             Container.sponsors_contests_service
         ],
-        admin_statistic_service: AdminStatisticService = Provide[
-            Container.admin_statistic_service
+        statistic_service: StatisticService = Provide[
+            Container.statistic_service
         ],
 ) -> None:
     telegram_method_kwargs = {}
@@ -88,7 +88,7 @@ async def send_donations_menu(
         })
 
     if current_user.is_admin:
-        admin_statistic = admin_statistic_service.get_statistic()
+        admin_statistic = statistic_service.get_admin_statistic()
 
         users_count = await telegram_user_service.get_count(is_bot=False)
         users_count_with_not_active_status = await telegram_user_service.get_count(
@@ -259,14 +259,14 @@ async def send_donations_menu(
     if current_user.triumph_bill:
         inline_buttons.append(
             InlineKeyboardButton(
-                text=f"Счет Триумф: ${format_decimal(current_user.triumph_bill)}",
+                text=f"Сейф Триумф: ${format_decimal(current_user.triumph_bill)}",
                 callback_data="triumph_bill",
             )
         )
     else:
         inline_buttons.append(
             InlineKeyboardButton(
-                text="Открыть счет Триумф",
+                text="Открыть сейф Триумф",
                 callback_data="increment_trumph_bill",
             )
         )

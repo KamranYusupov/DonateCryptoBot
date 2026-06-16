@@ -11,7 +11,7 @@ from app.models.contest import (
     RegistrationContestPoint,
 )
 from app.models.transfer import Transfer
-from app.models.statistic import AdminStatistic
+from app.models.statistic import AdminStatistic, MatrixStatistic
 from app.models.payments import ProcessedCryptoBotPaymentWebhook
 
 
@@ -30,5 +30,6 @@ __all__ = [
     "RegistrationContestPoint",
     "Transfer",
     "AdminStatistic",
+    "MatrixStatistic",
     "ProcessedCryptoBotPaymentWebhook",
 ]

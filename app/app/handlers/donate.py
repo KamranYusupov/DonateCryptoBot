@@ -25,6 +25,7 @@ from app.keyboards.donate import get_donate_keyboard
 from app.core.config import settings
 from app.services.matrix_service import MatrixService
 from app.keyboards.reply import get_reply_keyboard
+from app.tasks.taskiq.business.triumph_bill import increase_triumph_bills_task
 from app.utils.pagination import Paginator
 from app.utils.excel import export_users_to_excel
 from app.models.donate import DonateTransactionType
@@ -38,7 +39,7 @@ from app.services.sponsors_contest_service import SponsorsContestService
 from app.models.telegram_user import DonateStatus
 from app.utils.bot import send_message_or_pass, delete_message_or_pass
 from app.utils.bot import get_schema_from_user
-from app.services.statistic_service import AdminStatisticService
+from app.services.statistic_service import StatisticService
 from app.keyboards.inline import get_subscriptions_keyboard, get_confirm_inline_keyboard
 from app.utils.bot import send_subscription_menu
 from app.states.captcha import CaptchaState
@@ -196,8 +197,8 @@ async def subscription_checker(
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
-        admin_statistic_service: AdminStatisticService = Provide[
-            Container.admin_statistic_service
+        statistic_service: StatisticService = Provide[
+            Container.statistic_service
         ],
         registration_contests_service: RegistrationContestService = Provide[
             Container.registration_contests_service
@@ -263,8 +264,8 @@ async def subscription_checker(
                 ),
             ),
         )
-        admin_statistic = admin_statistic_service.get_statistic()
-        admin_statistic_service.update(
+        admin_statistic = statistic_service.get_admin_statistic()
+        statistic_service.update_admin_statistic(
             donates_sum_for_registration=admin_statistic.donates_sum_for_registration + 1
         )
         await telegram_user_service.update(
@@ -392,7 +393,10 @@ async def donate_handler(
         ],
         matrix_activation_notifier_service: MatrixActivationNotifierService = Provide[
             Container.matrix_activation_notifier_service
-        ]
+        ],
+        statistic_service: StatisticService = Provide[
+            Container.statistic_service
+        ],
 ) -> None:
     bill_type = callback.data.split("_")[-1]
     donate_sum = Decimal(callback.data.split("_")[-2])
@@ -535,12 +539,22 @@ async def donate_handler(
     ):
         current_user.status = status
 
-    coroutines = [
+    coroutines = []
+    matrix_activations_count = statistic_service.increment_matrix_activations_count()
+
+    is_increase_activation_step = (
+        matrix_activations_count
+        % settings.triumph_bill_increase_activation_interval == 0
+    )
+    if matrix_activations_count != 0 and is_increase_activation_step:
+        coroutines.append(increase_triumph_bills_task.kiq())
+
+    coroutines.append(
         matrix_activation_notifier_service.notify_invited_users(
             sponsor_user_id=callback.from_user.id,
             status=status,
         )
-    ]
+    )
     coroutines.extend(
         matrix_activation_notifier_service.send_transaction_message(
             transaction

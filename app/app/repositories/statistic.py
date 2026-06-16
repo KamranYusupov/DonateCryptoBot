@@ -7,7 +7,7 @@ from app.repositories.base import RepositoryBase
 
 
 class RepositoryAdminStatistic(RepositoryBase[AdminStatistic]):
-    """Репозиторий конкурса кураторов"""
+    """Репозиторий статистики админа"""
 
     def get(self) -> bool:
         statement = select(AdminStatistic)

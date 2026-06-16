@@ -13,7 +13,7 @@ from app.repositories.sponsors_contest import RepositorySponsorsContest, Reposit
 from app.repositories.transfer import RepositoryTransfer
 from app.repositories.statistic import RepositoryAdminStatistic
 from app.repositories.matrix import RepositoryAddBotToMatrixTaskModel
-
+from app.repositories.matrix_statistic import RepositoryMatrixStatistic
 __all__ = [
     "RepositoryDonate",
     "RepositoryDonateTransaction",
@@ -29,5 +29,6 @@ __all__ = [
     "RepositorySponsorsContestPoint",
     "RepositoryTransfer",
     "RepositoryAdminStatistic",
+    "RepositoryMatrixStatistic",
     "RepositoryAddBotToMatrixTaskModel",
 ]
