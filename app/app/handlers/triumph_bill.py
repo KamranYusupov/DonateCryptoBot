@@ -48,7 +48,7 @@ async def triumph_bill_handler(
         user_id=callback.from_user.id
     )
     message_text = html.bold(
-        "Сейф Триумф: "
+        "🏦 Сейф Триумф: "
         f"{format_decimal(current_user.triumph_bill)} USDT."
     )
     buttons = []
@@ -115,14 +115,7 @@ async def start_triumph_bill_handler(
     data_to_update = {"bill_type": bill_type}
     await state.set_state(IncrementTriumphBillState.amount)
 
-    message_text = "Отправьте сумму USDT для {0}взноса."
-    if not current_user.triumph_bill:
-        message_text = message_text.format("первоначального ")
-        data_to_update["exists"] = False
-    else:
-        message_text = message_text.format("")
-        data_to_update["exists"] = True
-
+    message_text = "Напишите сумму USDT для перевода."
     await state.update_data(**data_to_update),
     await callback.message.delete(),
     await callback.message.answer(
@@ -190,15 +183,10 @@ async def process_amount(
 
     await state.update_data(amount=amount)
 
-    message_text_template = (
-        "{0} сейф Триумф на "
-        + html.bold(f"{amount} USDT.\n\n"
-        "Вы уверены?")
+    message_text = html.bold(
+        f"Пополнить 🏦 Сейф Триумф на {amount} USDT.\n\n"
+        "Вы уверены?"
     )
-    if state_data["exists"]:
-        message_text = message_text_template.format("Пополнение")
-    else:
-        message_text = message_text_template.format("Создание")
 
     reply_markup = get_confirm_inline_keyboard(
         yes_button_data="confirm_triumph_bill_increment",
@@ -274,7 +262,7 @@ async def confirm_triumph_bill_increment_handler(
         reply_markup=get_reply_keyboard(current_user),
     )
     await callback.message.answer(
-        html.bold(f"Сейф Триумф успешно пополнен на {amount} USDT ✅")
+        html.bold(f"🏦 Сейф Триумф успешно пополнен на {amount} USDT ✅")
     )
     await send_donations_menu(
         from_user_id=callback.from_user.id,

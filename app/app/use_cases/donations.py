@@ -1,3 +1,4 @@
+import html
 from datetime import datetime, timedelta
 
 import loguru
@@ -259,20 +260,12 @@ async def send_donations_menu(
     if default_buttons:
         inline_buttons.extend(get_inline_buttons_from_dict(default_buttons))
 
-    if current_user.triumph_bill is not None:
-        inline_buttons.append(
-            InlineKeyboardButton(
-                text=f"Сейф Триумф: ${format_decimal(current_user.triumph_bill)}",
-                callback_data="triumph_bill",
-            )
+    inline_buttons.append(
+        InlineKeyboardButton(
+            text=f"<b>🏦 Сейф Триумф: {format_decimal(current_user.triumph_bill)} USDT</b>",
+            callback_data="triumph_bill",
         )
-    else:
-        inline_buttons.append(
-            InlineKeyboardButton(
-                text="Открыть сейф Триумф",
-                callback_data="increment_trumph_bill",
-            )
-        )
+    )
     sizes = (1, ) * len(inline_buttons)
 
     inline_buttons.extend([
