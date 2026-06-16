@@ -353,7 +353,7 @@ def get_contest_top_10_rating_message(
     )
 
     lines.append(f"\n🗓 Период: <b>{period_str}</b>")
-    lines.append(f"💰 Призовой фонд: <b>${prize_fund}</b>")
+    lines.append(f"💰 Призовой фонд: <b>${format_decimal(prize_fund, round_digits=0)}</b>")
 
     return "\n".join(lines)
 
