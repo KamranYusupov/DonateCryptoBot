@@ -11,7 +11,7 @@ from app.repositories.sponsors_contest import (
 )
 from app.services.base.contest import BaseContestService
 from app.models.telegram_user import TelegramUser
-from app.utils.datetime import get_start_of_week
+from app.utils.datetime import get_start_of_week, to_main_tz
 
 
 class SponsorsContestService(
@@ -30,18 +30,20 @@ class SponsorsContestService(
         self._repository_telegram_user = repository_telegram_user
 
     def _get_period_start(self) -> datetime:
-        now = datetime.now()
-        if now.weekday() == 0 and now.time() >= time(12, 0, 0):
-            start_date = get_start_of_week()
-        else:
-            start_date = get_start_of_week() - timedelta(days=7)
+        now = to_main_tz(datetime.now())
 
-        start_at = datetime.combine(
-            start_date,
+        this_week_monday_date = get_start_of_week(now.date())
+
+        this_week_start_at = datetime.combine(
+            this_week_monday_date,
             time(12, 0, 0),
             tzinfo=settings.timezone_info
         )
-        return start_at
+
+        if now >= this_week_start_at:
+            return this_week_start_at
+
+        return this_week_start_at - timedelta(days=7)
 
     async def _get_user_str_map(
             self,
