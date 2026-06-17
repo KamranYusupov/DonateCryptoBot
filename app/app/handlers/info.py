@@ -26,7 +26,7 @@ from app.models.telegram_user import TelegramUser
 info_router = Router()
 
 
-@info_router.message(F.text == "KOD💵DENEG")
+@info_router.message(F.text.lower() == "kod💵deneg")
 @inject
 async def about_handler(
         message: Message,
@@ -204,7 +204,7 @@ async def team_inline_handler(
 
 
 
-@info_router.message(F.text == "🚀 Продвижение")
+@info_router.message(F.text.lower() == "🚀 продвижение")
 @inject
 async def referral_message_handler(
         message: Message,
@@ -328,7 +328,7 @@ async def referral_handler(
     return message_text, reply_markup
 
 
-@info_router.message(F.text == "⚙️ Настройки")
+@info_router.message(F.text.lower() == "⚙️ настройки")
 @info_router.callback_query(F.data.startswith("referrals_"))
 @inject
 async def send_referral_message_handler(

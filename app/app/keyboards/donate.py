@@ -29,7 +29,7 @@ def get_donations_buttons(user_statuses: Sequence[DonateStatus]) -> list[InlineK
         button_text = f"{status_color_emoji} {status.value} - ${donate_sum} {status_color_emoji}"
 
         button = InlineKeyboardButton(
-            text=button_text,
+            text=button_text.upper(),
             callback_data=f"confirm_donate_🟢_{donate_sum}",
             style=style,
         )

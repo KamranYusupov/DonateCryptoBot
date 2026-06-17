@@ -86,7 +86,7 @@ async def send_donations_menu(
         })
 
     if current_user.is_admin:
-        default_buttons["Транзакции 💳"] = "transactions"
+        default_buttons["Транзакции 💳".upper()] = "transactions"
 
         admin_statistic = statistic_service.get_admin_statistic()
 
@@ -150,17 +150,17 @@ async def send_donations_menu(
 
         buttons = default_buttons
         admin_buttons = {
-            "Скачать базу ⬇️": "excel_users",
-            "Заявки на вывод 💸": "withdrawal_requests_1",
-            "Список забаненных пользователей 📇🅱️": "banned_users_1",
-            "Внутренние переводы": "transfer-list_1",
-            "Забанить пользователя 🔒": "ban_user",
+            "Скачать базу ⬇️".upper(): "excel_users",
+            "Заявки на вывод 💸".upper(): "withdrawal_requests_1",
+            "Список забаненных пользователей 📇🅱️".upper(): "banned_users_1",
+            "Внутренние переводы".upper(): "transfer-list_1",
+            "Забанить пользователя 🔒".upper(): "ban_user",
         }
         buttons.update(admin_buttons)
         inline_buttons = get_inline_buttons_from_dict(buttons)
         inline_buttons.append(
             InlineKeyboardButton(
-                text="Внутренний перевод 💸",
+                text="Внутренний перевод 💸".upper(),
                 callback_data="start_transfer",
                 style="success",
             ),
@@ -260,7 +260,7 @@ async def send_donations_menu(
 
     inline_buttons.append(
         InlineKeyboardButton(
-            text=f"🏦 Сейф Триумф: {format_decimal(current_user.triumph_bill)} USDT",
+            text=f"🏦 Сейф Триумф: ${format_decimal(current_user.triumph_bill)}".upper(),
             callback_data="increment_trumph_bill",
             style="danger",
         )
@@ -269,18 +269,18 @@ async def send_donations_menu(
 
     inline_buttons.extend([
         InlineKeyboardButton(
-            text="📤 Вывести USDT",
+            text="📤 Вывести".upper(),
             callback_data="withdrawal_request",
             style="primary"
 
         ),
         InlineKeyboardButton(
-            text="Пополнить USDT 📥",
+            text="Пополнить 📥".upper(),
             callback_data="start_buy_tokens_state",
             style="primary"
         ),
         InlineKeyboardButton(
-            text="Внутренний перевод 💸",
+            text="Внутренний перевод 💸".upper(),
             callback_data="start_transfer",
             style="success",
         ),

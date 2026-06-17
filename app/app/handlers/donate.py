@@ -306,7 +306,7 @@ async def subscription_checker(
         )
 
 @donate_router.callback_query(F.data.startswith("donations"))
-@donate_router.message(F.text == "⚡️ Активация")
+@donate_router.message(F.text.lower() == "⚡️ активация")
 async def donations_menu_handler(
         aiogram_type: Message | CallbackQuery,
 ) -> None:
