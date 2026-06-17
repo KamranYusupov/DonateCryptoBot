@@ -152,6 +152,20 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
         statement = select(bill_field).filter(*args).filter_by(**kwargs)
         return self._session.execute(statement).scalars().all()
 
+    def get_triumph_bills_sum(
+            self,
+            *args,
+            **kwargs,
+    ) -> Decimal:
+        statement = (
+            select(func.sum(TelegramUser.triumph_bill))
+            .filter(*args)
+            .filter_by(**kwargs)
+        )
+
+        result = self._session.execute(statement)
+        return result.scalar()  or Decimal("0.0")
+
     def increment_bill(
             self,
             telegram_user_id: UUID,

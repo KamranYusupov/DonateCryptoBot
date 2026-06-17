@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 from typing import Tuple, Any, List, Optional
 
 from app.repositories.telegram_user import RepositoryTelegramUser
@@ -156,4 +157,7 @@ class TelegramUserService:
                 **kwargs,
             )
         )
+
+    async def get_triumph_bills_sum(self, **kwargs) -> Decimal:
+        return self._repository_telegram_user.get_triumph_bills_sum(**kwargs)
 

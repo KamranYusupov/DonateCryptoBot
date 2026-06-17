@@ -127,6 +127,7 @@ async def send_donations_menu(
                 TelegramUser.is_bot == False,
             )
         ) - current_user.bill_for_withdraw
+        triumph_bills_sum = await telegram_user_service.get_triumph_bills_sum()
 
 
         message_text = (
@@ -147,6 +148,8 @@ async def send_donations_menu(
             f"<b>${format_decimal(bills_for_withdraw_sum)}</b>\n"
             "Общий баланс для вывода +10$: "
             f"<b>${format_decimal(bills_for_withdraw_gte_10_sum)}</b>\n"
+            "Общий сейф Триумф: "
+            f"<b>${format_decimal(triumph_bills_sum)}</b>\n\n"
             "Число пользователей с балансом для вывода +10: "
             f"<b>{users_count_with_bill_for_withdraw_gte_10}</b>\n\n"
         ) + message_text
