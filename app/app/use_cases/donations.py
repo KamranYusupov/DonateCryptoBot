@@ -66,11 +66,6 @@ async def send_donations_menu(
         current_user_place = places_emoji_list[current_user_place - 1]
 
     default_buttons = {}
-    if current_user.status != DonateStatus.NOT_ACTIVE:
-        default_buttons.update({
-            "АКТИВНЫЕ ПЛОЩАДКИ": f"team_1",
-            "Транзакции 💳": f"transactions",
-        })
 
     created_at_date_str = current_user.created_at.strftime("%d.%m.%Y")
 
@@ -88,11 +83,10 @@ async def send_donations_menu(
     if current_user.status != DonateStatus.NOT_ACTIVE:
         default_buttons.update({
             "АКТИВНЫЕ ПЛОЩАДКИ": f"team_1",
-            "Транзакции 💳": f"transactions",
         })
 
     if current_user.is_admin:
-        default_buttons.pop("Транзакции 💳")
+        default_buttons["Транзакции 💳"] = "transactions"
 
         admin_statistic = statistic_service.get_admin_statistic()
 
@@ -208,7 +202,6 @@ async def send_donations_menu(
         owner_id=current_user.id,
     )
 
-    buttons = {}
     sponsor = await telegram_user_service.get_telegram_user(
         user_id=current_user.sponsor_user_id
     )
@@ -269,6 +262,7 @@ async def send_donations_menu(
         InlineKeyboardButton(
             text=f"🏦 Сейф Триумф: {format_decimal(current_user.triumph_bill)} USDT",
             callback_data="increment_trumph_bill",
+            style="danger",
         )
     )
     sizes = (1, ) * len(inline_buttons)
