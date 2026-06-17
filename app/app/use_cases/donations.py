@@ -263,7 +263,7 @@ async def send_donations_menu(
     inline_buttons.append(
         InlineKeyboardButton(
             text=f"🏦 Сейф Триумф: {format_decimal(current_user.triumph_bill)} USDT",
-            callback_data="triumph_bill",
+            callback_data="increment_trumph_bill",
         )
     )
     sizes = (1, ) * len(inline_buttons)

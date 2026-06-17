@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 import loguru
-from aiogram import Router, F
+from aiogram import Router, F, html
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
 from dependency_injector.wiring import Provide, inject
@@ -12,6 +12,7 @@ from app.core.container import Container
 from app.models.telegram_user import DonateStatus
 from app.services import DonateConfirmService
 from app.services.telegram_user_service import TelegramUserService
+from app.utils.texts import format_decimal
 
 bill_type_router = Router()
 
@@ -31,21 +32,23 @@ async def bill_type_handler(
     current_user = await telegram_user_service.get_telegram_user(
         user_id=callback.from_user.id,
     )
-
+    message_text = ''
     callback_prefix = None
     if callback.data.startswith("confirm_donate_"):
         callback_prefix = "send_" + "_".join(callback_data[1:])
         donate_sum = Decimal(callback.data.split("_")[-1])
         if donate_sum == DonateStatus.BRILLIANT.get_status_donate_value():
-            loguru.logger.info("1")
             triumph_bill = current_user.triumph_bill
-
 
     elif callback.data == "start_transfer":
         callback_prefix = "transfer"
 
     elif callback.data == "increment_trumph_bill":
         callback_prefix = "start_increment_trumph_bill"
+        message_text = html.bold(
+            f"🏦 Сейф Триумф: "
+            f"{format_decimal(current_user.triumph_bill)} USDT.\n\n"
+        )
 
     if not callback_prefix:
         return
@@ -61,7 +64,7 @@ async def bill_type_handler(
     )
     buttons["🔙 Назад"] = "donations"
     await callback.message.edit_text(
-        "Выберите баланс:",
+        message_text + "Выберите баланс:",
         reply_markup=get_donate_keyboard(
             buttons=buttons,
             sizes=(1, 1, 1),

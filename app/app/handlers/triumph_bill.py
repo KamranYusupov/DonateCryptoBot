@@ -35,47 +35,6 @@ triumph_bill_router = Router()
 class IncrementTriumphBillState(StatesGroup):
     amount = State()
 
-@triumph_bill_router.callback_query(F.data == "triumph_bill")
-@inject
-async def triumph_bill_handler(
-        callback: CallbackQuery,
-        state: FSMContext,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
-) -> None:
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=callback.from_user.id
-    )
-    message_text = html.bold(
-        "🏦 Сейф Триумф: "
-        f"{format_decimal(current_user.triumph_bill)} USDT."
-    )
-    buttons = []
-    triumph_bill_limit = DonateStatus.BRILLIANT.get_status_donate_value()
-    if current_user.triumph_bill != triumph_bill_limit:
-        buttons.append(
-            InlineKeyboardButton(
-                text="Пополнить сейф",
-                style="primary",
-                callback_data="increment_trumph_bill",
-            )
-        )
-
-    buttons.append(
-        InlineKeyboardButton(
-            text="🔙 Назад",
-            callback_data="donations",
-        )
-    )
-    keyboard = InlineKeyboardBuilder()
-    keyboard.add(*buttons)
-    await callback.message.edit_text(
-        message_text,
-        reply_markup=keyboard.adjust(1, 1).as_markup()
-    )
-
-
 @triumph_bill_router.callback_query(F.data.startswith("start_increment_trumph_bill"))
 @inject
 async def start_triumph_bill_handler(
