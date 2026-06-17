@@ -92,6 +92,8 @@ async def send_donations_menu(
         })
 
     if current_user.is_admin:
+        default_buttons.pop("Транзакции 💳")
+
         admin_statistic = statistic_service.get_admin_statistic()
 
         users_count = await telegram_user_service.get_count(is_bot=False)

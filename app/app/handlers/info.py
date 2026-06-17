@@ -154,6 +154,9 @@ async def team_inline_handler(
     if not is_archive and archived_matrices:
         buttons["АРХИВ УРОВНЕЙ 🗄"] = f"archive_team_1_{page_number}"
 
+    if current_user.is_admin:
+        buttons.update({"Транзакции 💳": f"transactions"})
+
     buttons["🔙 Назад"] = back_button_data
 
     await callback.message.edit_text(
