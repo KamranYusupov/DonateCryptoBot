@@ -815,11 +815,11 @@ async def get_all_transactions(
             )
             created_at_format = \
                 to_main_tz(donate.created_at).strftime("%d.%m.%Y %H:%M")
-            quantity_str = format_decimal(donate.quantity)
+            donate_quantity_str = format_decimal(donate.quantity)
 
             message += (
                 f"<b><u>Подарок на сумму: "
-                f"${quantity_str}</u></b>\n"
+                f"${donate_quantity_str}</u></b>\n"
                 f"ID: {donate.id}\n"
                 f"Дата и время: {created_at_format}\n"
             )
@@ -829,17 +829,17 @@ async def get_all_transactions(
                     sponsor = await telegram_user_service.get_telegram_user(
                         id=transaction.sponsor_id
                     )
-                    quantity_str = format_decimal(donate.quantity)
+                    transaction_quantity_str = format_decimal(transaction.quantity)
                     message += (
                         f"ID: {transaction.id}\n"
-                        f"Сумма: ${quantity_str}\n"
+                        f"Сумма: ${transaction_quantity_str}\n"
                         f"От кого: @{user.username}\n"
                         f"Кому: @{sponsor.username}\n"
                         f"Тип: <b>{transaction.type_.value.upper()}</b>\n"
                     )
                     if user.is_bot:
                         message += \
-                            f"<b><em>-{quantity_str} от системного баланса.</em></b>\n"
+                            f"<b><em>-{transaction_quantity_str} от системного баланса.</em></b>\n"
 
                     message += "\n"
 
