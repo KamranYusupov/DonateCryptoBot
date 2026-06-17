@@ -10,6 +10,7 @@ from app.schemas.telegram_user import TelegramUserEntity
 from app.services.telegram_user_service import TelegramUserService
 from openpyxl.utils import get_column_letter
 from app.utils.datetime import to_main_tz
+from app.utils.texts import format_decimal
 
 
 @inject
@@ -38,10 +39,10 @@ async def export_users_to_excel(
             "Логин тг пригласителя": user.sponsor,
             "Статус": user.status.value,
             "Кол-во приглашенных": user.invites_count,
-            "Баланс для активации": user.bill_for_activation,
-            "Баланс для вывода": user.bill_for_withdraw,
-            "Сейф Триумф": user.triumph_bill if user.triumph_bill else "",
-            "Всего заработано": user.donates_sum,
+            "Баланс для активации": format_decimal(user.bill_for_activation),
+            "Баланс для вывода": format_decimal(user.bill_for_withdraw),
+            "Сейф Триумф": format_decimal(user.triumph_bill),
+            "Всего заработано": format_decimal(user.donates_sum),
             "Tg ID": user.user_id,
             "Дата время регистрации": \
                 to_main_tz(user.created_at).strftime("%d.%m.%Y %H:%M"),
