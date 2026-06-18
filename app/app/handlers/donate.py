@@ -26,7 +26,7 @@ from app.core.config import settings
 from app.services.matrix_service import MatrixService
 from app.keyboards.reply import get_reply_keyboard
 from app.tasks.taskiq.business.triumph_bill import increase_triumph_bills_task
-from app.tasks.taskiq.infra.telegram import send_message_task
+from app.tasks.taskiq.infra.telegram import send_message_task, mass_mailing_dispatcher
 from app.utils.pagination import Paginator
 from app.utils.excel import export_users_to_excel
 from app.models.donate import DonateTransactionType
@@ -264,13 +264,10 @@ async def subscription_checker(
         await increase_triumph_bills_task.kiq()
         chat_ids = await telegram_user_service.get_user_ids()
         chat_ids.append(settings.donates_channel_id)
-        await asyncio.gather(*[
-            send_message_task.kiq(
-                chat_id=chat_id,
-                text=increase_triumph_bills_message_text,
-            )
-            for chat_id in chat_ids
-        ])
+        await mass_mailing_dispatcher.kiq(
+            chat_ids=chat_ids,
+            text=increase_triumph_bills_message_text,
+        )
 
     if not settings.send_donate_for_registration:
         return
@@ -575,13 +572,10 @@ async def donate_handler(
         coroutines.append(increase_triumph_bills_task.kiq())
         chat_ids = await telegram_user_service.get_user_ids()
         chat_ids.append(settings.donates_channel_id)
-        coroutines.extend([
-            send_message_task.kiq(
-                chat_id=chat_id,
-                text=increase_triumph_bills_message_text,
-            )
-            for chat_id in chat_ids
-        ])
+        coroutines.append(mass_mailing_dispatcher.kiq(
+            chat_ids=chat_ids,
+            text=increase_triumph_bills_message_text,
+        ))
 
 
     coroutines.append(

@@ -45,9 +45,9 @@ class TelegramUserEntity(BaseUserEntity):
 def generate_random_user():
     return TelegramUserEntity(
         user_id=random.randint(1, 100000000),
-        username=f"user_{random.randint(1, 100000000)}",
-        first_name=f"User{random.randint(1, 100)}",
-        last_name=f"LastName{random.randint(1, 100)}",
+        username=f"user_{uuid.uuid4()}",
+        first_name=f"User",
+        last_name=f"LastName",
         depth_level=0,
     )
 

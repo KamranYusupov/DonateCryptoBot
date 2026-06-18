@@ -1,7 +1,3 @@
-import datetime
-import random
-from functools import wraps
-
 import loguru
 from aiogram import Router, F
 from aiogram.exceptions import TelegramAPIError
@@ -47,7 +43,7 @@ async def command_start(
 
     sponsor_user_id = current_user.sponsor_user_id if current_user else command.args
     sponsor = await telegram_user_service.get_telegram_user(user_id=sponsor_user_id)
-    if (not sponsor or sponsor.is_bot) and not current_user.is_admin:
+    if (not sponsor or sponsor.is_bot) and not current_user:
         await message.answer("Неправильная ссылка")
         return
 
