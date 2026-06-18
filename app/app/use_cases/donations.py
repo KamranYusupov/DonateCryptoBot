@@ -134,7 +134,7 @@ async def send_donations_menu(
             f"<b>${format_decimal(admin_statistic.system_bill)}</b>\n"
             "Системный баланс Триумф: "
             f"<b>${format_decimal(admin_statistic.triumph_system_bill)}</b>\n"
-            "Число отправленных $ за регистрацию: "
+            "$ за регистрацию: "
             f"<b>${format_decimal(admin_statistic.donates_sum_for_registration)}</b>\n"
             "Общий баланс для активации: "
             f"<b>${format_decimal(bills_for_activation_sum)}</b>\n"
@@ -144,7 +144,7 @@ async def send_donations_menu(
             f"<b>${format_decimal(bills_for_withdraw_gte_10_sum)}</b>\n"
             "Общий сейф Триумф: "
             f"<b>${format_decimal(triumph_bills_sum)}</b>\n\n"
-            "Число пользователей с балансом для вывода +10: "
+            "С балансом для вывода +10: "
             f"<b>{users_count_with_bill_for_withdraw_gte_10}</b>\n\n"
         ) + message_text
 
