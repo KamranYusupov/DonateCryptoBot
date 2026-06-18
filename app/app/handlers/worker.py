@@ -14,7 +14,6 @@ from app.tasks.contest import (
 async def add_bot_to_matrix_task_worker(delay: Optional[int] = None) -> None:
     delay = delay or settings.add_bot_to_matrix_task_delay
     while True:
-        loguru.logger.info("Executing add_bot_to_matrix_tasks...")
         try:
             await execute_bot_matrix_tasks()
         except Exception as e:
@@ -29,7 +28,6 @@ async def add_bot_to_matrix_task_worker(delay: Optional[int] = None) -> None:
 async def update_contests_task_worker(delay: Optional[int] = None) -> None:
     delay = delay or settings.update_contests_task_delay
     while True:
-        loguru.logger.info("Executing update_contests_task...")
         try:
             await update_sponsors_contest_task()
             await update_registration_contest_task()
