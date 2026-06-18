@@ -28,11 +28,17 @@ class StatisticService:
             obj_in=obj_in,
         )
 
+    def get_matrix_activations_count(self) -> int:
+        return self._repository_matrix_statistic.get_activation_count()
+
     def increment_matrix_activations_count(self) -> int:
         return (
             self._repository_matrix_statistic
             .increment_activations_count()
         )
+
+    def get_registrations_count(self) -> int:
+        return self._repository_registration_statistic.get_count()
 
     def increment_registrations_count(self) -> int:
         return (

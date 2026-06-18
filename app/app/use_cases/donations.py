@@ -6,6 +6,7 @@ from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from dependency_injector.wiring import Provide, inject
 
+from app.core.config import Settings, settings
 from app.core.container import Container
 from app.keyboards.donate import get_donate_keyboard, get_donations_buttons
 from app.keyboards.inline import get_inline_buttons_from_dict
@@ -89,6 +90,25 @@ async def send_donations_menu(
         default_buttons["Транзакции 💳".upper()] = "transactions"
 
         admin_statistic = statistic_service.get_admin_statistic()
+        matrix_activation_count = statistic_service.get_matrix_activations_count()
+        registration_count = statistic_service.get_registrations_count()
+
+        registration_step = (
+            registration_count
+            % settings.triumph_bills_increase_registration_interval
+        )
+        registration_step_str = (
+            f"{registration_step}/"
+            f"{settings.triumph_bills_increase_registration_interval}"
+        )
+        matrix_activation_step = (
+            matrix_activation_count
+            % settings.triumph_bills_increase_activation_interval
+        )
+        matrix_activation_step_str = (
+            f"{matrix_activation_step}/"
+            f"{settings.triumph_bills_increase_activation_interval}"
+        )
 
         users_count = await telegram_user_service.get_count(is_bot=False)
         users_count_with_not_active_status = await telegram_user_service.get_count(
@@ -146,6 +166,9 @@ async def send_donations_menu(
             f"<b>${format_decimal(triumph_bills_sum)}</b>\n\n"
             "С балансом для вывода +10: "
             f"<b>{users_count_with_bill_for_withdraw_gte_10}</b>\n\n"
+            f"До умножения сейфа Триумф "
+            f"<b>{matrix_activation_step_str}</b> активаций и "
+            f"<b>{registration_step_str}</b> регистраций.\n\n"
         ) + message_text
 
         buttons = default_buttons

@@ -1,10 +1,31 @@
+from typing import TypeVar, Type
+
+from sqlalchemy.orm import Session
+
 from app.models.statistic import MatrixStatistic
 from app.repositories.base import RepositoryBase
 
-from sqlalchemy import update
+from sqlalchemy import update, select
 
-class RepositoryMatrixStatistic(RepositoryBase[MatrixStatistic]):
+
+ModelType = TypeVar("ModelType")
+
+class RepositoryMatrixStatistic:
     """Репозиторий таблицы matrix_statistic"""
+
+    def __init__(
+            self,
+            session: Session,
+            model: Type[ModelType] = MatrixStatistic
+    ):
+        self._session = session
+        self._model = model
+
+    def get_activation_count(self) -> int:
+        statement = select(MatrixStatistic.activation_count)
+
+        result = self._session.execute(statement)
+        return result.scalar_one()
 
     def increment_activations_count(self) -> int:
         statement = (

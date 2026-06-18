@@ -20,6 +20,12 @@ class RepositoryRegistrationStatistic:
         self._session = session
         self._model = model
 
+    def get_count(self) -> int:
+        statement = select(RegistrationStatistic.count)
+
+        result = self._session.execute(statement)
+        return result.scalar_one()
+
     def increment_count(self) -> int:
         statement = (
             update(RegistrationStatistic)
