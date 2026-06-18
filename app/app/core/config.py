@@ -52,12 +52,7 @@ class Settings(BaseSettings):
         title="Минимальное количество токенов для вывода",
         default=10
     )
-    about_image_file_path: str = "app/media/statuses.jpg"
-    about_image_file_id_path: str = "app/media/file_ids/statuses_jpg.txt"
-
-    kod_deneg_video_file_path: str = "app/media/kod_deneg.MP4"
-    kod_deneg_video_file_id_path: str = "app/media/file_ids/kod_deneg_MP4.txt"
-
+    media_root: str = Field(default="app/media/")
     # endregion
 
     # region API
@@ -187,6 +182,45 @@ class Settings(BaseSettings):
     registration_contest_callback_prefix: str = "registration_contest"
     # endregion
 
+    @computed_field
+    @property
+    def about_image_file_path(self) -> str:
+        return f"{self.media_root}statuses.jpg"
+
+    @computed_field
+    @property
+    def about_image_file_id_path(self) -> str:
+        return f"{self.media_root}file_ids/statuses_jpg.txt"
+
+    @computed_field
+    @property
+    def kod_deneg_video_file_path(self) -> str:
+        return f"{self.media_root}kod_deneg.MP4"
+
+    @computed_field
+    @property
+    def kod_deneg_video_file_id_path(self) -> str:
+        return f"{self.media_root}file_ids/kod_deneg_MP4.txt"
+
+    @computed_field
+    @property
+    def kod_mood_movie_file_path(self) -> str:
+        return f"{self.media_root}kod_mood_movie.MP4"
+
+    @computed_field
+    @property
+    def kod_mood_movie_file_id_path(self) -> str:
+        return f"{self.media_root}file_ids/kod_mood_movie_MP4.txt"
+
+    @computed_field
+    @property
+    def kod_deneg_movie_file_path(self) -> str:
+        return f"{self.media_root}kod_deneg_movie.MP4"
+
+    @computed_field
+    @property
+    def kod_deneg_movie_file_id_path(self) -> str:
+        return f"{self.media_root}file_ids/kod_deneg_movie_MP4.txt"
 
     @computed_field
     @property

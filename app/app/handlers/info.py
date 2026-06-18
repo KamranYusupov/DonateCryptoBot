@@ -22,6 +22,10 @@ from app.utils.matrix import get_active_matrices, get_archived_matrices
 from app.models.telegram_user import status_list, status_emoji_list, DonateStatus
 from app.utils.texts import get_my_team_message, get_matrix_info_message, get_downline_nodes_message
 from app.models.telegram_user import TelegramUser
+from app.utils.texts import (
+    kod_deneg_movie_caption,
+    kod_mood_movie_caption,
+)
 
 info_router = Router()
 
@@ -43,11 +47,11 @@ async def about_handler(
         ),
         InlineKeyboardButton(
             text="🎬 Фильм «KOD 💵 DENEG»",
-            url="https://t.me/kod_deneg_film/15"
+            callback_data="kod_deneg_movie"
         ),
         InlineKeyboardButton(
             text="🎬 Фильм «КОД СОСТОЯНИЯ»",
-            url="https://t.me/kod_deneg_film/43"
+            callback_data="kod_mood_movie"
         ),
         InlineKeyboardButton(
             text="📎 Инструкция к фильму",
@@ -74,6 +78,42 @@ async def about_handler(
         file_path=settings.about_image_file_path,
         file_id_path=settings.about_image_file_id_path,
         reply_markup=presentation_keyboard.adjust(1).as_markup(),
+    )
+
+@info_router.callback_query(F.data == "kod_deneg_movie")
+@inject
+async def kod_deneg_movie_handler(
+        callback: CallbackQuery,
+):
+    await callback.message.delete()
+    await SendFileFromLoadedFileIDOrSaveUseCase.send_video(
+        bot=bot,
+        chat_id=callback.from_user.id,
+        file_path=settings.kod_deneg_movie_file_path,
+        file_id_path=settings.kod_deneg_movie_file_id_path,
+        caption=kod_deneg_movie_caption,
+        protect_content=True,
+        supports_streaming=True,
+        width=1080,
+        height=1920,
+    )
+
+@info_router.callback_query(F.data == "kod_mood_movie")
+@inject
+async def kod_mood_movie_handler(
+        callback: CallbackQuery,
+):
+    await callback.message.delete()
+    await SendFileFromLoadedFileIDOrSaveUseCase.send_video(
+        bot=bot,
+        chat_id=callback.from_user.id,
+        file_path=settings.kod_mood_movie_file_path,
+        file_id_path=settings.kod_mood_movie_file_id_path,
+        caption=kod_mood_movie_caption,
+        protect_content=True,
+        supports_streaming=True,
+        width=1920,
+        height=1080,
     )
 
 
