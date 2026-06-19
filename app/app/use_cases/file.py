@@ -13,6 +13,7 @@ class SendFileFromLoadedFileIDOrSaveUseCase:
     async def __send_file_from_loaded_file_id_or_save(
             send_file_bot_method: Callable[..., Awaitable],
             send_file_argument_name: str,
+            file_attr_name: str,
             chat_id: int,
             file_path: str,
             file_id_path: str,
@@ -39,8 +40,9 @@ class SendFileFromLoadedFileIDOrSaveUseCase:
                 **kwargs
             )
 
-            if msg.video and msg.video.file_id:
-                save_file_id(file_id_path, msg.video.file_id)
+            file_attr = getattr(msg, file_attr_name)
+            if file_attr and file_attr.file_id:
+                save_file_id(file_id_path, file_attr.file_id)
 
     @classmethod
     async def send_video(
@@ -54,6 +56,7 @@ class SendFileFromLoadedFileIDOrSaveUseCase:
         await cls.__send_file_from_loaded_file_id_or_save(
             send_file_bot_method=bot.send_video,
             send_file_argument_name="video",
+            file_attr_name="video",
             chat_id=chat_id,
             file_path=file_path,
             file_id_path=file_id_path,
@@ -72,6 +75,7 @@ class SendFileFromLoadedFileIDOrSaveUseCase:
         await cls.__send_file_from_loaded_file_id_or_save(
             send_file_bot_method=bot.send_photo,
             send_file_argument_name="photo",
+            file_attr_name="photo",
             chat_id=chat_id,
             file_path=file_path,
             file_id_path=file_id_path,
