@@ -41,8 +41,8 @@ class SendFileFromLoadedFileIDOrSaveUseCase:
             )
 
             file_attr = getattr(msg, file_attr_name)
-            if file_attr and file_attr.file_id:
-                save_file_id(file_id_path, file_attr.file_id)
+            if file_attr and list(file_attr)[0].file_id:
+                save_file_id(file_id_path, list(file_attr)[0].file_id)
 
     @classmethod
     async def send_video(
