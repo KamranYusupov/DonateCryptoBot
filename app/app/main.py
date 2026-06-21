@@ -2,6 +2,8 @@ import asyncio
 
 from loguru import logger
 
+from app.core.container import Container
+from app.db.session import SyncSession
 from app.handlers.routing import get_all_routers
 from app.middlewares.throttling import (
     private_chat_only_middleware,
@@ -11,8 +13,6 @@ from app.middlewares.ban_user import (
     ban_user_middleware,
 )
 from app.middlewares.session_middleware import SQLAlchemySessionMiddleware
-from app.core.container import Container
-from app import handlers
 from app.middlewares.subscriptions import subscription_checker_middleware
 from app.handlers.worker import get_workers
 from loader import dp, bot
@@ -27,12 +27,10 @@ async def main(container: Container):
             asyncio.create_task(worker())
 
     try:
-        sync_session = container.session()
-
         all_routers = get_all_routers()
         dp.include_routers(all_routers)
         dp.update.outer_middleware(
-            SQLAlchemySessionMiddleware(sync_session=sync_session)
+            SQLAlchemySessionMiddleware(sync_session=container.db())
         )
         dp.message.middleware(private_chat_only_middleware)
         dp.message.middleware(rate_limit_middleware)
@@ -48,7 +46,6 @@ async def main(container: Container):
 
 
 if __name__ == "__main__":
-    container = Container()
-    container.wire(modules=[handlers])
     logger.info("Bot is starting")
+    container = Container()
     asyncio.run(main(container=container))

@@ -1,11 +1,15 @@
 from contextlib import asynccontextmanager
+from uuid import uuid4
+
 from aiogram import BaseMiddleware
+
+from app.db.session import scope, SyncSession
 
 
 class SQLAlchemySessionMiddleware(BaseMiddleware):
     """Middleware для commit & close  session"""
 
-    def __init__(self, sync_session):
+    def __init__(self, sync_session: SyncSession):
         super().__init__()
         self._sync_session = sync_session
 
@@ -16,11 +20,16 @@ class SQLAlchemySessionMiddleware(BaseMiddleware):
 
     @asynccontextmanager
     async def db_session_maker(self):
+        scope_token = scope.set(str(uuid4()))
+        session = self._sync_session.create_session()
+
         try:
-            yield self._sync_session
-            self._sync_session.commit()
-        except Exception as e:
-            self._sync_session.rollback()
-            raise e
+            yield session
+            session.commit()
+        except:
+            session.rollback()
+            raise
         finally:
-            self._sync_session.close()
+            session.close()
+            self._sync_session.remove()
+            scope.reset(scope_token)

@@ -61,7 +61,7 @@ from app.services import (
 class Container(containers.DeclarativeContainer):
     settings = providers.Factory(Settings)
     db = providers.Singleton(SyncSession, db_url=settings.provided.postgres_url)
-    session = providers.Factory(db().create_session)
+    session = providers.Factory(db.provided.create_session.call())
 
     # region repository
     repository_telegram_user = providers.Factory(

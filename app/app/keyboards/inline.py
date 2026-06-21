@@ -121,7 +121,6 @@ def get_bill_type_choice_buttons(
     }
 
     if triumph_bill is not None:
-        loguru.logger.info(str(triumph_bill))
         buttons.update({
             f"Сейф Триумф: {format_decimal(triumph_bill, round_digits=0)} USDT":
                 f"{callback_prefix}_{BillType.TRIUMPH.value}"

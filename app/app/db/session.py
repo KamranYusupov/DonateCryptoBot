@@ -16,8 +16,17 @@ def scopefunc():
 class SyncSession:
     def __init__(self, db_url: str):
         self.engine = create_engine(url=str(db_url), pool_pre_ping=True)
-        self.session_factory = sessionmaker(bind=self.engine)
-        self.Session = scoped_session(self.session_factory)
+        self.session_factory = sessionmaker(
+            bind=self.engine,
+            expire_on_commit=False,
+        )
+        self.Session = scoped_session(
+            self.session_factory,
+            scopefunc=scopefunc,
+        )
 
     def create_session(self):
         return self.Session()
+
+    def remove(self):
+        self.Session.remove()
