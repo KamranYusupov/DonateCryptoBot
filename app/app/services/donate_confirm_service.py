@@ -177,7 +177,7 @@ class DonateConfirmService:
                 telegram_user_id=transaction.sponsor_id,
                 bill_type=BillType.WITHDRAW,
                 amount=transaction.quantity,
-                with_donate_sum=True,
+                with_donates_sum=True,
             )
             if is_bot:
                 system_bill_donate -= transaction.quantity

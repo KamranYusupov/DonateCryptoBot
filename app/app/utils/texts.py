@@ -489,6 +489,13 @@ registration_donate_text = (
     "<b>🔥 Больше первых линий = больше бонусов</b>"
 )
 
+registration_donate_triumph_bill_text = html.bold(
+    "🎁 +1$ В СЕЙФ ЗА РЕГИСТРАЦИЮ\n\n"
+    "👥 Новый участник — Сейф пополнен.\n"
+    "💰 Приглашайте — копите на Триумф.\n\n"
+    "🌀 Состояние → Действие → Результат"
+)
+
 kod_deneg_movie_caption = html.bold(
     "🎬 ФИЛЬМ «KOD💵DENEG»\n\n"
     "🧘 Никаких сложных техник\n"

@@ -171,35 +171,22 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
             telegram_user_id: UUID,
             bill_type: BillType,
             amount: Decimal,
-            with_donate_sum: bool = False,
+            with_donates_sum: bool = False,
     ) -> None:
-        bill_field_name = f"bill_for_{bill_type.value}"
-        donates_sum_field_name = "donates_sum"
+        update_values = {}
 
-        bill = getattr(TelegramUser, bill_field_name)
-        donates_sum = getattr(TelegramUser, donates_sum_field_name)
-        update_values = {bill_field_name: bill + amount}
+        bill_column = TelegramUser.get_bill_column_by_type(bill_type)
+        bill_field_name = TelegramUser.get_bill_field_by_type(bill_type)
 
-        if with_donate_sum:
-            update_values["donates_sum"] = donates_sum + amount
+        update_values[bill_field_name] = bill_column + amount
+
+        if with_donates_sum:
+            update_values["donates_sum"] = TelegramUser.donates_sum + amount
 
         statement = (
             update(TelegramUser)
             .where(TelegramUser.id == telegram_user_id)
             .values(**update_values)
-        )
-
-        self._session.execute(statement)
-
-    def increment_triumph_bill(
-            self,
-            user_id: int,
-            amount: int,
-    ):
-        statement = (
-            update(TelegramUser)
-            .where(TelegramUser.user_id == user_id)
-            .values(triumph_bill=TelegramUser.triumph_bill + amount)
         )
 
         self._session.execute(statement)

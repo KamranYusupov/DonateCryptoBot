@@ -45,7 +45,12 @@ from app.keyboards.inline import get_subscriptions_keyboard, get_confirm_inline_
 from app.utils.bot import send_subscription_menu
 from app.states.captcha import CaptchaState
 from app.use_cases.donations import send_donations_menu
-from app.utils.texts import format_decimal, increase_triumph_bills_message_text, registration_donate_text
+from app.utils.texts import (
+    format_decimal,
+    increase_triumph_bills_message_text,
+    registration_donate_text,
+    registration_donate_triumph_bill_text,
+)
 
 donate_router = Router()
 
@@ -272,32 +277,28 @@ async def subscription_checker(
 
     if (int(DonateStatus.BRONZE.get_status_donate_value())
                 <= int(sponsor.status.get_status_donate_value())):
-        await telegram_user_service.update(
-            obj_id=sponsor.id,
-            obj_in=dict(
-                donates_sum=(
-                    sponsor.donates_sum + settings.donate_for_registration
-                ),
-                bill_for_activation=(
-                    sponsor.bill_for_activation + settings.donate_for_registration
-                ),
-            ),
+        await telegram_user_service.increment_bill(
+            telegram_user_id=sponsor.id,
+            bill_type=BillType.TRIUMPH,
+            amount=settings.donate_for_registration
         )
         admin_statistic = statistic_service.get_admin_statistic()
         statistic_service.update_admin_statistic(
-            donates_sum_for_registration=admin_statistic.donates_sum_for_registration + 1
+            donates_sum_for_registration=(
+                admin_statistic.donates_sum_for_registration
+                + settings.donate_for_registration
+            )
         )
 
-
-        await send_message_or_pass(
-            bot=bot,
-            chat_id=sponsor.user_id,
-            text=registration_donate_text,
-        )
-        await send_message_or_pass(
-            bot=bot,
-            chat_id=settings.donates_channel_id,
-            text=registration_donate_text,
+        await asyncio.gather(
+            send_message_task.kiq(
+                chat_id=sponsor.user_id,
+                text=registration_donate_triumph_bill_text,
+            ),
+            send_message_task.kiq(
+                chat_id=settings.donates_channel_id,
+                text=registration_donate_triumph_bill_text,
+            )
         )
 
 @donate_router.callback_query(F.data.startswith("donations"))
@@ -344,7 +345,7 @@ async def confirm_donate(
 
     callback_donate_data = "_".join(callback.data.split("_")[1:])
     donate_sum = Decimal(callback_donate_data.split("_")[-2])
-    bill_type = callback_donate_data.split("_")[-1]
+    bill_type = BillType(callback_donate_data.split("_")[-1])
     current_user = await telegram_user_service.get_telegram_user(
         user_id=callback.from_user.id
     )
@@ -413,7 +414,7 @@ async def donate_handler(
             Container.statistic_service
         ],
 ) -> None:
-    bill_type = callback.data.split("_")[-1]
+    bill_type = BillType(callback.data.split("_")[-1])
     donate_sum = Decimal(callback.data.split("_")[-2])
     current_user, *sponsors = await telegram_user_service.get_telegram_user_with_sponsors(
         user_id=callback.from_user.id
@@ -541,13 +542,10 @@ async def donate_handler(
             user_id=contest_point_user_id
         )
 
-    bill_field = f"bill_for_{bill_type}"
-    if bill_type == BillType.TRIUMPH.value:
-        bill_field = "triumph_bill"
-
-    await telegram_user_service.update(
-        obj_id=current_user.id,
-        obj_in={bill_field: updated_bill},
+    await telegram_user_service.increment_bill(
+        telegram_user_id=current_user.id,
+        bill_type=bill_type,
+        amount=-donate_sum,
     )
     await donate_confirm_service.update_bills_by_donate_id(
         donate_id=donate.id,

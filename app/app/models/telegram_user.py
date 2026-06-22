@@ -14,7 +14,7 @@ from sqlalchemy import (
     String,
     Numeric,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, InstrumentedAttribute
 from sqlalchemy.sql import text
 
 from app.db.base import Base
@@ -147,11 +147,33 @@ class TelegramUser(UUIDMixin, TimestampedMixin, AbstractTelegramUser, Base):
             else f"Пользователь: {self.user_id}"
         )
 
-    def get_bill_by_type(self, bill_type) -> Decimal | None:
-        if bill_type == BillType.TRIUMPH.value:
-            return self.triumph_bill
+    @staticmethod
+    def get_bill_field_by_type(bill_type: BillType) -> str:
+        if bill_type == BillType.TRIUMPH:
+            return "triumph_bill"
 
-        if bill_type in (BillType.WITHDRAW.value, BillType.ACTIVATION.value):
-            return getattr(self, f"bill_for_{bill_type}")
+        elif bill_type in (BillType.WITHDRAW, BillType.ACTIVATION):
+            return f"bill_for_{bill_type.value.lower()}"
 
-        return None
+        else:
+            raise ValueError(f"Unsupported bill_type: {bill_type}")
+
+    def get_bill_by_type(self, bill_type) -> Decimal:
+        bill_field_name = self.get_bill_field_by_type(bill_type)
+        return getattr(self, bill_field_name)
+
+    @classmethod
+    def get_bill_column_by_type(
+            cls,
+            bill_type: BillType,
+    ) -> InstrumentedAttribute:
+        if bill_type == BillType.TRIUMPH:
+            return cls.triumph_bill
+
+        elif bill_type == BillType.WITHDRAW:
+            return cls.bill_for_withdraw
+
+        elif bill_type == BillType.ACTIVATION:
+            return cls.bill_for_activation
+
+        raise ValueError(f"Unsupported bill_type: {bill_type}")

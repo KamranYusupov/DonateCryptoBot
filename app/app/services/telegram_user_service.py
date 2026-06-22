@@ -161,3 +161,17 @@ class TelegramUserService:
     async def get_triumph_bills_sum(self, **kwargs) -> Decimal:
         return self._repository_telegram_user.get_triumph_bills_sum(**kwargs)
 
+    async def increment_bill(
+            self,
+            telegram_user_id: uuid.UUID,
+            bill_type: BillType,
+            amount: Decimal,
+            with_donates_sum: bool = False,
+    ) -> None:
+        return self._repository_telegram_user.increment_bill(
+            telegram_user_id=telegram_user_id,
+            bill_type=bill_type,
+            amount=amount,
+            with_donates_sum=with_donates_sum,
+        )
+
