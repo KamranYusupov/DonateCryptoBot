@@ -10,7 +10,7 @@ def scopefunc():
     try:
         return scope.get()
     except LookupError:
-        print("scope not set")
+        return scope.get(None)
 
 
 class SyncSession:
