@@ -262,10 +262,8 @@ async def subscription_checker(
     )
     if registration_count != 0 and is_increase_triumph_bills_step:
         await increase_triumph_bills_task.kiq()
-        chat_ids = await telegram_user_service.get_user_ids()
-        chat_ids.append(settings.donates_channel_id)
-        await mass_mailing_dispatcher.kiq(
-            chat_ids=chat_ids,
+        await send_message_task.kiq(
+            chat_id=settings.donates_channel_id,
             text=increase_triumph_bills_message_text,
         )
 
@@ -570,12 +568,10 @@ async def donate_handler(
     )
     if matrix_activations_count != 0 and is_increase_triumph_bills_step:
         coroutines.append(increase_triumph_bills_task.kiq())
-        chat_ids = await telegram_user_service.get_user_ids()
-        chat_ids.append(settings.donates_channel_id)
-        coroutines.append(mass_mailing_dispatcher.kiq(
-            chat_ids=chat_ids,
+        await send_message_task.kiq(
+            chat_id=settings.donates_channel_id,
             text=increase_triumph_bills_message_text,
-        ))
+        )
 
 
     coroutines.append(
