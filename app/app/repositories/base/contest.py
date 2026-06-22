@@ -73,12 +73,20 @@ class RepositoryContestPointBase(
         return self._session.execute(statement).scalar()
 
     def get_grouped_points(self, contest_id: uuid.UUID) -> list[tuple[int, int]]:
-        """Возвращает отсортированный список кортежей (user_id, points_count)"""
+        """
+        Возвращает список кортежей (user_id, points_count),
+        отсортированный  по количеству поинтов и created_at последнего point,
+        для поля top_10_rating модели конкурса
+        """
+
         statement = (
             select(self._model.user_id, func.count(self._model.id).label("points"))
             .filter_by(contest_id=contest_id)
             .group_by(self._model.user_id)
-            .order_by(func.count(self._model.id).desc())
+            .order_by(
+                func.count(self._model.id).desc(),
+                func.max(self._model.created_at).asc(),
+            )
         )
         result = self._session.execute(statement)
         return result.all()
