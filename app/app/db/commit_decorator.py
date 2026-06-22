@@ -24,7 +24,6 @@ def commit_and_close_session(func):
             session.rollback()
             raise e
         finally:
-            session.close()
             db.remove()
             scope.reset(scope_token)
 

@@ -30,6 +30,5 @@ class SQLAlchemySessionMiddleware(BaseMiddleware):
             session.rollback()
             raise
         finally:
-            session.close()
             self._sync_session.remove()
             scope.reset(scope_token)
