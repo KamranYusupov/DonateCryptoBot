@@ -237,12 +237,10 @@ class Container(containers.DeclarativeContainer):
         "app.handlers.payments",
         "app.handlers.withdrawal_request",
         "app.handlers.transfer",
-        "app.handlers.worker",
         "app.handlers.bill_type",
         "app.handlers.aggregators",
         "app.handlers.admin",
         "app.handlers.triumph_bill",
-        "app.handlers.controllers.contest",
         "app.handlers.registration_contest",
         "app.handlers.sponsors_contest",
 

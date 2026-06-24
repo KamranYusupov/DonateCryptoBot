@@ -187,6 +187,7 @@ class Settings(BaseSettings):
     # endregion
 
 
+    # Настройки Taskiq задач
     add_bot_to_matrix_first_task_interval: IntervalConfig = Field(
         title="Интервал ожидания первой задачи добавления бота в матрицу",
         default=IntervalConfig(min_minutes=1, max_minutes=2)
@@ -195,6 +196,22 @@ class Settings(BaseSettings):
         title="Интервал ожидания второй задачи добавления бота в матрицу",
         default=IntervalConfig(min_minutes=3, max_minutes=4)
     )
+    update_sponsors_contest_task_cron_minutes: int = Field(
+        title=(
+            "Периодичность выполнения задачи "
+            "update_sponsors_contest_task в минутах"
+        ),
+        default=1,
+    )
+    update_registration_contest_task_cron_minutes: int = Field(
+        title=(
+            "Периодичность выполнения задачи "
+            "update_registration_contest_task в минутах"
+        ),
+        default=1,
+    )
+
+    # endregion
 
 
     # region callback query prefixes

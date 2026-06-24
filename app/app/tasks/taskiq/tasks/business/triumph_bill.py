@@ -6,7 +6,7 @@ from app.db.commit_decorator import commit_and_close_session
 from app.tasks.taskiq.dependencies.container import ContainerDependency
 
 
-@broker.task(name="Increase Triumph bills Task")
+@broker.task(name="Increase Triumph bills")
 @commit_and_close_session
 async def increase_triumph_bills_task(
         *,
