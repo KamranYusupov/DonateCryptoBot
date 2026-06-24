@@ -32,9 +32,6 @@ async def main(container: Container):
         dp.message.middleware(ban_user_middleware)
         dp.callback_query.middleware(ban_user_middleware)
 
-        dp.startup.register(on_startup)
-
-        await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot)
     finally:
         await bot.session.close()
