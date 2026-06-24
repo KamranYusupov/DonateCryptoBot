@@ -82,7 +82,15 @@ services:
     hostname: worker
     container_name: ${PROJECT_SLUG}_worker
     command: >
-      worker app.core.taskiq:broker app.tasks.taskiq
+      worker app.core.taskiq:broker ${TASKIQ_TASKS_ROOT}
+    restart: always
+
+  mass_mailing_worker:
+    <<: *taskiq
+    hostname: mass_mailing_worker
+    container_name: ${PROJECT_SLUG}_mass_mailing_worker
+    command: >
+      worker app.core.taskiq:broker ${TASKIQ_TASKS_ROOT} --queue mass_mailing --concurrency 1
     restart: always
 
   scheduler:
@@ -90,7 +98,7 @@ services:
     hostname: scheduler
     container_name: ${PROJECT_SLUG}_scheduler
     command: >
-      scheduler app.core.taskiq:scheduler app.tasks.taskiq
+      scheduler app.core.taskiq:scheduler ${TASKIQ_TASKS_ROOT}
 
   nginx:
     container_name: ${PROJECT_SLUG}_nginx

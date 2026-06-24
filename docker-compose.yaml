@@ -79,13 +79,22 @@ services:
     hostname: worker
     container_name: ${PROJECT_SLUG}_worker
     command: >
-      worker app.core.taskiq:broker app.tasks.taskiq
+      worker app.core.taskiq:broker ${TASKIQ_TASKS_ROOT}
+
+  mailing_worker:
+    <<: *taskiq
+    hostname: mass_mailing_worker
+    container_name: ${PROJECT_SLUG}_mailing_worker
+    command: >
+      worker app.core.taskiq:broker ${TASKIQ_TASKS_ROOT} 
+      --workers 1
+      --max-async-tasks 1
 
   scheduler:
     <<: *taskiq
     container_name: ${PROJECT_SLUG}_scheduler
     command: >
-      scheduler app.core.taskiq:scheduler app.tasks.taskiq
+      scheduler app.core.taskiq:scheduler ${TASKIQ_TASKS_ROOT}
     depends_on:
       - redis
       - app_db

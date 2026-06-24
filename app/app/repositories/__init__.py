@@ -12,7 +12,6 @@ from app.repositories.withdrawal_request import RepositoryWithdrawalRequest
 from app.repositories.sponsors_contest import RepositorySponsorsContest, RepositorySponsorsContestPoint
 from app.repositories.transfer import RepositoryTransfer
 from app.repositories.admin_statistic import RepositoryAdminStatistic
-from app.repositories.matrix import RepositoryAddBotToMatrixTaskModel
 from app.repositories.matrix_statistic import RepositoryMatrixStatistic
 from app.repositories.registration_statistic import RepositoryRegistrationStatistic
 
@@ -33,6 +32,5 @@ __all__ = [
     "RepositoryTransfer",
     "RepositoryAdminStatistic",
     "RepositoryMatrixStatistic",
-    "RepositoryAddBotToMatrixTaskModel",
     "RepositoryRegistrationStatistic",
 ]

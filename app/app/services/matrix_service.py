@@ -5,9 +5,9 @@ from typing import Tuple, Any, Optional
 import loguru
 
 from app.models.telegram_user import DonateStatus
-from app.repositories.matrix import RepositoryMatrix, RepositoryAddBotToMatrixTaskModel
-from app.models import Matrix, AddBotToMatrixTaskModel
-from app.schemas.matrix import MatrixEntity, AddBotToMatrixTaskSchema
+from app.repositories.matrix import RepositoryMatrix
+from app.models import Matrix
+from app.schemas.matrix import MatrixEntity
 from app.repositories.telegram_user import RepositoryTelegramUser
 
 

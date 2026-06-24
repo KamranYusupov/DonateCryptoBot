@@ -1,17 +1,11 @@
-import os
-from datetime import datetime, timedelta
-import uuid
 import json
 from decimal import Decimal
 
 import loguru
-from aiogram import Router, F, Bot
-from aiogram.enums import ChatMemberStatus
-from aiogram.exceptions import TelegramBadRequest, TelegramAPIError
+from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import CallbackQuery, FSInputFile, InlineKeyboardButton, WebAppInfo
-from aiogram.filters import Command
+from aiogram.types import CallbackQuery, InlineKeyboardButton
 from aiogram.types import Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -19,9 +13,8 @@ from dependency_injector.wiring import inject, Provide
 
 from app.core.container import Container
 from app.keyboards.inline import get_confirm_inline_keyboard
-from app.services.crypto_bot_api_service import CryptoBotAPIService
+from app.services.infra.crypto_bot_api_service import CryptoBotAPIService
 from app.keyboards.reply import reply_cancel_keyboard, get_reply_keyboard
-from app.loader import bot
 
 payment_router = Router()
 

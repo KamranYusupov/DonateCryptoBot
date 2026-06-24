@@ -140,31 +140,3 @@ class MatrixNode(UUIDMixin, TimestampedMixin, Base):
         Index("idx_user_matrix", owner_id, matrix_id),
         UniqueConstraint("matrix_id", "position",),
     )
-
-
-class AddBotToMatrixTaskModel(
-    Base,
-    UUIDMixin,
-    MatrixEngineTypeMixin,
-    TimestampedMixin,
-):
-    __tablename__ = "add_to_matrix_tasks"
-
-    execute_at = Column(DateTime, index=True)
-    is_executed = Column(Boolean, default=False, index=True)
-
-    donate_sum = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"))
-    obj_id = Column(
-        UUID(as_uuid=True),
-        index=True,
-    )
-    create_donates = Column(
-        Boolean,
-        default=True,
-        server_default=text("TRUE"),
-    )
-
-    __table_args__ = {"extend_existing": True}
-
-
-

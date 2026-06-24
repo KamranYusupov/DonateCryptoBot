@@ -7,9 +7,9 @@ import loguru
 from app.core.config import settings
 from app.models.matrix import MatrixEngineType, Matrix, MatrixNode
 from app.models.telegram_user import DonateStatus
-from app.repositories.matrix import RepositoryMatrix, RepositoryMatrixNode, RepositoryAddBotToMatrixTaskModel
+from app.repositories.matrix import RepositoryMatrix, RepositoryMatrixNode
 from app.repositories.telegram_user import RepositoryTelegramUser
-from app.schemas.matrix import MatrixEntity, MatrixNodeSchema, AddBotToMatrixTaskSchema
+from app.schemas.matrix import MatrixEntity, MatrixNodeSchema
 
 
 class MatrixNodeService:
@@ -18,12 +18,10 @@ class MatrixNodeService:
             repository_matrix: RepositoryMatrix,
             repository_matrix_node: RepositoryMatrixNode,
             repository_telegram_user: RepositoryTelegramUser,
-            repository_matrix_task: RepositoryAddBotToMatrixTaskModel,
     ) -> None:
         self._repository_matrix = repository_matrix
         self._repository_matrix_node = repository_matrix_node
         self._repository_telegram_user = repository_telegram_user
-        self._repository_matrix_task = repository_matrix_task
 
     async def get_node(
             self,

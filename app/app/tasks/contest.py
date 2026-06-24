@@ -1,26 +1,20 @@
-from dependency_injector.wiring import inject, Provide
+from taskiq import TaskiqDepends
 
-from app.core.container import Container
 from app.db.commit_decorator import commit_and_close_session
-from app.services.sponsors_contest_service import SponsorsContestService
-from app.services.registration_contest_service import RegistrationContestService
+from app.tasks.taskiq.dependencies.container import ContainerDependency
 
 
-@inject
 @commit_and_close_session
 async def update_sponsors_contest_task(
-    sponsors_contests_service: SponsorsContestService = Provide[
-        Container.sponsors_contests_service
-    ],
+    container: ContainerDependency,
 ) -> None:
+    sponsors_contests_service = container.sponsors_contests_service()
     await sponsors_contests_service.process_periodic_update()
 
 
-@inject
 @commit_and_close_session
 async def update_registration_contest_task(
-    registration_contests_service: RegistrationContestService = Provide[
-        Container.registration_contests_service
-    ],
+    container: ContainerDependency,
 ) -> None:
+    registration_contests_service = container.registration_contests_service()
     await registration_contests_service.process_periodic_update()

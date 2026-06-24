@@ -13,7 +13,8 @@ from .bill_type import bill_type_router
 from .aggregators import aggregators_router
 from .admin import admin_router
 from .triumph_bill import triumph_bill_router
-from .controllers.contest import get_router as get_contest_router
+from .sponsors_contest import sponsors_contest_router
+from .registration_contest import registration_contest_router
 
 
 def get_all_routers() -> Router:
@@ -21,7 +22,6 @@ def get_all_routers() -> Router:
 
     router = Router()
 
-    contest_router = get_contest_router()
     router.include_routers(
         start_router,
         donate_router,
@@ -33,7 +33,8 @@ def get_all_routers() -> Router:
         transfer_router,
         bill_type_router,
         aggregators_router,
-        contest_router,
+        sponsors_contest_router,
+        registration_contest_router,
         admin_router,
         triumph_bill_router,
     )

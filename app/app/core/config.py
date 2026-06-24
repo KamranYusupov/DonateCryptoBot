@@ -2,6 +2,7 @@ import os
 import secrets
 from decimal import Decimal
 from enum import Enum
+from typing import Tuple
 from zoneinfo import ZoneInfo
 
 from pydantic import PostgresDsn, Field, computed_field, BaseModel
@@ -89,6 +90,25 @@ class Settings(BaseSettings):
     taskqi_result_backend_result_ex_time: int = Field(
         title="Время хранения результатов задач в секундах",
         default=3600,
+    )
+    # endregion
+
+    # region Настройки mailing taskiq worker и queue
+    mailing_queue_name: str = Field(
+        default="mailing",
+        title="Название очереди для рассылки"
+    )
+    mailing_success_delay_seconds: float | int = Field(
+        default=0.05,
+        title="Задержка после успешной отправки сообщения (в секундах)"
+    )
+    mailing_retry_jitter_min_seconds: float | int  = Field(
+        default=1,
+        title="Мин число jitter для повторных попыток отправки"
+    )
+    mailing_retry_jitter_max_seconds: float | int = Field(
+        default=5,
+        title="Макс число jitter для повторных попыток отправки"
     )
     # endregion
 
@@ -181,6 +201,14 @@ class Settings(BaseSettings):
     sponsors_contest_callback_prefix: str = "sponsors_contest"
     registration_contest_callback_prefix: str = "registration_contest"
     # endregion
+
+    @computed_field
+    @property
+    def mailing_retry_jitter_range_seconds(self) -> Tuple[int | float, int | float]:
+        return (
+            self.mailing_retry_jitter_min_seconds,
+            self.mailing_retry_jitter_max_seconds,
+        )
 
     @computed_field
     @property

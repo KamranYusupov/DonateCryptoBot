@@ -1,5 +1,6 @@
 from dependency_injector import containers, providers
 
+from app import loader
 from app.core.config import Settings
 from app.db.session import SyncSession
 
@@ -8,7 +9,6 @@ from app.models import (
     TelegramUser,
     Matrix,
     MatrixNode,
-    AddBotToMatrixTaskModel,
     Donate,
     DonateTransaction,
     WithdrawalRequest,
@@ -20,6 +20,7 @@ from app.models import (
     AdminStatistic,
     MatrixStatistic,
     ProcessedCryptoBotPaymentWebhook,
+    RegistrationStatistic,
 )
 from app.repositories import (
     RepositoryDonate,
@@ -37,10 +38,11 @@ from app.repositories import (
     RepositoryTransfer,
     RepositoryAdminStatistic,
     RepositoryMatrixStatistic,
-    RepositoryAddBotToMatrixTaskModel, RepositoryRegistrationStatistic,
+    RepositoryRegistrationStatistic,
 )
 from app.services import (
     TelegramUserService,
+    TelegramBotService,
     DonateService,
     DonateConfirmService,
     RegistrationContestService,
@@ -48,13 +50,16 @@ from app.services import (
     CryptoBotProcessedWebhookService,
     CryptoBotAPIService,
     WithdrawalRequestService,
-    AddBotToMatrixTaskService,
     TransferService,
     StatisticService,
     MatrixService,
     MatrixNodeService,
     MatrixActivationNotifierService,
     TriumphBillService,
+)
+from app.use_cases import (
+    RegistrationContestUseCase,
+    SponsorsContestUseCase,
 )
 
 
@@ -89,9 +94,6 @@ class Container(containers.DeclarativeContainer):
     repository_withdrawal_request = providers.Factory(
         RepositoryWithdrawalRequest, model=WithdrawalRequest, session=session
     )
-    repository_matrix_task = providers.Factory(
-        RepositoryAddBotToMatrixTaskModel, model=AddBotToMatrixTaskModel, session=session
-    )
     repository_sponsors_contest = providers.Factory(
         RepositorySponsorsContest, model=SponsorsContest, session=session
     )
@@ -115,7 +117,7 @@ class Container(containers.DeclarativeContainer):
     )
     repository_registration_statistic = providers.Factory(
         RepositoryRegistrationStatistic,
-        model=RepositoryRegistrationStatistic,
+        model=RegistrationStatistic,
         session=session
     )
     repository_processed_webhook = providers.Factory(
@@ -125,10 +127,23 @@ class Container(containers.DeclarativeContainer):
     )
     # endregion
 
+    # region infra services
+    telegram_bot_service = providers.Factory(
+        TelegramBotService,
+        bot=providers.Object(loader.bot),
+    )
+    crypto_bot_api_service = providers.Factory(
+        CryptoBotAPIService,
+        base_url=settings.provided.crypto_bot_api_base_url,
+        api_token=settings.provided.crypto_bot_api_token,
+    )
+    # endregion
+
     # region services
     telegram_user_service = providers.Factory(
         TelegramUserService, repository_telegram_user=repository_telegram_user
     )
+
     matrix_service = providers.Factory(
         MatrixService,
         repository_matrix=repository_matrix,
@@ -139,14 +154,12 @@ class Container(containers.DeclarativeContainer):
         repository_matrix_node=repository_matrix_node,
         repository_matrix=repository_matrix,
         repository_telegram_user=repository_telegram_user,
-        repository_matrix_task=repository_matrix_task,
     )
     donate_service = providers.Factory(
         DonateService,
         repository_telegram_user=repository_telegram_user,
         repository_matrix=repository_matrix,
         repository_donate=repository_donate,
-        repository_matrix_task=repository_matrix_task,
     )
     donate_confirm_service = providers.Factory(
         DonateConfirmService,
@@ -155,18 +168,9 @@ class Container(containers.DeclarativeContainer):
         repository_telegram_user=repository_telegram_user,
         repository_admin_statistic=repository_admin_statistic,
     )
-    crypto_bot_api_service = providers.Factory(
-        CryptoBotAPIService,
-        base_url=settings.provided.crypto_bot_api_base_url,
-        api_token=settings.provided.crypto_bot_api_token,
-    )
     withdrawal_request_service = providers.Factory(
         WithdrawalRequestService,
         repository_withdrawal_request=repository_withdrawal_request,
-    )
-    add_bot_to_matrix_task_service = providers.Factory(
-        AddBotToMatrixTaskService,
-        repository_matrix_task=repository_matrix_task,
     )
     sponsors_contests_service = providers.Factory(
         SponsorsContestService,
@@ -198,10 +202,26 @@ class Container(containers.DeclarativeContainer):
     matrix_activation_notifier_service = providers.Factory(
         MatrixActivationNotifierService,
         repository_telegram_user=repository_telegram_user,
+        telegram_bot_service=telegram_bot_service,
     )
     triumph_bill_service = providers.Factory(
         TriumphBillService,
         repository_telegram_user=repository_telegram_user,
+    )
+    # endregion
+
+    # region use cases
+    sponsors_contest_use_case = providers.Factory(
+        SponsorsContestUseCase,
+        title="🏆 Топ‑10 кураторов",
+        prefix=settings.provided.sponsors_contest_callback_prefix,
+        service=sponsors_contests_service,
+    )
+    registration_contest_use_case = providers.Factory(
+        RegistrationContestUseCase,
+        title="🏆 Топ‑10 пригласителей",
+        prefix=settings.provided.registration_contest_callback_prefix,
+        service=registration_contests_service,
     )
     # endregion
 
@@ -223,19 +243,18 @@ class Container(containers.DeclarativeContainer):
         "app.handlers.admin",
         "app.handlers.triumph_bill",
         "app.handlers.controllers.contest",
+        "app.handlers.registration_contest",
+        "app.handlers.sponsors_contest",
 
         "app.use_cases.donations",
 
         "app.middlewares.ban_user",
         "app.middlewares.subscriptions",
 
-        "app.tasks.matrix",
-        "app.tasks.taskiq.business.triumph_bill",
-
         "app.utils.excel",
     ]
-
     wiring_config = containers.WiringConfiguration(
         modules=wiring_modules
     )
 
+container = Container()

@@ -1,18 +1,16 @@
-import loguru
 from aiogram import Router
-from aiogram.types import Message, CallbackQuery
-from aiogram.filters import CommandStart, CommandObject, Command
+from aiogram.types import Message
+from aiogram.filters import CommandObject, Command
 from dependency_injector.wiring import inject, Provide
 
 from app.core.config import settings
 from app.core.container import Container
 from app.models.matrix import MatrixEngineType
 from app.models.telegram_user import status_list, DonateStatus
-from app.services.add_bot_to_matrix_task_service import AddBotToMatrixTaskService
-from app.services.donate_confirm_service import DonateConfirmService
 from app.services.donate_service import DonateService
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.telegram_user_service import TelegramUserService
+from app.tasks.taskiq.tasks.business.matrix import apply_bot_matrix_tasks
 
 admin_router = Router()
 
@@ -29,12 +27,6 @@ async def activate_matrix_handler(
             Container.matrix_node_service
         ],
         donate_service: DonateService = Provide[Container.donate_service],
-        donate_confirm_service: DonateConfirmService = Provide[
-            Container.donate_confirm_service
-        ],
-        add_bot_to_matrix_task_service: AddBotToMatrixTaskService = Provide[
-            Container.add_bot_to_matrix_task_service
-        ]
 ):
     sender_user = await telegram_user_service.get_telegram_user(
         user_id=message.from_user.id,
@@ -115,7 +107,7 @@ async def activate_matrix_handler(
     ):
         current_user.status = status
 
-    await add_bot_to_matrix_task_service.create_tasks(**create_tasks_data)
+    await apply_bot_matrix_tasks(**create_tasks_data)
 
     await message.answer("🎉")
     await message.answer(

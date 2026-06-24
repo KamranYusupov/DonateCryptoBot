@@ -7,7 +7,7 @@ from sqlalchemy import select, func, update
 from app.models.telegram_user import DonateStatus
 from .base import RepositoryBase
 from app.repositories.base.mixins import BulkCreateMixin
-from app.models.matrix import Matrix, AddBotToMatrixTaskModel, MatrixNode
+from app.models.matrix import Matrix, MatrixNode
 from app.core.config import settings
 
 
@@ -24,7 +24,11 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
         return self._session.execute(statement).scalars().all()
 
     def get_parent_matrix(
-            self, matrix_id: Matrix.id, status: DonateStatus, return_all: bool = False
+            self,
+            matrix_id: Matrix.id,
+            status: DonateStatus,
+            return_all: bool = False,
+            for_update: bool = False,
     ) -> Matrix | list[Matrix]:
         statement = (
             select(Matrix)
@@ -34,6 +38,8 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
             )
             .order_by(Matrix.created_at)
         )
+        if for_update:
+            statement = statement.with_for_update()
         if return_all:
             result = self._session.execute(statement).scalars().all()
         else:
@@ -45,6 +51,7 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
             self,
             owner_id: uuid.UUID,
             status: DonateStatus | None = None,
+            for_update: bool = False,
     ) -> list[Matrix]:
         statement_filter_by_kwargs = {"owner_id": owner_id}
 
@@ -56,15 +63,20 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
             .filter_by(**statement_filter_by_kwargs)
             .order_by(Matrix.created_at)
         )
+        if for_update:
+            statement = statement.with_for_update()
 
         return self._session.execute(statement).scalars().all()
 
     def get_matrices_by_ids_list(
             self,
             matrices_ids: list[str | uuid.UUID],
-            mapping: bool = False
+            mapping: bool = False,
+            for_update: bool = False,
     ) -> list[Matrix]:
         statement = select(Matrix).filter(Matrix.id.in_(matrices_ids))
+        if for_update:
+            statement = statement.with_for_update()
         matrices = self._session.execute(statement).scalars().all()
 
 
@@ -221,23 +233,6 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
 
         result = self._session.execute(statement)
         return result.scalars().all()
-
-
-class RepositoryAddBotToMatrixTaskModel(
-    RepositoryBase[AddBotToMatrixTaskModel],
-    BulkCreateMixin,
-):
-
-    def set_executed(self, ids: list[uuid.UUID], commit: bool = False):
-        statement = (
-            update(AddBotToMatrixTaskModel)
-            .where(AddBotToMatrixTaskModel.id.in_(ids))
-            .values(is_executed=True)
-        )
-        self._session.execute(statement)
-
-        if commit:
-            self._session.commit()
 
 
 

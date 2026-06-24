@@ -1,12 +1,8 @@
 import asyncio
-import math
 import os
-from datetime import datetime, timedelta
-import uuid
+from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 
-import loguru
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, FSInputFile
@@ -19,21 +15,24 @@ from app.services.donate_confirm_service import DonateConfirmService
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.registration_contest_service import RegistrationContestService
 from app.services.telegram_user_service import TelegramUserService
-from app.services.add_bot_to_matrix_task_service import AddBotToMatrixTaskService
 from app.services.donate_service import DonateService
 from app.keyboards.donate import get_donate_keyboard
 from app.core.config import settings
 from app.services.matrix_service import MatrixService
 from app.keyboards.reply import get_reply_keyboard
-from app.tasks.taskiq.business.triumph_bill import increase_triumph_bills_task
-from app.tasks.taskiq.infra.telegram import send_message_task, mass_mailing_dispatcher
+from app.tasks.taskiq.tasks.infra.telegram import (
+    send_message_task,
+    mass_mailing_task,
+)
+from app.tasks.taskiq.tasks.business.matrix import apply_bot_matrix_tasks
+from app.tasks.taskiq.tasks.business.triumph_bill import increase_triumph_bills_task
 from app.utils.pagination import Paginator
 from app.utils.excel import export_users_to_excel
 from app.models.donate import DonateTransactionType
 from app.loader import bot
 from app.utils.bot import send_captcha
 from app.models.telegram_user import TelegramUser, BillType
-from app.models.matrix import Matrix, MatrixEngineType
+from app.models.matrix import MatrixEngineType
 from app.keyboards.donate import get_start_inline_keyboard
 from app.utils.datetime import to_main_tz
 from app.services.sponsors_contest_service import SponsorsContestService
@@ -48,7 +47,6 @@ from app.use_cases.donations import send_donations_menu
 from app.utils.texts import (
     format_decimal,
     increase_triumph_bills_message_text,
-    registration_donate_text,
     registration_donate_triumph_bill_text,
 )
 
@@ -404,9 +402,6 @@ async def donate_handler(
         sponsors_contests_service: SponsorsContestService = Provide[
             Container.sponsors_contests_service
         ],
-        add_bot_to_matrix_task_service: AddBotToMatrixTaskService = Provide[
-            Container.add_bot_to_matrix_task_service
-        ],
         matrix_activation_notifier_service: MatrixActivationNotifierService = Provide[
             Container.matrix_activation_notifier_service
         ],
@@ -505,7 +500,7 @@ async def donate_handler(
         create_tasks_data["engine_type"] = MatrixEngineType.NODES
         matrix_id = inserted_node.matrix_id
 
-    await add_bot_to_matrix_task_service.create_tasks(**create_tasks_data)
+    await apply_bot_matrix_tasks(**create_tasks_data)
 
     donate_service.update_transactions_data_with_system_transaction(
         transactions_data,

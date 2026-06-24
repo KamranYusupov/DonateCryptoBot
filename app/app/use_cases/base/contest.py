@@ -1,31 +1,25 @@
-import uuid
-from typing import Any, Callable, Optional
-from aiogram import F, Router
+from typing import Callable, Optional, TypeVar, Type, Generic
 from aiogram.types import CallbackQuery
-from dependency_injector.wiring import Provide, inject
-
-from app.core.config import settings
-from app.core.container import Container
 from app.keyboards.donate import get_donate_keyboard
-from app.services.registration_contest_service import RegistrationContestService
-from app.services.sponsors_contest_service import SponsorsContestService
 from app.utils.pagination import Paginator, get_pagination_buttons
 from app.utils.texts import get_period_message, get_contest_top_10_rating_message
 
+ContestServiceType = TypeVar("ContestServiceType")
 
-class ContestCallbackController:
+
+class BaseContestUseCase(Generic[ContestServiceType,]):
     def __init__(
             self,
             prefix: str,
-            service: Any,
-            results_text_formatter: Callable,
+            service: Type[ContestServiceType],
+            results_text_formatter: Callable = get_contest_top_10_rating_message,
             archive_prefix: Optional[str] = None,
             period_days: int = 7,
             title: str = "🏆 Топ‑10",
-            show_time: bool = False,
+            show_time: bool = True,
     ):
         self.prefix = prefix
-        self.service = service
+        self._service = service
         self.results_text_formatter = results_text_formatter
         self.period_days = period_days
         self.title = title
@@ -36,7 +30,10 @@ class ContestCallbackController:
 
         self.archive_prefix = archive_prefix
 
-    async def current_contest_callback_handler(self, callback: CallbackQuery) -> None:
+    async def current_contest_callback_handler(
+            self,
+            callback: CallbackQuery,
+    ) -> None:
         buttons = {}
         sizes = tuple()
 
@@ -44,7 +41,7 @@ class ContestCallbackController:
             previous_page_number, detail_page_number = map(
                 int, callback.data.split("_")[-2:]
             )
-            contests_ids = await self.service.get_ids(is_archived=True)
+            contests_ids = await self._service.get_ids(is_archived=True)
 
             paginator = Paginator(
                 contests_ids,
@@ -52,7 +49,7 @@ class ContestCallbackController:
                 per_page=1
             )
             contest_id = paginator.get_page()[0]
-            contest = await self.service.get_contest(id=contest_id)
+            contest = await self._service.get_contest(id=contest_id)
 
             pagination_buttons = get_pagination_buttons(
                 paginator,
@@ -68,8 +65,8 @@ class ContestCallbackController:
             telegram_method = callback.message.edit_text
 
         except ValueError:
-            contest, _ = await self.service.get_or_create_current_contest()
-            archive_exists = await self.service.contest_exists(is_archived=True)
+            contest, _ = await self._service.get_or_create_current_contest()
+            archive_exists = await self._service.contest_exists(is_archived=True)
             if archive_exists:
                 buttons.update({"АРХИВ 🗄": f"{self.archive_prefix}_1"})
 
@@ -92,7 +89,10 @@ class ContestCallbackController:
             ),
         )
 
-    async def archive_contest_callback_handler(self, callback: CallbackQuery) -> None:
+    async def archive_contest_callback_handler(
+            self,
+            callback: CallbackQuery,
+    ) -> None:
         callback_data = callback.data.split("_")
         base_callback_data = "_".join(callback_data[0:-1])
         page_number = int(callback_data[-1])
@@ -101,7 +101,7 @@ class ContestCallbackController:
         buttons = {}
         sizes = tuple()
 
-        contests = await self.service.get_contests_list(is_archived=True)
+        contests = await self._service.get_contests_list(is_archived=True)
         paginator = Paginator(
             contests,
             page_number=page_number,
@@ -142,52 +142,3 @@ class ContestCallbackController:
             "Выберите конкурс.",
             reply_markup=get_donate_keyboard(buttons=buttons, sizes=sizes),
         )
-
-    def register_to_router(self, router: Router) -> None:
-        """Регистрирует методы класса в переданный aiogram роутер."""
-
-        router.callback_query.register(
-            self.current_contest_callback_handler,
-            F.data.startswith(f"{self.prefix}_")
-        )
-        router.callback_query.register(
-            self.current_contest_callback_handler,
-            F.data == self.prefix
-        )
-        router.callback_query.register(
-            self.archive_contest_callback_handler,
-            F.data.startswith(f"{self.archive_prefix}_")
-        )
-
-
-@inject
-def get_router(
-    sponsors_contests_service: SponsorsContestService = Provide[
-        Container.sponsors_contests_service
-    ],
-    registration_contests_service: RegistrationContestService = Provide[
-        Container.registration_contests_service
-    ],
-
-) -> Router:
-    router = Router()
-
-    sponsors_contest_controller = ContestCallbackController(
-        title="🏆 Топ‑10 кураторов",
-        prefix=settings.sponsors_contest_callback_prefix,
-        service=sponsors_contests_service,
-        results_text_formatter=get_contest_top_10_rating_message,
-        show_time=True,
-    )
-    registration_contest_controller = ContestCallbackController(
-        title="🏆 Топ‑10 пригласителей",
-        prefix=settings.registration_contest_callback_prefix,
-        service=registration_contests_service,
-        results_text_formatter=get_contest_top_10_rating_message,
-        show_time=True,
-    )
-
-    sponsors_contest_controller.register_to_router(router)
-    registration_contest_controller.register_to_router(router)
-
-    return router

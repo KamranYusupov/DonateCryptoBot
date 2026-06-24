@@ -16,7 +16,6 @@ from app.models.matrix import Matrix, MatrixNode
 from app.schemas.matrix import MatrixEntity
 from app.core.config import settings
 from app.utils.matrix import find_free_place_in_matrix, insert_into_matrices
-from app.repositories.matrix import RepositoryAddBotToMatrixTaskModel
 from app.schemas.transaction import (
     SponsorTransactionContextSchema,
     SystemTransactionContextSchema,
@@ -30,12 +29,10 @@ class DonateService:
             repository_telegram_user: RepositoryTelegramUser,
             repository_matrix: RepositoryMatrix,
             repository_donate: RepositoryDonate,
-            repository_matrix_task: RepositoryAddBotToMatrixTaskModel,
     ) -> None:
         self._repository_telegram_user = repository_telegram_user
         self._repository_matrix = repository_matrix
         self._repository_donate = repository_donate
-        self._repository_matrix_task = repository_matrix_task
 
 
     @staticmethod
@@ -64,6 +61,7 @@ class DonateService:
             current_matrix = self._repository_matrix.get_parent_matrix(
                 current_matrix.id,
                 status=current_matrix.status,
+                for_update=True,
             )
             if not current_matrix:
                 break
@@ -171,7 +169,12 @@ class DonateService:
     ) -> list[DonateTransactionContextSchema]:
         transaction_quantity = donate_sum * transaction_percent / 100
 
-        path_matrices = list(self._repository_matrix.get_matrices_by_ids_list(free_place_path))
+        path_matrices = list(
+            self._repository_matrix.get_matrices_by_ids_list(
+                free_place_path,
+                for_update=True,
+            )
+        )
         path_matrices.extend(parents)
         path_matrices.append(matrix)
 
@@ -214,7 +217,9 @@ class DonateService:
         created_matrix.created_at = current_time
 
         matrix_to_add_path_matrices = self._repository_matrix.get_matrices_by_ids_list(
-            free_place_path, mapping=True
+            free_place_path,
+            mapping=True,
+            for_update=True,
         )
 
         matrix_to_add.telegram_users.append(current_user.user_id)
@@ -283,6 +288,7 @@ class DonateService:
         sponsor_matrices = self._repository_matrix.get_user_matrices(
             owner_id=sponsor.id,
             status=status,
+            for_update=True,
         )
 
         for matrix in sponsor_matrices:
@@ -385,6 +391,7 @@ class DonateService:
             next_sponsor_matrices = self._repository_matrix.get_user_matrices(
                 owner_id=next_sponsor.id,
                 status=status,
+                for_update=True,
             )
             if not next_sponsor_matrices:
                 user_to_add = next_sponsor

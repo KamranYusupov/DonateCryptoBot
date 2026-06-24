@@ -1,14 +1,12 @@
 import asyncio
 from typing import List
 
-import loguru
-
 from app.core.config import settings
 from app.keyboards.donate import get_donate_keyboard
 from app.models.telegram_user import DonateStatus
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.schemas.telegram import SendTextMessageTuple
-from app.tasks.taskiq.infra.telegram import send_message_task
+from app.services.infra.telegram_bot_service import TelegramBotService
 from app.utils.texts import (
     get_sponsor_activation_text,
     get_system_transaction_message_text,
@@ -22,12 +20,15 @@ from app.schemas.transaction import (
     MatrixTransactionContextSchema,
 )
 
+
 class MatrixActivationNotifierService:
     def __init__(
             self,
             repository_telegram_user: RepositoryTelegramUser,
+            telegram_bot_service: TelegramBotService,
     ):
         self._repository_telegram_user = repository_telegram_user
+        self._telegram_bot_service = telegram_bot_service
 
     async def send_transaction_message(
             self,
@@ -110,10 +111,9 @@ class MatrixActivationNotifierService:
             raise ValueError(f"Unsupported transaction context type: {type(context).__name__}")
 
         await asyncio.gather(*(
-            send_message_task.kiq(chat_id=msg.chat_id, text=msg.text)
+            self._telegram_bot_service.send_message(chat_id=msg.chat_id, text=msg.text)
             for msg in messages
         ))
-
 
     async def notify_invited_users(
             self,
@@ -139,7 +139,7 @@ class MatrixActivationNotifierService:
         )
 
         await asyncio.gather(*(
-            send_message_task.kiq(
+            self._telegram_bot_service.send_message(
                 chat_id=user.user_id,
                 text=notification_text,
                 reply_markup=reply_markup,

@@ -2,8 +2,8 @@ import asyncio
 
 from loguru import logger
 
+from app.core.config import settings
 from app.core.container import Container
-from app.db.session import SyncSession
 from app.handlers.routing import get_all_routers
 from app.middlewares.throttling import (
     private_chat_only_middleware,
@@ -14,17 +14,11 @@ from app.middlewares.ban_user import (
 )
 from app.middlewares.session_middleware import SQLAlchemySessionMiddleware
 from app.middlewares.subscriptions import subscription_checker_middleware
-from app.handlers.worker import get_workers
 from loader import dp, bot
 
 
 async def main(container: Container):
     """Запуск бота."""
-
-    async def on_startup():
-        workers = get_workers()
-        for worker in workers:
-            asyncio.create_task(worker())
 
     try:
         all_routers = get_all_routers()
@@ -48,5 +42,5 @@ async def main(container: Container):
 
 if __name__ == "__main__":
     logger.info("Bot is starting")
-    container = Container()
+    from app.core.container import container
     asyncio.run(main(container=container))

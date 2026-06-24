@@ -4,16 +4,16 @@ from uuid import uuid4
 import loguru
 from dependency_injector.wiring import inject
 
-from app.core.container import Container
 from app.db.session import scope
-
 
 @inject
 def commit_and_close_session(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
+        from app.core.container import container
+
         scope_token = scope.set(str(uuid4()))
-        db = Container.db()
+        db = container.db()
         session = db.create_session()
 
         try:
