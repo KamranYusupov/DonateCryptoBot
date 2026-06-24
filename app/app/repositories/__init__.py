@@ -14,6 +14,7 @@ from app.repositories.transfer import RepositoryTransfer
 from app.repositories.admin_statistic import RepositoryAdminStatistic
 from app.repositories.matrix_statistic import RepositoryMatrixStatistic
 from app.repositories.registration_statistic import RepositoryRegistrationStatistic
+from app.repositories.triumph_bill_transaction import RepositoryTriumphBillTransaction
 
 
 __all__ = [
@@ -33,4 +34,5 @@ __all__ = [
     "RepositoryAdminStatistic",
     "RepositoryMatrixStatistic",
     "RepositoryRegistrationStatistic",
+    "RepositoryTriumphBillTransaction",
 ]
