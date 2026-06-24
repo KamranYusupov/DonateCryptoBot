@@ -17,7 +17,7 @@ from app.models.statistic import (
     RegistrationStatistic,
 )
 from app.models.payments import ProcessedCryptoBotPaymentWebhook
-
+from app.models.triumph_bill import TriumphBillIncrementTransaction
 
 __all__ = [
     "AdminUser",
@@ -36,4 +36,5 @@ __all__ = [
     "MatrixStatistic",
     "RegistrationStatistic",
     "ProcessedCryptoBotPaymentWebhook",
+    "TriumphBillIncrementTransaction",
 ]

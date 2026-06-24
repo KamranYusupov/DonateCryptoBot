@@ -6,11 +6,13 @@ from app.repositories.telegram_user import RepositoryTelegramUser
 from app.models.telegram_user import TelegramUser, DonateStatus
 from app.schemas.telegram_user import TelegramUserEntity, generate_random_user
 from app.models.telegram_user import BillType
+from app.services.base.crud_service import CrudServiceMixin
 
 
-class TelegramUserService:
+class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
 
     def __init__(self, repository_telegram_user: RepositoryTelegramUser) -> None:
+        super().__init__(repository=repository_telegram_user)
         self._repository_telegram_user = repository_telegram_user
 
     async def get_list(

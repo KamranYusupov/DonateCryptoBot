@@ -5,15 +5,17 @@ from app.repositories.transfer import RepositoryTransfer
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.models.transfer import Transfer
 from app.schemas.transfer import TransferCreateSchema
+from app.services.base.crud_service import CrudServiceMixin
 
 
-class TransferService:
+class TransferService(CrudServiceMixin[RepositoryTransfer]):
 
     def __init__(
             self,
             repository_transfer: RepositoryTransfer,
             repository_telegram_user: RepositoryTelegramUser
     ) -> None:
+        super().__init__(repository=repository_transfer)
         self._repository_transfer = repository_transfer
         self._repository_telegram_user = repository_telegram_user
 

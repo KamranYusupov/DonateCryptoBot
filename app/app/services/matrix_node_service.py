@@ -10,15 +10,17 @@ from app.models.telegram_user import DonateStatus
 from app.repositories.matrix import RepositoryMatrix, RepositoryMatrixNode
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.schemas.matrix import MatrixEntity, MatrixNodeSchema
+from app.services.base.crud_service import CrudServiceMixin
 
 
-class MatrixNodeService:
+class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
     def __init__(
             self,
             repository_matrix: RepositoryMatrix,
             repository_matrix_node: RepositoryMatrixNode,
             repository_telegram_user: RepositoryTelegramUser,
     ) -> None:
+        super().__init__(repository=repository_matrix_node)
         self._repository_matrix = repository_matrix
         self._repository_matrix_node = repository_matrix_node
         self._repository_telegram_user = repository_telegram_user

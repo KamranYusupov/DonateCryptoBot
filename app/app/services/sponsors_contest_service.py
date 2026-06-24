@@ -10,12 +10,14 @@ from app.repositories.sponsors_contest import (
     RepositorySponsorsContestPoint,
 )
 from app.services.base.contest import BaseContestService
+from app.services.base.crud_service import CrudServiceMixin
 from app.models.telegram_user import TelegramUser
 from app.utils.datetime import get_start_of_week, to_main_tz
 
 
 class SponsorsContestService(
-    BaseContestService[RepositorySponsorsContest, RepositorySponsorsContestPoint]
+    BaseContestService[RepositorySponsorsContest, RepositorySponsorsContestPoint],
+    CrudServiceMixin[RepositorySponsorsContest],
 ):
     def __init__(
             self,
@@ -23,10 +25,12 @@ class SponsorsContestService(
             repository_contest_point: RepositorySponsorsContestPoint,
             repository_telegram_user: RepositoryTelegramUser,
     ) -> None:
-        super().__init__(
+        BaseContestService.__init__(
+            self,
             repository_contest=repository_contest,
             repository_contest_point=repository_contest_point
         )
+        CrudServiceMixin.__init__(self, repository=repository_contest)
         self._repository_telegram_user = repository_telegram_user
 
     def _get_period_start(self) -> datetime:

@@ -17,9 +17,10 @@ from app.schemas.donate import (
 from app.models.donate import DonateTransactionType
 from app.models.telegram_user import BillType
 from app.schemas.transaction import DonateTransactionContextSchema
+from app.services.base.crud_service import CrudServiceMixin
 
 
-class DonateConfirmService:
+class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
 
     def __init__(
         self,
@@ -29,6 +30,7 @@ class DonateConfirmService:
         repository_admin_statistic: RepositoryAdminStatistic,
 
     ):
+        super().__init__(repository=repository_donate)
         self._repository_donate = repository_donate
         self._repository_donate_transaction = repository_donate_transaction
         self._repository_telegram_user = repository_telegram_user

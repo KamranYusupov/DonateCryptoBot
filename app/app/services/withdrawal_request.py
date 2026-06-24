@@ -1,10 +1,12 @@
 from app.models.withdrawal_request import WithdrawalRequest
 from app.repositories.withdrawal_request import RepositoryWithdrawalRequest
 from app.schemas.withdrawal_request import WithdrawalRequestEntity
+from app.services.base.crud_service import CrudServiceMixin
 
 
-class WithdrawalRequestService:
+class WithdrawalRequestService(CrudServiceMixin[RepositoryWithdrawalRequest]):
     def __init__(self, repository_withdrawal_request: RepositoryWithdrawalRequest) -> None:
+        super().__init__(repository=repository_withdrawal_request)
         self._repository_withdrawal_request = repository_withdrawal_request
 
     async def get_withdrawal_requests(

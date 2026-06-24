@@ -9,14 +9,16 @@ from app.repositories.matrix import RepositoryMatrix
 from app.models import Matrix
 from app.schemas.matrix import MatrixEntity
 from app.repositories.telegram_user import RepositoryTelegramUser
+from app.services.base.crud_service import CrudServiceMixin
 
 
-class MatrixService:
+class MatrixService(CrudServiceMixin[RepositoryMatrix]):
     def __init__(
             self,
             repository_matrix: RepositoryMatrix,
             repository_telegram_user: RepositoryTelegramUser,
     ) -> None:
+        super().__init__(repository=repository_matrix)
         self._repository_matrix = repository_matrix
         self._repository_telegram_user = repository_telegram_user
 
