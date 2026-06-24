@@ -11,7 +11,7 @@ class BaseContestUseCase(Generic[ContestServiceType,]):
     def __init__(
             self,
             prefix: str,
-            service: Type[ContestServiceType],
+            service: ContestServiceType,
             results_text_formatter: Callable = get_contest_top_10_rating_message,
             archive_prefix: Optional[str] = None,
             period_days: int = 7,
