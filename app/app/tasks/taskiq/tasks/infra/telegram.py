@@ -6,7 +6,7 @@ from app.services.infra.telegram_bot_service import TelegramBotService
 from app.tasks.taskiq.dependencies.container import ContainerDependency
 
 
-@broker.task(retry_on_error=True, queue_name=settings.mailing_queue_name)
+@broker.task(retry_on_error=True)
 async def send_message_task(
         chat_id: int,
         text: str,
