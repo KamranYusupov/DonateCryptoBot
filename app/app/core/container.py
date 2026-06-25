@@ -20,7 +20,7 @@ from app.models import (
     AdminStatistic,
     MatrixStatistic,
     ProcessedCryptoBotPaymentWebhook,
-    RegistrationStatistic,
+    RegistrationStatistic, TriumphBillTransaction,
 )
 from app.repositories import (
     RepositoryDonate,
@@ -39,6 +39,7 @@ from app.repositories import (
     RepositoryAdminStatistic,
     RepositoryMatrixStatistic,
     RepositoryRegistrationStatistic,
+    RepositoryTriumphBillTransaction
 )
 from app.services import (
     TelegramUserService,
@@ -56,6 +57,7 @@ from app.services import (
     MatrixNodeService,
     MatrixActivationNotifierService,
     TriumphBillService,
+    TriumphBillTransactionService,
 )
 from app.use_cases import (
     RegistrationContestUseCase,
@@ -123,6 +125,11 @@ class Container(containers.DeclarativeContainer):
     repository_processed_webhook = providers.Factory(
         RepositoryProcessedCryptoBotPaymentWebhook,
         model=ProcessedCryptoBotPaymentWebhook,
+        session=session,
+    )
+    repository_triumph_bill_transaction = providers.Factory(
+        RepositoryTriumphBillTransaction,
+        model=TriumphBillTransaction,
         session=session,
     )
     # endregion
@@ -207,6 +214,10 @@ class Container(containers.DeclarativeContainer):
     triumph_bill_service = providers.Factory(
         TriumphBillService,
         repository_telegram_user=repository_telegram_user,
+    )
+    triumph_bill_transaction_service = providers.Factory(
+        TriumphBillTransactionService,
+        repository_triumph_bill_transaction=repository_triumph_bill_transaction,
     )
     # endregion
 
