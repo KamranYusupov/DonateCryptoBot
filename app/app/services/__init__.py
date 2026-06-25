@@ -12,6 +12,7 @@ from app.services.statistic_service import StatisticService
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.matrix_notifier_service import MatrixActivationNotifierService
 from app.services.triumph_bill_service import TriumphBillService
+from app.services.triumph_bill_transaction_service import TriumphBillTransactionService
 from app.services.infra import (
     TelegramBotService,
     CryptoBotAPIService,
@@ -33,4 +34,5 @@ __all__ = (
     "MatrixNodeService",
     "MatrixActivationNotifierService",
     "TriumphBillService",
+    "TriumphBillTransactionService",
 )

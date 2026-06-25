@@ -10,8 +10,8 @@ from app.models.mixins import TimestampedMixin, UUIDMixin
 
 
 class TriumphBillTransactionType(str, enum.Enum):
-    INCREMENT = "increment"
-    DECREMENT = "decrement"
+    INCREMENT = "Пополнение"
+    DECREMENT = "Снятие"
 
 
 class TriumphBillTransaction(Base, UUIDMixin, TimestampedMixin):
