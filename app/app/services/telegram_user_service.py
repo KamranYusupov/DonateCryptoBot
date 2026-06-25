@@ -177,3 +177,6 @@ class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
             with_donates_sum=with_donates_sum,
         )
 
+    async def get_username_by_id(self, telegram_user_id: uuid.UUID) -> Optional[str]:
+        return self._repository_telegram_user.get_username_by_id(telegram_user_id)
+
