@@ -14,6 +14,7 @@ from app.models.telegram_user import (
     statuses_colors_data,
 )
 from app.models.telegram_user import TelegramUser
+from app.schemas.triumph_bill_transaction import TriumphBillTransactionMessageSchema
 from app.utils.matrix import (
     find_free_place_in_matrix,
     get_matrix_levels,
@@ -24,6 +25,7 @@ from app.utils.pagination import Paginator
 from app.core.config import settings
 from app.models.matrix import Matrix, MatrixNode
 from app.models.withdrawal_request import WithdrawalRequest
+from app.models.triumph_bill import TriumphBillTransaction
 from app.utils.datetime import to_main_tz
 
 
@@ -154,6 +156,19 @@ def get_withdrawal_request_info_message(
         + html.bold(created_at_str)
     )
     return message
+
+
+def get_triumph_bill_transaction_message(
+        transaction: TriumphBillTransactionMessageSchema,
+) -> str:
+    created_at_str = to_main_tz(transaction.created_at).strftime("%d.%m.%Y %H:%M")
+
+    return (
+        f"ID: {html.bold(transaction.id)}\n\n"
+        f"Пользователь: @{html.bold(transaction.telegram_user_username)}\n"
+        f"Сумма: ${html.bold(format_decimal(transaction.amount, round_digits=2))}\n"
+        f"Дата и время создания: {html.bold(created_at_str)}"
+    )
 
 async def get_my_team_message(
         matrices: list[Matrix],
