@@ -15,8 +15,9 @@ from app.core.container import Container
 from app.keyboards.inline import get_confirm_inline_keyboard
 from app.keyboards.reply import reply_cancel_keyboard, get_reply_keyboard
 from app.loader import bot
-from app.models import Matrix
-from app.services import TriumphBillService, DonateConfirmService
+from app.models import Matrix, TriumphBillTransactionType
+from app.schemas.triumph_bill_transaction import CreateTriumphBillTransactionSchema
+from app.services import TriumphBillService, DonateConfirmService, TriumphBillTransactionService
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.telegram_user_service import TelegramUserService
 from app.keyboards.donate import get_donate_keyboard
@@ -24,6 +25,7 @@ from app.core.config import settings
 from app.services.matrix_service import MatrixService
 from app.use_cases.donations import send_donations_menu
 from app.use_cases.file import SendFileFromLoadedFileIDOrSaveUseCase
+from app.utils.bot import delete_message_or_pass
 from app.utils.pagination import Paginator
 from app.utils.matrix import get_active_matrices, get_archived_matrices
 from app.models.telegram_user import status_list, status_emoji_list, DonateStatus
@@ -168,7 +170,10 @@ async def confirm_triumph_bill_increment_handler(
         ],
         triumph_bill_service: TriumphBillService = Provide[
             Container.triumph_bill_service
-        ]
+        ],
+        triumph_bill_transaction_service: TriumphBillTransactionService = Provide[
+            Container.triumph_bill_transaction_service
+        ],
 ) -> None:
     state_data = await state.get_data()
     bill_type = state_data["bill_type"]
@@ -205,17 +210,24 @@ async def confirm_triumph_bill_increment_handler(
         )
         return
 
-    await triumph_bill_service.increment_one(
-        user_id=current_user.user_id,
+    transaction_schema = CreateTriumphBillTransactionSchema(
         amount=amount,
+        telegram_user_id=current_user.id,
+        type_=TriumphBillTransactionType.INCREMENT,
     )
-    await telegram_user_service.update(
-        obj_id=current_user.id,
-        obj_in={bill_field_name: bill_value - amount}
+    await asyncio.gather(
+        triumph_bill_service.increment_one(
+            user_id=current_user.user_id,
+            amount=amount,
+        ),
+        triumph_bill_transaction_service.create(transaction_schema),
+        telegram_user_service.update(
+            obj_id=current_user.id,
+            obj_in={bill_field_name: bill_value - amount}
+        ),
     )
 
-
-    await callback.message.delete()
+    await delete_message_or_pass(callback.message)
     await callback.message.answer(
         "💸",
         reply_markup=get_reply_keyboard(current_user),
