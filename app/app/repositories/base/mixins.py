@@ -1,6 +1,6 @@
 from typing import List, Dict, Any, Optional, Sequence
 
-from sqlalchemy import insert, update
+from sqlalchemy import insert, update, select, func
 from sqlalchemy.orm import Session
 
 
@@ -44,3 +44,18 @@ class BulkUpdateMixin:
         self._session.execute(statement, objects_in)
         self._session.flush()
         return None
+    
+    
+class CountMixin:
+    """Примесь для получения числа записей."""
+
+    _model: Any
+    _session: Session
+
+    def get_count(self, **kwargs) -> None:
+        statement = (
+            select(func.count(self._model.id))
+            .filter_by(**kwargs)
+        )
+
+        return self._session.execute(statement).scalar()
