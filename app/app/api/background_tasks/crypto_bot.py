@@ -2,8 +2,6 @@ import loguru
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
 
-from app.db.commit_decorator import commit_and_close_session
-from app.use_cases.donations import send_donations_menu
 
 
 async def handle_invoice_webhook_in_bot(
@@ -12,6 +10,8 @@ async def handle_invoice_webhook_in_bot(
     tokens_count: int,
     messages_to_delete_ids: list[int]
 ):
+    from app.use_cases.donations import send_donations_menu
+
     for message_id in messages_to_delete_ids:
         try:
             await bot.delete_message(
