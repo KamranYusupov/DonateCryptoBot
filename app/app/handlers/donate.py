@@ -592,9 +592,6 @@ async def donate_handler(
     )
 
 
-
-
-
 @donate_router.callback_query(F.data == "transactions")
 @inject
 async def get_transactions_menu(
@@ -610,7 +607,10 @@ async def get_transactions_menu(
     user_id = callback.from_user.id
     user = await telegram_user_service.get_telegram_user(user_id=user_id)
     if user.is_admin:
-        buttons["Все транзакции 📊"] = f"all_transactions_1"
+        buttons.update({
+            "Все транзакции 📊": f"all_transactions_1",
+            "Транзакции в Сейф Триумф": "triumph_bill_transactions_1",
+        })
 
     buttons["🔙 Назад"] = f"donations"
 
