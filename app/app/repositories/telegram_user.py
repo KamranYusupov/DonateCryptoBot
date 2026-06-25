@@ -1,3 +1,4 @@
+import uuid
 from decimal import Decimal
 from uuid import UUID
 from typing import Optional
@@ -41,6 +42,15 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
             .filter_by(**kwargs)
         )
         return self._session.execute(statement).scalars().all()
+
+    def get_username_by_id(self, telegram_user_id: uuid.UUID) -> Optional[str]:
+        statement = (
+            select(TelegramUser.username)
+            .where(TelegramUser.id == telegram_user_id)
+        )
+
+        result = self._session.execute(statement)
+        return result.scalar_one_or_none()
 
     def get_user_ids(self, *args, **kwargs) -> list[int]:
         statement = (
