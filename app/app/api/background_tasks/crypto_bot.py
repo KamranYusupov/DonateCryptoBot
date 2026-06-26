@@ -3,7 +3,6 @@ from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
 
 
-
 async def handle_invoice_webhook_in_bot(
     bot: Bot,
     telegram_id: int,
@@ -11,6 +10,7 @@ async def handle_invoice_webhook_in_bot(
     messages_to_delete_ids: list[int]
 ):
     from app.use_cases.donations import send_donations_menu
+    from app.keyboards.reply import get_reply_keyboard
 
     for message_id in messages_to_delete_ids:
         try:
@@ -25,6 +25,7 @@ async def handle_invoice_webhook_in_bot(
         chat_id=telegram_id,
         text="Оплата прошла успешно ✅\n\n"
              f"На баланс зачислено {tokens_count} USDT.",
+        reply_markup=get_reply_keyboard(None)
     )
 
     await send_donations_menu(

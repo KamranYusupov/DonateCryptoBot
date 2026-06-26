@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from app.core.config import settings
 from app.api.endpoints.routers import api_router
 from app.core.container import Container
+from app.api.middlewares.session import SQLAlchemySessionMiddleware
 
 def create_app() -> FastAPI:
     app_kwargs = {}
@@ -15,7 +16,9 @@ def create_app() -> FastAPI:
        ) )
 
     fastapi_app = FastAPI(**app_kwargs)
-    fastapi_app.container = Container()
+    container = Container()
+    fastapi_app.container = container
+    fastapi_app.add_middleware(SQLAlchemySessionMiddleware, sync_session=container.db())
     fastapi_app.include_router(api_router, prefix=settings.api_prefix)
 
     return fastapi_app

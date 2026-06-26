@@ -1,6 +1,7 @@
 import loguru
 from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 from starlette.responses import Response
 from starlette import status
 
@@ -10,7 +11,6 @@ from app.services.crypto_bot_processed_webhook_service import CryptoBotProcessed
 from app import loader
 from app.api.schemas.crypto_bot import UpdateWebhookSchema, CryptoInvoiceSchema
 from app.services.telegram_user_service import TelegramUserService
-from app.db.commit_decorator import commit_and_close_session
 
 router = APIRouter(tags=['CryptoBot'], prefix='/crypto-bot')
 
@@ -19,7 +19,6 @@ router = APIRouter(tags=['CryptoBot'], prefix='/crypto-bot')
     status_code=status.HTTP_200_OK,
 )
 @inject
-@commit_and_close_session
 async def updates_webhook(
         body: UpdateWebhookSchema,
         telegram_user_service: TelegramUserService = Depends(
@@ -27,7 +26,10 @@ async def updates_webhook(
         ),
         processed_webhook_service: CryptoBotProcessedWebhookService = Depends(
             Provide[Container.crypto_bot_processed_webhook_service],
-        )
+        ),
+        session: Session = Depends(
+            Provide[Container.session]
+        ),
 ) -> Response:
     if body.update_type != "invoice_paid":
         return Response(status_code=status.HTTP_400_BAD_REQUEST)
@@ -48,6 +50,7 @@ async def updates_webhook(
         telegram_user.bill_for_activation += tokens_count
 
         await processed_webhook_service.create_by_request_body(body=body)
+        session.commit()
 
         await handle_invoice_webhook_in_bot(
             bot=loader.bot,
