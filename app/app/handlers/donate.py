@@ -348,9 +348,6 @@ async def confirm_donate(
         user_id=callback.from_user.id
     )
     bill = current_user.get_bill_by_type(bill_type)
-    if not bill:
-        return
-
     need_to_buy_tokens = bill - donate_sum
 
     if need_to_buy_tokens < 0:
