@@ -7,6 +7,7 @@ from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, FSInputFile
 from aiogram.types import Message
+from sqlalchemy.orm import Session
 from dependency_injector.wiring import inject, Provide
 
 from app.core.container import Container
@@ -405,6 +406,7 @@ async def donate_handler(
         statistic_service: StatisticService = Provide[
             Container.statistic_service
         ],
+        session: Session = Provide[Container.session],
 ) -> None:
     bill_type = BillType(callback.data.split("_")[-1])
     donate_sum = Decimal(callback.data.split("_")[-2])
@@ -412,9 +414,6 @@ async def donate_handler(
         user_id=callback.from_user.id
     )
     bill = current_user.get_bill_by_type(bill_type)
-    if not bill:
-        return
-
     updated_bill = bill - donate_sum
 
     if updated_bill < 0:
@@ -446,19 +445,35 @@ async def donate_handler(
     if callback.from_user.username != current_user.username:
         current_user.username = callback.from_user.username
 
-    transactions_data = await donate_service.update_transactions_data_with_sponsors(
-        current_user,
-        *sponsors,
-        donate_sum=donate_sum,
-        status=status,
-    )
     first_sponsor = sponsors[0]
     is_triumph = (status in (DonateStatus.BRILLIANT, ))
-
-
     create_tasks_data = {"donate_sum": donate_sum}
 
-    if not is_triumph:
+    if is_triumph:
+        inserted_node, upline_nodes = await matrix_node_service.activate_matrix_node(
+            current_user_id=current_user.id,
+            sponsor_id=first_sponsor.id,
+            status=status,
+        )
+        transactions_data = await donate_service.update_transactions_data_with_nodes(
+            upline_nodes,
+            donate_sum=donate_sum,
+            status=status,
+            transaction_percent=settings.triumph_matrix_transaction_percent,
+        )
+
+        create_tasks_data.update({
+            "obj_id": inserted_node.id,
+            "engine_type": MatrixEngineType.NODES,
+        })
+        matrix_id = inserted_node.matrix_id
+    else:
+        transactions_data = await donate_service.update_transactions_data_with_sponsors(
+            current_user,
+            *sponsors,
+            donate_sum=donate_sum,
+            status=status,
+        )
         result = await donate_service.handle_matrix_activation(
             current_user,
             first_sponsor,
@@ -476,28 +491,11 @@ async def donate_handler(
             return
 
         matrix, created_matrix = result
-        create_tasks_data["obj_id"] = created_matrix.id
-        create_tasks_data["engine_type"] = MatrixEngineType.JSON
+        create_tasks_data.update({
+            "obj_id": created_matrix.id,
+            "engine_type": MatrixEngineType.JSON,
+        })
         matrix_id = matrix.id
-    else:
-        inserted_node, upline_nodes = await matrix_node_service.activate_matrix_node(
-            current_user_id=current_user.id,
-            sponsor_id=first_sponsor.id,
-            status=status,
-        )
-        matrix_transactions_data = await donate_service.update_transactions_data_with_nodes(
-            upline_nodes,
-            donate_sum=donate_sum,
-            status=status,
-            transaction_percent=settings.triumph_matrix_transaction_percent,
-        )
-        transactions_data.extend(matrix_transactions_data)
-
-        create_tasks_data["obj_id"] = inserted_node.id
-        create_tasks_data["engine_type"] = MatrixEngineType.NODES
-        matrix_id = inserted_node.matrix_id
-
-    await apply_bot_matrix_tasks(**create_tasks_data)
 
     donate_service.update_transactions_data_with_system_transaction(
         transactions_data,
@@ -549,6 +547,8 @@ async def donate_handler(
     ):
         current_user.status = status
 
+    session.commit()
+
     coroutines = []
     matrix_activations_count = statistic_service.increment_matrix_activations_count()
 
@@ -562,6 +562,17 @@ async def donate_handler(
             chat_id=settings.donates_channel_id,
             text=increase_triumph_bills_message_text,
         )
+
+    await apply_bot_matrix_tasks(**create_tasks_data)
+    await callback.message.delete()
+    await callback.message.answer("🎉")
+    await callback.message.answer(
+        "<b>Площадка успешно активирована, бот начал свою работу ✅</b>"
+    )
+    await send_donations_menu(
+        callback.from_user.id,
+        bot.send_message,
+    )
 
 
     coroutines.append(
@@ -578,15 +589,7 @@ async def donate_handler(
     )
     await asyncio.gather(*coroutines)
 
-    await callback.message.delete()
-    await callback.message.answer("🎉")
-    await callback.message.answer(
-        "<b>Площадка успешно активирована, бот начал свою работу ✅</b>"
-    )
-    await send_donations_menu(
-        callback.from_user.id,
-        bot.send_message,
-    )
+
 
 
 @donate_router.callback_query(F.data == "transactions")

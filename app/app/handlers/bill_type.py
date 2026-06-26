@@ -26,6 +26,9 @@ async def bill_type_handler(
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
+        donate_confirm_service: DonateConfirmService = Provide[
+            Container.donate_confirm_service
+        ],
 ) -> None:
     callback_data = callback.data.split("_")
     triumph_bill = None
@@ -37,7 +40,14 @@ async def bill_type_handler(
     if callback.data.startswith("confirm_donate_"):
         callback_prefix = "send_" + "_".join(callback_data[1:])
         donate_sum = Decimal(callback.data.split("_")[-1])
-        if donate_sum == DonateStatus.BRILLIANT.get_status_donate_value():
+        status = donate_confirm_service.get_donate_status(donate_sum)
+        supported_statuses_for_triumph_bill = (
+            DonateStatus.PLATINUM,
+            DonateStatus.GOLD,
+            DonateStatus.BRILLIANT
+        )
+
+        if status in supported_statuses_for_triumph_bill:
             triumph_bill = current_user.triumph_bill
 
     elif callback.data == "start_transfer":

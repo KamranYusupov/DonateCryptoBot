@@ -73,6 +73,7 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
         sponsor_node = self._repository_matrix_node.get(
             owner_id=sponsor.id,
             status=status,
+            for_update=True,
         )
         if sponsor_node and sponsor_node.children_count < 2:
             return sponsor_node
@@ -144,7 +145,9 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             status: DonateStatus,
     ) -> tuple[MatrixNode, bool]:
         current_user_node = self._repository_matrix_node.get(
-            owner_id=current_user_id
+            owner_id=current_user_id,
+            status=status,
+            for_update=True,
         )
         if current_user_node:
             current_user_node.last_activation = datetime.now()

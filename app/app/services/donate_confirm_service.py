@@ -56,8 +56,10 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
             return DonateStatus.PLATINUM
         elif donate_sum == 1000:
             return DonateStatus.BRILLIANT
-
-        return None
+        else:
+            raise InvalidDonateAmountError(
+                f"DonateStatus not found for donate quantity: {donate_sum}"
+            )
 
     async def create_donate(
         self,
@@ -172,11 +174,6 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
             raise DonateNotFoundError(f"Donate with id: {donate_id} not found.")
 
         status = self.get_donate_status(int(donate_quantity))
-        if not status:
-            raise InvalidDonateAmountError(
-                f"DonateStatus not found for donate quantity: {donate_quantity}"
-            )
-
         transactions = self._repository_donate_transaction.list(
             donate_id=donate_id,
         )
