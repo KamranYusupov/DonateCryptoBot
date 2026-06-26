@@ -15,7 +15,14 @@ def scopefunc():
 
 class SyncSession:
     def __init__(self, db_url: str):
-        self.engine = create_engine(url=str(db_url), pool_pre_ping=True)
+        self.engine = create_engine(
+            url=str(db_url),
+            pool_pre_ping=True,
+            pool_size=10,
+            max_overflow=10,
+            pool_timeout=30,
+            pool_recycle=1800,
+        )
         self.session_factory = sessionmaker(
             bind=self.engine,
             expire_on_commit=False,
