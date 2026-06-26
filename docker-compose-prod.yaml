@@ -82,12 +82,14 @@ services:
       worker app.core.taskiq:broker ${TASKIQ_TASKS_ROOT}
     restart: always
 
-  mass_mailing_worker:
+  mailing_worker:
     <<: *taskiq
     hostname: mass_mailing_worker
-    container_name: ${PROJECT_SLUG}_mass_mailing_worker
+    container_name: ${PROJECT_SLUG}_mailing_worker
     command: >
-      worker app.core.taskiq:broker ${TASKIQ_TASKS_ROOT} --queue mass_mailing --concurrency 1
+      worker app.core.taskiq:broker ${TASKIQ_TASKS_ROOT}
+      --workers 1
+      --max-async-tasks 1
     restart: always
 
   scheduler:
