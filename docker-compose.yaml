@@ -31,12 +31,9 @@ services:
       - .env
     networks:
       - internal
-    ports:
-      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_HOST_AUTH_METHOD: trust
       PGDATA: /var/lib/postgresql/data/pgdata
     command: -p ${POSTGRES_PORT}
 
