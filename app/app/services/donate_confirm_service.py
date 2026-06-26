@@ -5,6 +5,7 @@ from typing import Tuple, Any, Optional, List
 
 import loguru
 
+from app.exceptions.donate import InvalidDonateAmountError, DonateNotFoundError
 from app.repositories.admin_statistic import RepositoryAdminStatistic
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.repositories.donate import RepositoryDonate, RepositoryDonateTransaction
@@ -18,6 +19,7 @@ from app.models.donate import DonateTransactionType
 from app.models.telegram_user import BillType
 from app.schemas.transaction import DonateTransactionContextSchema
 from app.services.base.crud_service import CrudServiceMixin
+from app.utils.status import get_is_status_triumph
 
 
 class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
@@ -165,6 +167,16 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
             donate_id: uuid.UUID,
             is_bot: bool = False
     ):
+        donate_quantity = self._repository_donate.get_quantity_by_id(donate_id)
+        if donate_quantity is None:
+            raise DonateNotFoundError(f"Donate with id: {donate_id} not found.")
+
+        status = self.get_donate_status(int(donate_quantity))
+        if not status:
+            raise InvalidDonateAmountError(
+                f"DonateStatus not found for donate quantity: {donate_quantity}"
+            )
+
         transactions = self._repository_donate_transaction.list(
             donate_id=donate_id,
         )
@@ -185,14 +197,15 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
                 system_bill_donate -= transaction.quantity
 
         if not system_bill_donate:
+            self._repository_admin_statistic.increment_total_donates_sum(
+                amount=donate_quantity,
+            )
             return
 
-        donate  = self._repository_donate.get(id=donate_id)
-        status = self.get_donate_status(int(donate.quantity))
-
-        is_triumph: bool = (status in (DonateStatus.BRILLIANT, ))
-        self._repository_admin_statistic.increment_system_bill(
-            quantity=system_bill_donate,
+        is_triumph = get_is_status_triumph(status)
+        self._repository_admin_statistic.increment_system_bill_and_total_donates_sum(
+            system_bill_amount=system_bill_donate,
+            total_donates_sum_amount=donate_quantity,
             triumph=is_triumph
         )
 

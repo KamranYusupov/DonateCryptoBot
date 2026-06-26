@@ -1,5 +1,6 @@
 import uuid
-from typing import List
+from decimal import Decimal
+from typing import List, Optional
 
 from sqlalchemy import select, delete, update, func
 from sqlalchemy.orm import selectinload
@@ -25,6 +26,15 @@ class RepositoryDonate(RepositoryBase[Donate]):
 
         result = self._session.execute(statement)
         return result.scalar()
+
+    def get_quantity_by_id(self, donate_id: uuid.UUID) -> Optional[Decimal]:
+        statement = (
+            select(Donate.quantity)
+            .where(Donate.id == donate_id)
+        )
+
+        result = self._session.execute(statement)
+        return result.scalar_one_or_none()
 
     def get_donates_list(self, *args, **kwargs):
         statement = (

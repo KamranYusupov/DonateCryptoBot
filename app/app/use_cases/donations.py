@@ -120,7 +120,6 @@ async def send_donations_menu(
         matrix_statuses_statistic_message = get_matrices_statuses_statistic_message(
             matrices,
         )
-        donates_sum = await donate_confirm_service.get_donates_sum()
 
         bills_for_activation_sum = (
             await telegram_user_service.get_bills_for_activation_sum()
@@ -149,7 +148,7 @@ async def send_donations_menu(
             f"\n{matrix_statuses_statistic_message}"
             f"🆓: {users_count_with_not_active_status}\n\n"
             "Всего подарили: "
-            f"<b>${format_decimal(donates_sum)}</b>\n"
+            f"<b>${format_decimal(admin_statistic.total_donates_sum)}</b>\n"
             "Системный баланс: "
             f"<b>${format_decimal(admin_statistic.system_bill)}</b>\n"
             "Системный баланс Триумф: "
