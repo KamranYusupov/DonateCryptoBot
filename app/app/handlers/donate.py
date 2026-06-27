@@ -292,11 +292,13 @@ async def subscription_checker(
         await asyncio.gather(
             send_message_task.kiq(
                 chat_id=sponsor.user_id,
-                text=registration_donate_triumph_bill_text,
+                text=registration_donate_triumph_bill_text.format(
+                    f"от {current_user.full_username}"
+                ),
             ),
             send_message_task.kiq(
                 chat_id=settings.donates_channel_id,
-                text=registration_donate_triumph_bill_text,
+                text=registration_donate_triumph_bill_text.format(""),
             )
         )
 
