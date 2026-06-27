@@ -449,18 +449,26 @@ async def donate_handler(
     is_triumph = (status in (DonateStatus.BRILLIANT, ))
     create_tasks_data = {"donate_sum": donate_sum}
 
+    transactions_data = await donate_service.update_transactions_data_with_sponsors(
+        current_user,
+        *sponsors,
+        donate_sum=donate_sum,
+        status=status,
+    )
+
     if is_triumph:
         inserted_node, upline_nodes = await matrix_node_service.activate_matrix_node(
             current_user_id=current_user.id,
             sponsor_id=first_sponsor.id,
             status=status,
         )
-        transactions_data = await donate_service.update_transactions_data_with_nodes(
+        matrix_transactions_data = await donate_service.update_transactions_data_with_nodes(
             upline_nodes,
             donate_sum=donate_sum,
             status=status,
             transaction_percent=settings.triumph_matrix_transaction_percent,
         )
+        transactions_data.extend(matrix_transactions_data)
 
         create_tasks_data.update({
             "obj_id": inserted_node.id,
@@ -468,12 +476,6 @@ async def donate_handler(
         })
         matrix_id = inserted_node.matrix_id
     else:
-        transactions_data = await donate_service.update_transactions_data_with_sponsors(
-            current_user,
-            *sponsors,
-            donate_sum=donate_sum,
-            status=status,
-        )
         result = await donate_service.handle_matrix_activation(
             current_user,
             first_sponsor,
