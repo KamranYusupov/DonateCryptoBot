@@ -73,7 +73,6 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
         sponsor_node = self._repository_matrix_node.get(
             owner_id=sponsor.id,
             status=status,
-            for_update=True,
         )
         if sponsor_node and sponsor_node.children_count < 2:
             return sponsor_node
@@ -124,10 +123,11 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
         upline_positions = self.get_upline_node_positions(
             position=inserted_node.position,
         )
-        self._repository_matrix_node.increment_downline_count_by_positions(
-            matrix_id=inserted_node.matrix_id,
-            positions=upline_positions,
-        )
+        if is_created:
+            self._repository_matrix_node.increment_downline_count_by_positions(
+                matrix_id=inserted_node.matrix_id,
+                positions=upline_positions,
+            )
         active_upline_nodes = self._repository_matrix_node.get_nodes_by_positions(
             MatrixNode.last_activation >= (
                     datetime.now() - timedelta(days=365)
@@ -147,7 +147,6 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
         current_user_node = self._repository_matrix_node.get(
             owner_id=current_user_id,
             status=status,
-            for_update=True,
         )
         if current_user_node:
             current_user_node.last_activation = datetime.now()

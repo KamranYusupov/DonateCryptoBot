@@ -142,16 +142,10 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
             self,
             *args,
             status: Optional[DonateStatus] = None,
-            for_update: bool = False,
-            skip_locked: bool = False,
             **kwargs
     ):
         if not status:
-            statement = select(MatrixNode).where(*args).filter_by(**kwargs)
-            if for_update:
-                statement = statement.with_for_update(skip_locked=skip_locked)
-            result = self._session.execute(statement.limit(1))
-            return result.scalars().first()
+            return super().get(*args, **kwargs)
 
         statement = (
             select(MatrixNode)
@@ -161,8 +155,6 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
             .where(Matrix.status == status)
             .limit(1)
         )
-        if for_update:
-            statement = statement.with_for_update(skip_locked=skip_locked)
         result = self._session.execute(statement)
         return result.scalars().first()
 
