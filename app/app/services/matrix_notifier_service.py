@@ -22,13 +22,12 @@ from app.schemas.transaction import (
 )
 
 
-class MatrixActivationNotifierService(CrudServiceMixin[RepositoryTelegramUser]):
+class MatrixActivationNotifierService:
     def __init__(
             self,
             repository_telegram_user: RepositoryTelegramUser,
             telegram_bot_service: TelegramBotService,
     ):
-        super().__init__(repository=repository_telegram_user)
         self._repository_telegram_user = repository_telegram_user
         self._telegram_bot_service = telegram_bot_service
 

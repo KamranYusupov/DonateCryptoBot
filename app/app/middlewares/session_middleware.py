@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from aiogram import BaseMiddleware
 
-from app.db.session import scope, SyncSession
+from app.db.session import SyncSession, scope
 
 
 class SQLAlchemySessionMiddleware(BaseMiddleware):

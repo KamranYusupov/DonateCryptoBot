@@ -2,7 +2,7 @@ from uuid import uuid4
 
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.db.session import scope, SyncSession
+from app.db.session import SyncSession, scope
 
 
 class SQLAlchemySessionMiddleware(BaseHTTPMiddleware):
@@ -17,7 +17,6 @@ class SQLAlchemySessionMiddleware(BaseHTTPMiddleware):
         session = self._sync_session.create_session()
 
         try:
-            request.state.session = session
             response = await call_next(request)
             session.commit()
             return response

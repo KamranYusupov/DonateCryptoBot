@@ -1,9 +1,9 @@
 import asyncio
+from typing import TYPE_CHECKING
 
-from loguru import logger
+import loguru
 
 from app.core.config import settings
-from app.core.container import Container
 from app.handlers.routing import get_all_routers
 from app.middlewares.throttling import (
     private_chat_only_middleware,
@@ -16,8 +16,11 @@ from app.middlewares.session_middleware import SQLAlchemySessionMiddleware
 from app.middlewares.subscriptions import subscription_checker_middleware
 from loader import dp, bot
 
+if TYPE_CHECKING:
+    from app.core.container import Container
 
-async def main(container: Container):
+
+async def main(container: 'Container'):
     """Запуск бота."""
 
     try:
@@ -39,6 +42,8 @@ async def main(container: Container):
 
 
 if __name__ == "__main__":
-    logger.info("Bot is starting")
-    from app.core.container import container
+    loguru.logger.info("Bot is starting")
+
+    from app.core.container import Container
+    container = Container()
     asyncio.run(main(container=container))

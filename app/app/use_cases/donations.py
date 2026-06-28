@@ -4,11 +4,9 @@ from datetime import datetime, timedelta
 import loguru
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from dependency_injector.wiring import Provide, inject
 
-from app.core.config import Settings, settings
-from app.core.container import Container
-from app.keyboards.donate import get_donate_keyboard, get_donations_buttons
+from app.core.config import settings
+from app.keyboards.donate import get_donations_buttons
 from app.keyboards.inline import get_inline_buttons_from_dict
 from app.loader import bot
 from app.models import Matrix
@@ -27,26 +25,14 @@ from app.utils.texts import (
 )
 
 
-@inject
 async def send_donations_menu(
         from_user_id: int,
         telegram_method,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
-        matrix_service: MatrixService = Provide[Container.matrix_service],
-        matrix_node_service: MatrixNodeService = Provide[
-            Container.matrix_node_service
-        ],
-        donate_confirm_service: DonateConfirmService = Provide[
-            Container.donate_confirm_service
-        ],
-        sponsors_contests_service: SponsorsContestService = Provide[
-            Container.sponsors_contests_service
-        ],
-        statistic_service: StatisticService = Provide[
-            Container.statistic_service
-        ],
+        telegram_user_service: TelegramUserService,
+        matrix_service: MatrixService,
+        matrix_node_service: MatrixNodeService,
+        sponsors_contests_service: SponsorsContestService,
+        statistic_service: StatisticService,
 ) -> None:
     telegram_method_kwargs = {}
     if telegram_method == bot.send_message:

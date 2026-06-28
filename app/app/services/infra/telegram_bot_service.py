@@ -1,6 +1,6 @@
 import asyncio
 import random
-from typing import Any
+from typing import Any, Union
 
 import loguru
 from aiogram import Bot
@@ -10,13 +10,15 @@ from app import loader
 from app.core.config import settings
 
 
+ChatIDType = Union[int, str]
+
 class TelegramBotService:
     def __init__(self, bot: Bot = loader.bot):
         self._bot = bot
 
     async def send_message(
             self,
-            chat_id: int | str,
+            chat_id: ChatIDType,
             text: str,
             **kwargs: Any
     ) -> bool:
@@ -37,4 +39,18 @@ class TelegramBotService:
             return False
         except Exception as e:
             loguru.logger.warning(f"Failed to send to {chat_id}: {e}")
+            return False
+
+    async def delete_message(
+            self,
+            chat_id: ChatIDType,
+            message_id: int,
+    ) -> bool:
+        try:
+            await self._bot.delete_message(
+                chat_id=chat_id,
+                message_id=message_id,
+            )
+            return True
+        except TelegramAPIError:
             return False

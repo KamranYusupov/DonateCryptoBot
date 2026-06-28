@@ -25,6 +25,7 @@ from app.tasks.taskiq.tasks.infra.telegram import (
     send_message_task,
     mass_mailing_task,
 )
+from app.tasks.taskiq.tasks.business.donations import send_donations_menu_task
 from app.tasks.taskiq.tasks.business.matrix import apply_bot_matrix_tasks
 from app.tasks.taskiq.tasks.business.triumph_bill import increase_triumph_bills_task
 from app.utils.pagination import Paginator
@@ -62,6 +63,9 @@ async def captcha_handler(
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
+        session: Session = Provide[
+            Container.session
+        ]
 ) -> None:
     current_user_exists = await telegram_user_service.exists(
         user_id=callback.from_user.id,
@@ -79,20 +83,27 @@ async def captcha_handler(
         )
         return
 
-    sponsor_user_id = int(callback.data.split("_")[-1])
-    sponsor = await telegram_user_service.get_telegram_user(
-        user_id=sponsor_user_id
-    )
-    user_schema = get_schema_from_user(
-        callback.from_user,
-        depth_level=sponsor.depth_level + 1,
-        sponsor_user_id=sponsor_user_id,
-    )
+    try:
+        sponsor_user_id = int(callback.data.split("_")[-1])
+        sponsor = await telegram_user_service.get_telegram_user(
+            user_id=sponsor_user_id
+        )
+        user_schema = get_schema_from_user(
+            callback.from_user,
+            depth_level=sponsor.depth_level + 1,
+            sponsor_user_id=sponsor_user_id,
+        )
 
-    current_user = await telegram_user_service.create_telegram_user(
-        user=user_schema,
-        sponsor=sponsor,
-    )
+        current_user = await telegram_user_service.create_telegram_user(
+            user=user_schema,
+            sponsor=sponsor,
+        )
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
     await send_captcha(
         message=callback.message,
@@ -120,6 +131,16 @@ async def register_handler(
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
+        matrix_service: MatrixService = Provide[Container.matrix_service],
+        matrix_node_service: MatrixNodeService = Provide[
+            Container.matrix_node_service
+        ],
+        sponsors_contests_service: SponsorsContestService = Provide[
+            Container.sponsors_contests_service
+        ],
+        statistic_service: StatisticService = Provide[
+            Container.statistic_service
+        ],
 ) -> None:
     current_user = await telegram_user_service.get_telegram_user(
         user_id=callback.from_user.id
@@ -132,6 +153,11 @@ async def register_handler(
         await send_donations_menu(
             from_user_id=current_user.user_id,
             telegram_method=bot.send_message,
+            telegram_user_service=telegram_user_service,
+            matrix_service=matrix_service,
+            matrix_node_service=matrix_node_service,
+            sponsors_contests_service=sponsors_contests_service,
+            statistic_service=statistic_service,
         )
         return
 
@@ -183,14 +209,14 @@ async def register_handler(
         )
         return
 
-    await delete_message_or_pass(callback.message)
-    await state.clear()
-
     if not current_user.captcha_verified:
         await telegram_user_service.update(
             obj_id=current_user.id,
             obj_in=dict(captcha_verified=True),
         )
+
+    await delete_message_or_pass(callback.message)
+    await state.clear()
 
     await send_subscription_menu(callback, sponsor_user_id)
 
@@ -304,8 +330,22 @@ async def subscription_checker(
 
 @donate_router.callback_query(F.data.startswith("donations"))
 @donate_router.message(F.text.lower() == "⚡️ активация")
+@inject
 async def donations_menu_handler(
         aiogram_type: Message | CallbackQuery,
+        telegram_user_service: TelegramUserService = Provide[
+            Container.telegram_user_service
+        ],
+        matrix_service: MatrixService = Provide[Container.matrix_service],
+        matrix_node_service: MatrixNodeService = Provide[
+            Container.matrix_node_service
+        ],
+        sponsors_contests_service: SponsorsContestService = Provide[
+            Container.sponsors_contests_service
+        ],
+        statistic_service: StatisticService = Provide[
+            Container.statistic_service
+        ],
 ) -> None:
     telegram_method = bot.send_message if isinstance(aiogram_type, Message) \
         else aiogram_type.message.edit_text
@@ -313,6 +353,11 @@ async def donations_menu_handler(
     await send_donations_menu(
         from_user_id=aiogram_type.from_user.id,
         telegram_method=telegram_method,
+        telegram_user_service=telegram_user_service,
+        matrix_service=matrix_service,
+        matrix_node_service=matrix_node_service,
+        sponsors_contests_service=sponsors_contests_service,
+        statistic_service=statistic_service,
     )
 
 
@@ -385,6 +430,8 @@ async def confirm_donate(
         reply_markup=reply_markup,
     )
 
+
+
 @donate_router.callback_query(F.data.startswith("donate_"))
 @inject
 async def donate_handler(
@@ -410,190 +457,186 @@ async def donate_handler(
         ],
         session: Session = Provide[Container.session],
 ) -> None:
-    bill_type = BillType(callback.data.split("_")[-1])
-    donate_sum = Decimal(callback.data.split("_")[-2])
-    current_user, *sponsors = await telegram_user_service.get_telegram_user_with_sponsors(
-        user_id=callback.from_user.id
-    )
-    bill = current_user.get_bill_by_type(bill_type)
-    updated_bill = bill - donate_sum
-
-    if updated_bill < 0:
-        need_to_buy_tokens = int(abs(updated_bill))
-        await callback.message.edit_text(
-            f"Для активации уровня нехватает {need_to_buy_tokens} USDT.",
-            reply_markup=get_donate_keyboard(
-                buttons={
-                    "Преобрести 💳": f"buy_tokens_{need_to_buy_tokens}",
-                    "🔙 Назад": f"donations",
-                },
-                sizes=(1, 1),
-            ),
+    try:
+        bill_type = BillType(callback.data.split("_")[-1])
+        donate_sum = Decimal(callback.data.split("_")[-2])
+        current_user, *sponsors = await telegram_user_service.get_telegram_user_with_sponsors(
+            user_id=callback.from_user.id
         )
+        bill = current_user.get_bill_by_type(bill_type)
+        updated_bill = bill - donate_sum
 
-        return
+        if updated_bill < 0:
+            need_to_buy_tokens = int(abs(updated_bill))
+            await callback.message.edit_text(
+                f"Для активации уровня нехватает {need_to_buy_tokens} USDT.",
+                reply_markup=get_donate_keyboard(
+                    buttons={
+                        "Преобрести 💳": f"buy_tokens_{need_to_buy_tokens}",
+                        "🔙 Назад": f"donations",
+                    },
+                    sizes=(1, 1),
+                ),
+            )
 
-    status = donate_confirm_service.get_donate_status(donate_sum)
-    if not status:
-        return
+            return
 
-    if not callback.from_user.username:
-        await callback.message.edit_text(
-            "Перед отправкой подарка, "
-            "добавьте пожалуйста <em>username</em> в свой телеграм аккаунт"
-        )
-        return
+        status = donate_confirm_service.get_donate_status(donate_sum)
+        if not status:
+            return
 
-    if callback.from_user.username != current_user.username:
-        current_user.username = callback.from_user.username
-
-    first_sponsor = sponsors[0]
-    is_triumph = (status in (DonateStatus.BRILLIANT, ))
-    create_tasks_data = {"donate_sum": donate_sum}
-
-    transactions_data = await donate_service.update_transactions_data_with_sponsors(
-        current_user,
-        *sponsors,
-        donate_sum=donate_sum,
-        status=status,
-    )
-
-    if is_triumph:
-        inserted_node, upline_nodes = await matrix_node_service.activate_matrix_node(
-            current_user_id=current_user.id,
-            sponsor_id=first_sponsor.id,
-            status=status,
-        )
-        matrix_transactions_data = await donate_service.update_transactions_data_with_nodes(
-            upline_nodes,
-            donate_sum=donate_sum,
-            status=status,
-            transaction_percent=settings.triumph_matrix_transaction_percent,
-        )
-        transactions_data.extend(matrix_transactions_data)
-
-        create_tasks_data.update({
-            "obj_id": inserted_node.id,
-            "engine_type": MatrixEngineType.NODES,
-        })
-        matrix_id = inserted_node.matrix_id
-    else:
-        result = await donate_service.handle_matrix_activation(
-            current_user,
-            first_sponsor,
-            donate_sum,
-            transactions_data,
-            status,
-        )
-        if not result:
-            await callback.message.delete()
-            await callback.message.answer(
-                "Непредвиденая ошибка. "
-                "Пожалуйста, обратитесь в службу поддержки "
-                f"@{settings.support_username}"
+        if not callback.from_user.username:
+            await callback.message.edit_text(
+                "Перед отправкой подарка, "
+                "добавьте пожалуйста <em>username</em> в свой телеграм аккаунт"
             )
             return
 
-        matrix, created_matrix = result
-        create_tasks_data.update({
-            "obj_id": created_matrix.id,
-            "engine_type": MatrixEngineType.JSON,
-        })
-        matrix_id = matrix.id
+        if callback.from_user.username != current_user.username:
+            current_user.username = callback.from_user.username
 
-    donate_service.update_transactions_data_with_system_transaction(
-        transactions_data,
-        donate_sum=donate_sum,
-    )
+        first_sponsor = sponsors[0]
+        is_triumph = (status in (DonateStatus.BRILLIANT,))
+        create_tasks_data = {"donate_sum": donate_sum}
 
-    donate = await donate_confirm_service.create_donate(
-        telegram_user_id=current_user.id,
-        transactions=transactions_data,
-        matrix_id=matrix_id,
-        quantity=donate_sum,
-    )
-
-    if status != DonateStatus.TEST:
-        contest_point_user_id = None
-        for sponsor in sponsors:
-            if not sponsor:
-                break
-
-            last_sponsor = sponsor
-            if sponsor.status not in (DonateStatus.NOT_ACTIVE, DonateStatus.TEST):
-                contest_point_user_id = sponsor.user_id
-                break
-
-        if not contest_point_user_id:
-            contest_point_user = await telegram_user_service.get_sponsor_recursively(
-                TelegramUser.status != DonateStatus.NOT_ACTIVE,
-                TelegramUser.status != DonateStatus.TEST,
-                user_id=last_sponsor.user_id
-            )
-            contest_point_user_id = contest_point_user.user_id
-
-        await sponsors_contests_service.create_contest_point(
-            user_id=contest_point_user_id
+        transactions_data = await donate_service.update_transactions_data_with_sponsors(
+            current_user,
+            *sponsors,
+            donate_sum=donate_sum,
+            status=status,
         )
 
-    await telegram_user_service.increment_bill(
-        telegram_user_id=current_user.id,
-        bill_type=bill_type,
-        amount=-donate_sum,
-    )
-    await donate_confirm_service.update_bills_by_donate_id(
-        donate_id=donate.id,
-    )
+        if is_triumph:
+            inserted_node, upline_nodes = await matrix_node_service.activate_matrix_node(
+                current_user_id=current_user.id,
+                sponsor_id=first_sponsor.id,
+                status=status,
+            )
+            matrix_transactions_data = await donate_service.update_transactions_data_with_nodes(
+                upline_nodes,
+                donate_sum=donate_sum,
+                status=status,
+                transaction_percent=settings.triumph_matrix_transaction_percent,
+            )
+            transactions_data.extend(matrix_transactions_data)
 
-    if current_user.status == DonateStatus.NOT_ACTIVE or (
-        int(status.get_status_donate_value())
-        > int(current_user.status.get_status_donate_value())
-    ):
-        current_user.status = status
+            create_tasks_data.update({
+                "obj_id": inserted_node.id,
+                "engine_type": MatrixEngineType.NODES,
+            })
+            matrix_id = inserted_node.matrix_id
+        else:
+            result = await donate_service.handle_matrix_activation(
+                current_user,
+                first_sponsor,
+                donate_sum,
+                transactions_data,
+                status,
+            )
+            if not result:
+                await callback.message.delete()
+                await callback.message.answer(
+                    "Непредвиденая ошибка. "
+                    "Пожалуйста, обратитесь в службу поддержки "
+                    f"@{settings.support_username}"
+                )
+                return
 
-    session.commit()
+            matrix, created_matrix = result
+            create_tasks_data.update({
+                "obj_id": created_matrix.id,
+                "engine_type": MatrixEngineType.JSON,
+            })
+            matrix_id = matrix.id
 
-    coroutines = []
-    matrix_activations_count = statistic_service.increment_matrix_activations_count()
+        donate_service.update_transactions_data_with_system_transaction(
+            transactions_data,
+            donate_sum=donate_sum,
+        )
+        donate = await donate_confirm_service.create_donate(
+            telegram_user_id=current_user.id,
+            transactions=transactions_data,
+            matrix_id=matrix_id,
+            quantity=donate_sum,
+        )
+
+        if status != DonateStatus.TEST:
+            contest_point_user_id = None
+            for sponsor in sponsors:
+                if not sponsor:
+                    break
+
+                last_sponsor = sponsor
+                if sponsor.status not in (DonateStatus.NOT_ACTIVE, DonateStatus.TEST):
+                    contest_point_user_id = sponsor.user_id
+                    break
+
+            if not contest_point_user_id:
+                contest_point_user = await telegram_user_service.get_sponsor_recursively(
+                    TelegramUser.status != DonateStatus.NOT_ACTIVE,
+                    TelegramUser.status != DonateStatus.TEST,
+                    user_id=last_sponsor.user_id
+                )
+
+                contest_point_user_id = contest_point_user.user_id
+
+            await sponsors_contests_service.create_contest_point(
+                user_id=contest_point_user_id
+            )
+
+        await telegram_user_service.increment_bill(
+            telegram_user_id=current_user.id,
+            bill_type=bill_type,
+            amount=-donate_sum,
+        )
+        await donate_confirm_service.update_bills_by_donate_id(
+            donate_id=donate.id,
+        )
+
+        if current_user.status == DonateStatus.NOT_ACTIVE or (
+                int(status.get_status_donate_value())
+                > int(current_user.status.get_status_donate_value())
+        ):
+            current_user.status = status
+
+        matrix_activations_count = statistic_service.increment_matrix_activations_count()
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        raise e
+    finally:
+        session.close()
 
     is_increase_triumph_bills_step = (
         matrix_activations_count
         % settings.triumph_bills_increase_activation_interval == 0
     )
-    if matrix_activations_count != 0 and is_increase_triumph_bills_step:
-        coroutines.append(increase_triumph_bills_task.kiq())
-        await send_message_task.kiq(
-            chat_id=settings.donates_channel_id,
-            text=increase_triumph_bills_message_text,
-        )
-
     await apply_bot_matrix_tasks(**create_tasks_data)
     await callback.message.delete()
     await callback.message.answer("🎉")
     await callback.message.answer(
         "<b>Площадка успешно активирована, бот начал свою работу ✅</b>"
     )
-    await send_donations_menu(
+    await send_donations_menu_task.kiq(
         callback.from_user.id,
-        bot.send_message,
     )
 
+    if matrix_activations_count != 0 and is_increase_triumph_bills_step:
+        await increase_triumph_bills_task.kiq()
+        await send_message_task.kiq(
+            chat_id=settings.donates_channel_id,
+            text=increase_triumph_bills_message_text,
+        )
 
-    coroutines.append(
-        matrix_activation_notifier_service.notify_invited_users(
-            sponsor_user_id=callback.from_user.id,
-            status=status,
-        )
+    await matrix_activation_notifier_service.notify_invited_users(
+        sponsor_user_id=callback.from_user.id,
+        status=status,
     )
-    coroutines.extend(
-        matrix_activation_notifier_service.send_transaction_message(
-            transaction
-        )
+    await asyncio.gather(*[
+        matrix_activation_notifier_service
+        .send_transaction_message(transaction)
         for transaction in transactions_data
-    )
-    await asyncio.gather(*coroutines)
-
-
+    ])
 
 
 @donate_router.callback_query(F.data == "transactions")

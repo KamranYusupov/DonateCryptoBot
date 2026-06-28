@@ -10,9 +10,9 @@ from app.db.session import scope
 def commit_and_close_session(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
-        from app.core.container import container
-
         scope_token = scope.set(str(uuid4()))
+        container = kwargs.get("container")
+
         db = container.db()
         session = db.create_session()
 

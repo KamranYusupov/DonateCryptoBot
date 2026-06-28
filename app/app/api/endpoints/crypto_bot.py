@@ -5,12 +5,10 @@ from sqlalchemy.orm import Session
 from starlette.responses import Response
 from starlette import status
 
-from app.api.background_tasks.crypto_bot import handle_invoice_webhook_in_bot
 from app.core.container import Container
+from app.orchestrators.crypto_bot_payment import CryptoBotPaymentOrchestrator
 from app.services.crypto_bot_processed_webhook_service import CryptoBotProcessedWebhookService
-from app import loader
 from app.api.schemas.crypto_bot import UpdateWebhookSchema, CryptoInvoiceSchema
-from app.services.telegram_user_service import TelegramUserService
 
 router = APIRouter(tags=['CryptoBot'], prefix='/crypto-bot')
 
@@ -21,14 +19,11 @@ router = APIRouter(tags=['CryptoBot'], prefix='/crypto-bot')
 @inject
 async def updates_webhook(
         body: UpdateWebhookSchema,
-        telegram_user_service: TelegramUserService = Depends(
-            Provide[Container.telegram_user_service]
-        ),
         processed_webhook_service: CryptoBotProcessedWebhookService = Depends(
             Provide[Container.crypto_bot_processed_webhook_service],
         ),
-        session: Session = Depends(
-            Provide[Container.session]
+        orchestrator: CryptoBotPaymentOrchestrator = Depends(
+            Provide[Container.crypto_bot_payment_orchestrator]
         ),
 ) -> Response:
     if body.update_type != "invoice_paid":
@@ -40,23 +35,11 @@ async def updates_webhook(
     if is_processed:
         return Response(status_code=status.HTTP_200_OK)
 
-    request_invoice = CryptoInvoiceSchema(**body.payload)
+    invoice_request = CryptoInvoiceSchema(**body.payload)
 
-    if request_invoice.status == "paid":
-        telegram_id = request_invoice.payload.telegram_id
-        tokens_count = request_invoice.payload.tokens_count
-
-        telegram_user = await telegram_user_service.get_telegram_user(user_id=telegram_id)
-        telegram_user.bill_for_activation += tokens_count
-
-        await processed_webhook_service.create_by_request_body(body=body)
-        session.commit()
-
-        await handle_invoice_webhook_in_bot(
-            bot=loader.bot,
-            telegram_id=telegram_id,
-            tokens_count=tokens_count,
-            messages_to_delete_ids=request_invoice.payload.messages_to_delete_ids
+    if invoice_request.status == "paid":
+        await orchestrator.handle_paid_invoice_request(
+            body, invoice_request
         )
         return Response(status_code=status.HTTP_200_OK)
 

@@ -22,6 +22,7 @@ from app.models import (
     ProcessedCryptoBotPaymentWebhook,
     RegistrationStatistic, TriumphBillTransaction,
 )
+from app.orchestrators.crypto_bot_payment import CryptoBotPaymentOrchestrator
 from app.repositories import (
     RepositoryDonate,
     RepositoryDonateTransaction,
@@ -221,6 +222,14 @@ class Container(containers.DeclarativeContainer):
     )
     # endregion
 
+    # region orchestrators
+    crypto_bot_payment_orchestrator = providers.Factory(
+        CryptoBotPaymentOrchestrator,
+        telegram_user_service=telegram_user_service,
+        processed_webhook_service=crypto_bot_processed_webhook_service,
+    )
+    # endregion
+
     # region use cases
     sponsors_contest_use_case = providers.Factory(
         SponsorsContestUseCase,
@@ -267,4 +276,3 @@ class Container(containers.DeclarativeContainer):
         modules=wiring_modules
     )
 
-container = Container()

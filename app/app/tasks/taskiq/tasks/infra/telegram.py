@@ -22,6 +22,20 @@ async def send_message_task(
     )
 
 
+@broker.task(retry_on_error=True)
+async def delete_message_task(
+        chat_id: int,
+        message_id: int,
+        *,
+        container: ContainerDependency,
+):
+    telegram_bot_service: TelegramBotService = container.telegram_bot_service()
+    return await telegram_bot_service.delete_message(
+        chat_id=chat_id,
+        message_id=message_id,
+    )
+
+
 @broker.task(retry_on_error=False)
 async def mass_mailing_task(
         chat_ids: list[int],
