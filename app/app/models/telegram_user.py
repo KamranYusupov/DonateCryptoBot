@@ -116,6 +116,7 @@ class TelegramUser(UUIDMixin, TimestampedMixin, AbstractTelegramUser, Base):
     is_bot = Column(Boolean, default=False)
     captcha_verified = Column(Boolean, default=False)
     is_donate_for_registration_sent = Column(Boolean, default=False)
+    donates_sum_for_registration_received = Column(Integer, default=0, server_default=text("0"))
 
     sponsor = relationship(
         "TelegramUser",
