@@ -42,8 +42,9 @@ async def bill_type_handler(
         donate_sum = Decimal(callback.data.split("_")[-1])
         status = donate_confirm_service.get_donate_status(donate_sum)
         supported_statuses_for_triumph_bill = (
-            DonateStatus.PLATINUM,
+            DonateStatus.SILVER,
             DonateStatus.GOLD,
+            DonateStatus.PLATINUM,
             DonateStatus.BRILLIANT
         )
 
