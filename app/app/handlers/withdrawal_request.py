@@ -70,7 +70,7 @@ async def network_withdrawal_request_handler(
         state: FSMContext,
 ) -> None:
     network = callback.data.split("_")[-1].upper()
-    await state.update_data(network=CryptoNetworkType[network])
+    await state.update_data(network=CryptoNetworkType(network))
     await state.set_state(WithdrawalRequestState.wallet_address)
     await callback.message.delete()
     await callback.message.answer(
