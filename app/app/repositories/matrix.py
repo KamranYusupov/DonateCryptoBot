@@ -114,6 +114,30 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
 
 
 class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
+    def _base_node_select(
+            self,
+            *args,
+            status: Optional[DonateStatus] = None,
+            for_update: bool = False,
+            skip_locked: bool = False,
+            **kwargs):
+        statement = select(MatrixNode).where(*args).filter_by(**kwargs)
+
+        if for_update:
+            statement = (
+                statement
+                .with_for_update(skip_locked=skip_locked)
+            )
+
+        if status:
+            statement = (
+                statement
+                .join(Matrix, onclause=MatrixNode.matrix)
+                .where(Matrix.status == status)
+            )
+
+        loguru.logger.info(str(statement))
+        return statement
 
     def increment_downline_count_by_positions(
             self,
@@ -142,22 +166,20 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
             self,
             *args,
             status: Optional[DonateStatus] = None,
+            for_update: bool = False,
+            skip_locked: bool = False,
             **kwargs
-    ):
-        if not status:
-            return super().get(*args, **kwargs)
+    ) -> Optional[MatrixNode]:
 
-        statement = (
-            select(MatrixNode)
-            .where(*args)
-            .filter_by(**kwargs)
-            .join(Matrix, onclause=MatrixNode.matrix)
-            .where(Matrix.status == status)
-            .limit(1)
-        )
+        statement = self._base_node_select(
+            *args,
+            status=status,
+            for_update=for_update,
+            skip_locked=skip_locked,
+            **kwargs
+        ).limit(1)
         result = self._session.execute(statement)
         return result.scalars().first()
-
 
     def get_available_node(
             self,
@@ -233,6 +255,21 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
 
         result = self._session.execute(statement)
         return result.scalars().all()
+
+    def reserve_child_slot(
+            self,
+            matrix_node_id: uuid.UUID,
+    ) -> tuple[int, int] | None:
+        statement = (
+            update(MatrixNode)
+            .where(
+                MatrixNode.id == matrix_node_id,
+            )
+            .values(children_count=MatrixNode.children_count + 1)
+            .returning(MatrixNode.position, MatrixNode.children_count)
+        )
+        result = self._session.execute(statement)
+        return result.one()
 
 
 

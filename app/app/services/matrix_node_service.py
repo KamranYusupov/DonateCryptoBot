@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 from typing import Optional, Sequence, List, Tuple
 from uuid import UUID
@@ -73,6 +74,7 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
         sponsor_node = self._repository_matrix_node.get(
             owner_id=sponsor.id,
             status=status,
+            for_update=True
         )
         if sponsor_node and sponsor_node.children_count < 2:
             return sponsor_node
@@ -86,6 +88,7 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
                 target_node = self._repository_matrix_node.get(
                     owner_id=sponsor.id,
                     status=status,
+                    for_update=True,
                 )
 
             available_node = self._repository_matrix_node.get_available_node(
@@ -166,8 +169,10 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             status: DonateStatus
     ) -> MatrixNode:
         available_node = self._find_available_node(sponsor_id, status)
-        new_position = (available_node.position * 2) + available_node.children_count
-        available_node.children_count += 1
+        position, updated_children_count = self._repository_matrix_node.reserve_child_slot(
+            matrix_node_id=available_node.id
+        )
+        new_position = (position * 2) + updated_children_count - 1
 
         matrix_node_schema = MatrixNodeSchema(
             matrix_id=available_node.matrix_id,
