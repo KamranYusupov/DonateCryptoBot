@@ -6,7 +6,6 @@ from dependency_injector.wiring import inject
 
 from app.db.session import scope
 
-@inject
 def commit_and_close_session(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
