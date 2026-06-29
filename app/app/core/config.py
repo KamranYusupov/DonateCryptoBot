@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     timezone: str = Field(default="Europe/Moscow")
     send_donate_for_registration: bool = Field(default=False)
     donate_for_registration: int = Field(default=1)
+    max_donates_sum_for_registration: int = Field(default=100)
     withdrawal_min_tokens_count: int = Field(
         title="Минимальное количество токенов для вывода",
         default=10

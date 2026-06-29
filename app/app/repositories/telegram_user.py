@@ -201,6 +201,31 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
 
         self._session.execute(statement)
 
+    def increment_bill_for_registration(
+            self,
+            telegram_user_id: UUID,
+            bill_type: BillType,
+            amount: Decimal,
+    ) -> None:
+        update_values = {}
+
+        bill_column = TelegramUser.get_bill_column_by_type(bill_type)
+        bill_field_name = TelegramUser.get_bill_field_by_type(bill_type)
+
+        update_values[bill_field_name] = bill_column + amount
+        update_values["donates_sum_for_registration"] = \
+            TelegramUser.donates_sum_for_registration + 1
+
+        statement = (
+            update(TelegramUser)
+            .where(TelegramUser.id == telegram_user_id)
+            .values(**update_values)
+        )
+
+        self._session.execute(statement)
+
+
+
     def increase_triumph_bills_by_percent(
             self,
             percent: Decimal = settings.triumph_bill_increase_percent,

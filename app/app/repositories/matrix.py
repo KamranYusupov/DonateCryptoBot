@@ -136,7 +136,6 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
                 .where(Matrix.status == status)
             )
 
-        loguru.logger.info(str(statement))
         return statement
 
     def increment_downline_count_by_positions(
