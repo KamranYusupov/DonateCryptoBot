@@ -141,6 +141,9 @@ async def register_handler(
         statistic_service: StatisticService = Provide[
             Container.statistic_service
         ],
+        session: Session = Provide[
+            Container.session
+        ],
 ) -> None:
     current_user = await telegram_user_service.get_telegram_user(
         user_id=callback.from_user.id
@@ -191,6 +194,9 @@ async def register_handler(
             obj_id=current_user.id,
             obj_in=dict(is_banned=True),
         )
+        session.commit()
+        session.close()
+
         await delete_message_or_pass(callback.message)
         await callback.message.answer(
             "❌ Проверка не пройдена. \n\nВаш аккаунт заблокирован. "
@@ -214,6 +220,8 @@ async def register_handler(
             obj_id=current_user.id,
             obj_in=dict(captcha_verified=True),
         )
+        session.commit()
+        session.close()
 
     await delete_message_or_pass(callback.message)
     await state.clear()
