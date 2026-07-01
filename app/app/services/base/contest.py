@@ -8,11 +8,12 @@ from app.core.config import settings
 from app.domain.contest_calculator import ContestResultCalculator
 from app.schemas.contest_domain import ContestUpdateSchema, ContestUserItemSchema
 from app.utils.datetime import get_start_of_week, to_main_tz
+from app.models.mixins import AbstractContest, AbstractContestPoint
 
 ContestRepositoryType = TypeVar("ContestRepositoryType")
 ContestPointRepositoryType = TypeVar("ContestPointRepositoryType")
-ContestModelType = TypeVar("ContestModelType")
-ContestPointModelType = TypeVar("ContestPointModelType")
+ContestModelType = TypeVar("ContestModelType", bound=AbstractContest)
+ContestPointModelType = TypeVar("ContestPointModelType", bound=AbstractContestPoint)
 
 
 class BaseContestService(Generic[ContestRepositoryType, ContestPointRepositoryType]):
