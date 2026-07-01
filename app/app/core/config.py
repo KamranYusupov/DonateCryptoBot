@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     bot_token: str = Field(title="Токен бота")
     bot_name: str = Field(title="Имя бота(username)")
     bot_link: str = Field(title="Ссылка на бота", default="https://t.me/{bot_name}")
+    private_channel_id: int = Field(title="ID приватного канала")
     chat_id: int = Field(title="ID чата")
     chat_link: str = Field(title="Ссылка на чат")
     channel_id: str = Field(title="ID канала")

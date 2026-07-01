@@ -1,3 +1,6 @@
+import asyncio
+from typing import Optional
+
 from taskiq import TaskiqDepends
 
 from app.core.config import settings
@@ -10,11 +13,16 @@ from app.tasks.taskiq.dependencies.container import ContainerDependency
 async def send_message_task(
         chat_id: int,
         text: str,
+        delay: Optional[int | float] = None,
         *,
         container: ContainerDependency,
         **kwargs
 ):
     telegram_bot_service: TelegramBotService = container.telegram_bot_service()
+
+    if delay:
+        await asyncio.sleep(delay)
+
     return await telegram_bot_service.send_message(
         chat_id=chat_id,
         text=text,

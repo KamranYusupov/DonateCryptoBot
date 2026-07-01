@@ -471,41 +471,42 @@ async def donate_handler(
         ],
         session: Session = Provide[Container.session],
 ) -> None:
-    try:
-        bill_type = BillType(callback.data.split("_")[-1])
-        donate_sum = Decimal(callback.data.split("_")[-2])
-        current_user, *sponsors = await telegram_user_service.get_telegram_user_with_sponsors(
-            user_id=callback.from_user.id
+    bill_type = BillType(callback.data.split("_")[-1])
+    donate_sum = Decimal(callback.data.split("_")[-2])
+    current_user, *sponsors = await telegram_user_service.get_telegram_user_with_sponsors(
+        user_id=callback.from_user.id
+    )
+    bill = current_user.get_bill_by_type(bill_type)
+    updated_bill = bill - donate_sum
+
+    if updated_bill < 0:
+        need_to_buy_tokens = int(abs(updated_bill))
+        await callback.message.edit_text(
+            f"Для активации уровня нехватает {need_to_buy_tokens} USDT.",
+            reply_markup=get_donate_keyboard(
+                buttons={
+                    "Преобрести 💳": f"buy_tokens_{need_to_buy_tokens}",
+                    "🔙 Назад": f"donations",
+                },
+                sizes=(1, 1),
+            ),
         )
-        bill = current_user.get_bill_by_type(bill_type)
-        updated_bill = bill - donate_sum
 
-        if updated_bill < 0:
-            need_to_buy_tokens = int(abs(updated_bill))
-            await callback.message.edit_text(
-                f"Для активации уровня нехватает {need_to_buy_tokens} USDT.",
-                reply_markup=get_donate_keyboard(
-                    buttons={
-                        "Преобрести 💳": f"buy_tokens_{need_to_buy_tokens}",
-                        "🔙 Назад": f"donations",
-                    },
-                    sizes=(1, 1),
-                ),
-            )
+        return
 
-            return
+    status = donate_confirm_service.get_donate_status(donate_sum)
+    if not status:
+        return
 
-        status = donate_confirm_service.get_donate_status(donate_sum)
-        if not status:
-            return
+    if not callback.from_user.username:
+        await callback.message.edit_text(
+            "Перед отправкой подарка, "
+            "добавьте пожалуйста <em>username</em> в свой телеграм аккаунт"
+        )
+        return
 
-        if not callback.from_user.username:
-            await callback.message.edit_text(
-                "Перед отправкой подарка, "
-                "добавьте пожалуйста <em>username</em> в свой телеграм аккаунт"
-            )
-            return
-
+    send_private_channel_link = False
+    try:
         if callback.from_user.username != current_user.username:
             current_user.username = callback.from_user.username
 
@@ -608,10 +609,17 @@ async def donate_handler(
         )
 
         if current_user.status == DonateStatus.NOT_ACTIVE or (
-                int(status.get_status_donate_value())
-                > int(current_user.status.get_status_donate_value())
+            status.get_status_donate_value()
+            > current_user.status.get_status_donate_value()
         ):
             current_user.status = status
+
+        if (
+            status.get_status_donate_value() >=
+            DonateStatus.GOLD.get_status_donate_value()
+        ) and not current_user.private_channel_link_sent:
+            current_user.private_channel_link_sent = True
+            send_private_channel_link = True
 
         matrix_activations_count = statistic_service.increment_matrix_activations_count()
         session.commit()
@@ -621,10 +629,7 @@ async def donate_handler(
     finally:
         session.close()
 
-    is_increase_triumph_bills_step = (
-        matrix_activations_count
-        % settings.triumph_bills_increase_activation_interval == 0
-    )
+
     await apply_bot_matrix_tasks(**create_tasks_data)
     await callback.message.delete()
     await callback.message.answer("🎉")
@@ -635,6 +640,21 @@ async def donate_handler(
         callback.from_user.id,
     )
 
+    if send_private_channel_link:
+        limited_link_obj = await bot.create_chat_invite_link(
+            chat_id=settings.private_channel_id,
+            member_limit=1,
+        )
+        await send_message_task.kiq(
+            chat_id=current_user.user_id,
+            text=limited_link_obj.invite_link,
+            delay=0.2,
+        )
+
+    is_increase_triumph_bills_step = (
+        matrix_activations_count
+        % settings.triumph_bills_increase_activation_interval == 0
+    )
     if matrix_activations_count != 0 and is_increase_triumph_bills_step:
         await increase_triumph_bills_task.kiq()
         await send_message_task.kiq(
