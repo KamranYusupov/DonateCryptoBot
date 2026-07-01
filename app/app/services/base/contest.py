@@ -6,14 +6,27 @@ import loguru
 
 from app.core.config import settings
 from app.domain.contest_calculator import ContestResultCalculator
+from app.repositories.base.contest import RepositoryContestBase, RepositoryContestPointBase
 from app.schemas.contest_domain import ContestUpdateSchema, ContestUserItemSchema
 from app.utils.datetime import get_start_of_week, to_main_tz
 from app.models.mixins import AbstractContest, AbstractContestPoint
 
-ContestRepositoryType = TypeVar("ContestRepositoryType")
-ContestPointRepositoryType = TypeVar("ContestPointRepositoryType")
-ContestModelType = TypeVar("ContestModelType", bound=AbstractContest)
-ContestPointModelType = TypeVar("ContestPointModelType", bound=AbstractContestPoint)
+ContestRepositoryType = TypeVar(
+    "ContestRepositoryType",
+    bound=RepositoryContestPointBase,
+)
+ContestPointRepositoryType = TypeVar(
+    "ContestPointRepositoryType",
+    bound=RepositoryContestPointBase,
+)
+ContestModelType = TypeVar(
+    "ContestModelType",
+    bound=AbstractContest,
+)
+ContestPointModelType = TypeVar(
+    "ContestPointModelType",
+    bound=AbstractContestPoint
+)
 
 
 class BaseContestService(Generic[ContestRepositoryType, ContestPointRepositoryType]):
@@ -55,14 +68,6 @@ class BaseContestService(Generic[ContestRepositoryType, ContestPointRepositoryTy
             {"start_at": period_start}
         )
         return current_contest, True
-
-    async def create_contest_point(self, user_id: int) -> ContestPointModelType:
-        current_contest, _ = await self.get_or_create_current_contest()
-        contest_data = {
-            "user_id": user_id,
-            "contest_id": current_contest.id,
-        }
-        return self._repository_contest_point.create(contest_data)
 
     async def get_contest_points(self, *args, **kwargs) -> List[ContestPointModelType]:
         return self._repository_contest_point.list(*args, **kwargs)

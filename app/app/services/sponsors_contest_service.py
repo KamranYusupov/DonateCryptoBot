@@ -4,6 +4,8 @@ from typing import Dict
 import loguru
 
 from app.core.config import settings
+from app.exceptions.donate import DonateStatusNotFoundError
+from app.models import SponsorsContestPoint
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.repositories.sponsors_contest import (
     RepositorySponsorsContest,
@@ -11,7 +13,7 @@ from app.repositories.sponsors_contest import (
 )
 from app.services.base.contest import BaseContestService
 from app.services.base.crud_service import CrudServiceMixin
-from app.models.telegram_user import TelegramUser
+from app.models.telegram_user import TelegramUser, DonateStatus
 from app.utils.datetime import get_start_of_week, to_main_tz
 
 
@@ -32,6 +34,23 @@ class SponsorsContestService(
         )
         CrudServiceMixin.__init__(self, repository=repository_contest)
         self._repository_telegram_user = repository_telegram_user
+
+    def get_points_count_by_status(self, status: DonateStatus) -> int:
+        return int(status.get_status_donate_value() / 25)
+
+    async def create_contest_point(
+            self,
+            user_id: int,
+            status: DonateStatus,
+    ) -> SponsorsContestPoint:
+        current_contest, _ = await self.get_or_create_current_contest()
+        points_count = self.get_points_count_by_status(status)
+        contest_data = {
+            "user_id": user_id,
+            "count": points_count,
+            "contest_id": current_contest.id,
+        }
+        return self._repository_contest_point.create(contest_data)
 
     def _get_period_start(self) -> datetime:
         now = to_main_tz(datetime.now())

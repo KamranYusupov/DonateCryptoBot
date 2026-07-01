@@ -25,6 +25,10 @@ from app.tasks.taskiq.tasks.infra.telegram import (
     send_message_task,
     mass_mailing_task,
 )
+from app.tasks.taskiq.tasks.business.contest import (
+    update_registration_contest_task,
+    update_sponsors_contest_task,
+)
 from app.tasks.taskiq.tasks.business.donations import send_donations_menu_task
 from app.tasks.taskiq.tasks.business.matrix import apply_bot_matrix_tasks
 from app.tasks.taskiq.tasks.business.triumph_bill import increase_triumph_bills_task
@@ -286,6 +290,7 @@ async def subscription_checker(
     await registration_contests_service.create_contest_point(
         user_id=sponsor_user_id,
     )
+    await update_registration_contest_task.kiq()
     if current_user.is_donate_for_registration_sent:
         return
 
@@ -596,8 +601,10 @@ async def donate_handler(
                 contest_point_user_id = contest_point_user.user_id
 
             await sponsors_contests_service.create_contest_point(
-                user_id=contest_point_user_id
+                user_id=contest_point_user_id,
+                status=status
             )
+            await update_sponsors_contest_task.kiq()
 
         await telegram_user_service.increment_bill(
             telegram_user_id=current_user.id,

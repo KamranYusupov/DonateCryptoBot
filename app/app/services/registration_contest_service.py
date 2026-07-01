@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Dict
 
+from app.models import RegistrationContestPoint
 from app.models.telegram_user import TelegramUser
 from app.repositories.registration_contest import (
     RepositoryRegistrationContest,
@@ -29,6 +30,14 @@ class RegistrationContestService(
         )
         CrudServiceMixin.__init__(self, repository=repository_contest)
         self._repository_telegram_user = repository_telegram_user
+
+    async def create_contest_point(self, user_id: int) -> RegistrationContestPoint:
+        current_contest, _ = await self.get_or_create_current_contest()
+        contest_data = {
+            "user_id": user_id,
+            "contest_id": current_contest.id,
+        }
+        return self._repository_contest_point.create(contest_data)
 
     def _get_period_start(self) -> datetime:
         return get_saturday_noon_period_start()
