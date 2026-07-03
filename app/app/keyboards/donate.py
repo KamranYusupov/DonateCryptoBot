@@ -44,15 +44,15 @@ def get_start_inline_keyboard():
     keyboard.add(
         InlineKeyboardButton(
             text="🎬 Фильм «KOD 💵 DENEG»",
-            url="https://t.me/kod_deneg_chat/10"
+            url="https://t.me/kod_deneg_film/15"
         ),
         InlineKeyboardButton(
             text="👨‍💻 Полная презентация",
-            url="https://t.me/kod_deneg_chat/371"
+            url="https://t.me/kod_deneg_chat/2902"
         ),
         InlineKeyboardButton(
             text="🤖 Обзор функций бота",
-            url="https://t.me/kod_deneg_chat/765"
+            url="https://t.me/kod_deneg_chat/2926"
         ),
     )
 
