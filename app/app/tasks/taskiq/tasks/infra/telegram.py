@@ -7,7 +7,8 @@ from app.core.config import settings
 from app.core.taskiq import broker
 from app.services.infra.telegram_bot_service import TelegramBotService
 from app.tasks.taskiq.dependencies.container import ContainerDependency
-
+from app.use_cases.file import SendFileFromLoadedFileIDOrSaveUseCase
+from app.loader import bot
 
 @broker.task(retry_on_error=True)
 async def send_message_task(
@@ -26,6 +27,28 @@ async def send_message_task(
     return await telegram_bot_service.send_message(
         chat_id=chat_id,
         text=text,
+        **kwargs,
+    )
+
+
+@broker.task(retry_on_error=True)
+async def send_photo_task(
+        chat_id: int,
+        caption: str,
+        file_path: str,
+        file_id_path: str,
+        delay: Optional[int | float] = None,
+        **kwargs,
+):
+    if delay:
+        await asyncio.sleep(delay)
+
+    return await SendFileFromLoadedFileIDOrSaveUseCase.send_photo(
+        bot=bot,
+        chat_id=chat_id,
+        caption=caption,
+        file_path=file_path,
+        file_id_path=file_id_path,
         **kwargs,
     )
 

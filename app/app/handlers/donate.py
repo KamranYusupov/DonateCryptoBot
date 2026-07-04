@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
+from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 from aiogram.types import CallbackQuery, FSInputFile
 from aiogram.types import Message
 from sqlalchemy.orm import Session
@@ -23,6 +24,7 @@ from app.services.matrix_service import MatrixService
 from app.keyboards.reply import get_reply_keyboard
 from app.tasks.taskiq.tasks.infra.telegram import (
     send_message_task,
+    send_photo_task,
     mass_mailing_task,
 )
 from app.tasks.taskiq.tasks.business.contest import (
@@ -54,6 +56,7 @@ from app.utils.texts import (
     format_decimal,
     increase_triumph_bills_message_text,
     registration_donate_triumph_bill_text,
+    private_channel_invite_message,
 )
 
 donate_router = Router()
@@ -652,9 +655,17 @@ async def donate_handler(
             chat_id=settings.private_channel_id,
             member_limit=1,
         )
-        await send_message_task.kiq(
+        inline_keyboard = InlineKeyboardBuilder()
+        inline_keyboard.add(InlineKeyboardButton(
+            text="VIP Клуб KOD💵DENEG",
+            url=limited_link_obj.invite_link
+        ))
+        await send_photo_task.kiq(
             chat_id=current_user.user_id,
-            text=limited_link_obj.invite_link,
+            file_path=settings.private_channel_invite_image_file_path,
+            file_id_path=settings.private_channel_invite_image_file_id_path,
+            caption=private_channel_invite_message.format(limited_link_obj.invite_link),
+            reply_markup=inline_keyboard.as_markup(),
             delay=0.2,
         )
 

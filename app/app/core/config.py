@@ -241,6 +241,16 @@ class Settings(BaseSettings):
 
     @computed_field
     @property
+    def private_channel_invite_image_file_path(self) -> str:
+        return f"{self.media_root}private_channel_invite.jpg"
+
+    @computed_field
+    @property
+    def private_channel_invite_image_file_id_path(self) -> str:
+        return f"{self.media_root}file_ids/private_channel_invite_jpg.txt"
+
+    @computed_field
+    @property
     def kod_deneg_video_file_path(self) -> str:
         return f"{self.media_root}kod_deneg.MP4"
 
