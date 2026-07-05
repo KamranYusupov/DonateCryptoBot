@@ -1,4 +1,5 @@
 import html
+import uuid
 from datetime import datetime, timedelta
 
 import loguru
@@ -27,6 +28,7 @@ from app.utils.texts import (
 
 async def send_donations_menu(
         from_user_id: int,
+        current_user_id: uuid.UUID,
         telegram_method,
         telegram_user_service: TelegramUserService,
         matrix_service: MatrixService,
@@ -39,7 +41,7 @@ async def send_donations_menu(
         telegram_method_kwargs["chat_id"] = from_user_id
 
     current_user = await telegram_user_service.get_telegram_user(
-        user_id=from_user_id
+        id=current_user_id
     )
     if not current_user:
         return
@@ -66,11 +68,6 @@ async def send_donations_menu(
         "Всего заработано: "
         f"<b>${format_decimal(current_user.donates_sum)}</b>\n"
     )
-
-    if current_user.status != DonateStatus.NOT_ACTIVE:
-        default_buttons.update({
-            "АКТИВНЫЕ ПЛОЩАДКИ": f"team_1",
-        })
 
     if current_user.is_admin:
         default_buttons["Транзакции 💳".upper()] = "transactions"
@@ -242,7 +239,6 @@ async def send_donations_menu(
         else:
             triumph_node_expires_in_days += 1
 
-
         triumph_node_deadline_str = triumph_node_deadline_template.format(
             triumph_node_expires_in_days,
             triumph_node_deadline_additional_str
@@ -273,6 +269,13 @@ async def send_donations_menu(
             style="danger",
         )
     )
+    if current_user.status != DonateStatus.NOT_ACTIVE:
+        inline_buttons.append(
+            InlineKeyboardButton(
+                text="АКТИВНЫЕ ПЛОЩАДКИ",
+                callback_data="team_1",
+            )
+        )
     sizes = (1, ) * len(inline_buttons)
 
     inline_buttons.extend([

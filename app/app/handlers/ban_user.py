@@ -16,6 +16,7 @@ from app.keyboards.reply import get_reply_keyboard
 from app.keyboards.reply import reply_cancel_keyboard
 from app.utils.bot import send_message_or_pass
 from app.keyboards.inline import get_confirm_inline_keyboard
+from app.models.telegram_user import TelegramUser
 
 ban_user_router = Router()
 
@@ -39,6 +40,7 @@ async def start_ban_user_context(callback: CallbackQuery, state: FSMContext) -> 
 async def process_name(
         message: Message,
         state: FSMContext,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -46,9 +48,6 @@ async def process_name(
     username = message.text
     telegram_user = await telegram_user_service.get_telegram_user(
         username=username
-    )
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=message.from_user.id
     )
     error_buttons = {
         "Попробовать ещё раз 🔄": "ban_user",

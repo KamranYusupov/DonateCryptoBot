@@ -103,21 +103,21 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
 
         return self._session.execute(statement).scalars().all()
 
-    def get_telegram_user_with_sponsors(
-        self, user_id: int
+    def get_sponsors(
+        self, sponsor_user_id: int
     ) -> tuple[TelegramUser, TelegramUser, TelegramUser]:
-        t1, t2, t3, t4 = [aliased(TelegramUser) for _ in range(4)]
-        sponsors = (
-            self._session.query(t1, t2, t3, t4)
+        t1, t2, t3 = [aliased(TelegramUser) for _ in range(3)]
+        statement = (
+            select(t1, t2, t3)
             .outerjoin(t2, t2.user_id == t1.sponsor_user_id)
             .outerjoin(t3, t3.user_id == t2.sponsor_user_id)
-            .outerjoin(t4, t4.user_id == t3.sponsor_user_id)
-            .filter(t1.user_id == user_id)
+            .filter(t1.user_id == sponsor_user_id)
             .limit(1)
-            .one_or_none()
         )
+        result = self._session.execute(statement)
 
-        return sponsors
+        return result.one_or_none()
+
 
     def get_sponsor_recursively(
             self,

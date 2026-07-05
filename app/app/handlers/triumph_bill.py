@@ -47,15 +47,9 @@ class IncrementTriumphBillState(StatesGroup):
 async def start_triumph_bill_handler(
         callback: CallbackQuery,
         state: FSMContext,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
+        current_user: TelegramUser,
 ) -> None:
     bill_type = callback.data.split("_")[-1]
-
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=callback.from_user.id
-    )
     bill_value = getattr(current_user, f"bill_for_{bill_type}")
 
     if not bill_value:
@@ -95,9 +89,7 @@ async def start_triumph_bill_handler(
 async def process_amount(
         message: Message,
         state: FSMContext,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
+        current_user: TelegramUser,
 ) -> None:
 
     try:
@@ -116,10 +108,6 @@ async def process_amount(
 
     state_data = await state.get_data()
     bill_type = state_data["bill_type"]
-
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=message.from_user.id
-    )
     bill_value = getattr(current_user, f"bill_for_{bill_type}")
 
     current_triumph_bill = current_user.triumph_bill if current_user.triumph_bill is not None else 0
@@ -170,6 +158,7 @@ async def process_amount(
 async def confirm_triumph_bill_increment_handler(
         callback: CallbackQuery,
         state: FSMContext,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -194,10 +183,6 @@ async def confirm_triumph_bill_increment_handler(
     bill_type = state_data["bill_type"]
     amount = state_data["amount"]
 
-
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=callback.from_user.id
-    )
     bill_field_name = f"bill_for_{bill_type}"
     bill_value = getattr(current_user, bill_field_name)
 
@@ -250,6 +235,7 @@ async def confirm_triumph_bill_increment_handler(
     )
     await send_donations_menu(
         from_user_id=callback.from_user.id,
+        current_user_id=current_user.id,
         telegram_method=bot.send_message,
         telegram_user_service=telegram_user_service,
         matrix_service=matrix_service,

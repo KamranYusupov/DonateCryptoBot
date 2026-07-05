@@ -6,13 +6,18 @@ from dependency_injector.wiring import inject, Provide
 from app.core.config import settings
 from app.core.container import Container
 from app.models.matrix import MatrixEngineType
-from app.models.telegram_user import status_list, DonateStatus
+from app.models.telegram_user import TelegramUser, status_list, DonateStatus
 from app.services.donate_service import DonateService
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.telegram_user_service import TelegramUserService
 from app.tasks.taskiq.tasks.business.matrix import apply_bot_matrix_tasks
+from app.services.admin_impersonation_service import AdminImpersonationService
+from app.filters.admin import IsAdminFilter
+from app.utils.user import parse_user_identifier
 
 admin_router = Router()
+admin_router.message.filter(IsAdminFilter())
+admin_router.callback_query.filter(IsAdminFilter())
 
 
 @admin_router.message(Command("activate"))
@@ -28,14 +33,7 @@ async def activate_matrix_handler(
         ],
         donate_service: DonateService = Provide[Container.donate_service],
 ):
-    sender_user = await telegram_user_service.get_telegram_user(
-        user_id=message.from_user.id,
-    )
-    if not sender_user or not sender_user.is_admin:
-        return
-
-
-    user_id, status_index = command.args.split(" ")
+    user_str, status_index = command.args.split(" ")
     status_index = int(status_index)
 
     try:
@@ -43,19 +41,19 @@ async def activate_matrix_handler(
     except IndexError:
         await message.answer("Некорректный номер статуса")
         return
-    try:
-        user_id = int(user_id)
-        current_user = await telegram_user_service.get_telegram_user(
-            user_id=user_id
-        )
-    except:
-        username = user_id[1:] if "@" == user_id[0] else user_id
 
-        current_user = await telegram_user_service.get_telegram_user(
-            username=username,
-        )
+    user_query_kwargs = {}
+    user_id, username = parse_user_identifier(user_str)
+    if user_id:
+        user_query_kwargs["user_id"] = user_id
+    elif username:
+        user_query_kwargs["username"] = username
+    else:
+        return
 
-    if not current_user:
+    input_user = await telegram_user_service.get(**user_query_kwargs)
+
+    if not input_user:
         await message.answer("Пользователь не найден")
         return
 
@@ -69,12 +67,12 @@ async def activate_matrix_handler(
 
     }
     first_sponsor = await telegram_user_service.get_telegram_user(
-        user_id=current_user.sponsor_user_id,
+        user_id=input_user.sponsor_user_id,
     )
 
     if not is_triumph:
         result = await donate_service.handle_matrix_activation(
-            current_user,
+            input_user,
             first_sponsor,
             donate_sum,
             transactions_data=[],
@@ -94,7 +92,7 @@ async def activate_matrix_handler(
 
     else:
         inserted_node, upline_nodes = await matrix_node_service.activate_matrix_node(
-            current_user_id=current_user.id,
+            current_user_id=input_user.id,
             sponsor_id=first_sponsor.id,
             status=status,
         )
@@ -103,9 +101,9 @@ async def activate_matrix_handler(
 
     if (
         donate_sum >
-        DonateStatus.get_status_donate_value(current_user.status)
+        DonateStatus.get_status_donate_value(input_user.status)
     ):
-        current_user.status = status
+        input_user.status = status
 
     await apply_bot_matrix_tasks(**create_tasks_data)
 
@@ -113,6 +111,56 @@ async def activate_matrix_handler(
     await message.answer(
         "<b>Площадка успешно активирована, бот начал свою работу ✅</b>"
     )
+
+
+@admin_router.message(Command("start_user_session"))
+@inject
+async def start_user_session_handler(
+        message: Message,
+        command: CommandObject,
+        telegram_user_service: TelegramUserService = Provide[
+            Container.telegram_user_service
+        ],
+        impersonation_service: AdminImpersonationService = Provide[
+            Container.impersonation_service
+        ]
+):
+    if not command.args:
+        await message.answer("Введите username или id пользователя")
+        return
+
+    user_query_kwargs = {}
+    user_id, username = parse_user_identifier(command.args)
+    if user_id:
+        user_query_kwargs["user_id"] = user_id
+    elif username:
+        user_query_kwargs["username"] = username
+    else:
+        return
+
+    input_user = await telegram_user_service.get(**user_query_kwargs)
+
+    if not input_user:
+        await message.answer("Пользователь не найден.")
+        return
+
+    await impersonation_service.start_impersonation(input_user.user_id)
+    await message.answer("Сессия начата.")
+
+
+@admin_router.message(Command("end_user_session"))
+@inject
+async def end_user_session_handler(
+        message: Message,
+        impersonation_service: AdminImpersonationService = Provide[
+            Container.impersonation_service
+        ]
+):
+    await impersonation_service.end_impersonation()
+    await message.answer("Сессия закончена.")
+
+
+
 
 
 

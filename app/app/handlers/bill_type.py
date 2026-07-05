@@ -13,6 +13,7 @@ from app.models.telegram_user import DonateStatus
 from app.services import DonateConfirmService
 from app.services.telegram_user_service import TelegramUserService
 from app.utils.texts import format_decimal
+from app.models.telegram_user import TelegramUser
 
 bill_type_router = Router()
 
@@ -23,6 +24,7 @@ bill_type_router = Router()
 @inject
 async def bill_type_handler(
         callback: CallbackQuery,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -32,9 +34,7 @@ async def bill_type_handler(
 ) -> None:
     callback_data = callback.data.split("_")
     triumph_bill = None
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=callback.from_user.id,
-    )
+
     message_text = ''
     callback_prefix = None
     if callback.data.startswith("confirm_donate_"):
@@ -64,9 +64,6 @@ async def bill_type_handler(
     if not callback_prefix:
         return
 
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=callback.from_user.id,
-    )
     buttons = get_bill_type_choice_buttons(
         bill_for_withdraw=current_user.bill_for_withdraw,
         bill_for_activation=current_user.bill_for_activation,

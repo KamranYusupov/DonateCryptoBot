@@ -79,6 +79,7 @@ class CryptoBotPaymentOrchestrator:
 
         await send_donations_menu_task.kiq(
             chat_id=chat_id,
+            current_user_id=chat_id,
         )
 
 

@@ -19,6 +19,7 @@ from app.services.transfer_service import TransferService
 from app.utils.pagination import Paginator, get_pagination_buttons
 from app.utils.datetime import to_main_tz
 from app.utils.bot import send_message_or_pass
+from app.models.telegram_user import TelegramUser
 
 transfer_router = Router()
 
@@ -34,15 +35,12 @@ class TransferState(StatesGroup):
 async def transfer_callback_handler(
         callback: CallbackQuery,
         state: FSMContext,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
 ) -> None:
     bill_type = callback.data.split("_")[-1]
-
-    telegram_user = await telegram_user_service.get_telegram_user(
-        user_id=callback.from_user.id
-    )
     bill_value = getattr(telegram_user, f"bill_for_{bill_type}")
 
     if not bill_value:
@@ -91,9 +89,6 @@ async def process_receiver_username(
 async def process_amount(
         message: Message,
         state: FSMContext,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
 ) -> None:
 
     try:
@@ -113,9 +108,6 @@ async def process_amount(
     state_data = await state.get_data()
     bill_type = state_data["bill_type"]
 
-    telegram_user = await telegram_user_service.get_telegram_user(
-        user_id=message.from_user.id
-    )
     bill_value = getattr(telegram_user, f"bill_for_{bill_type}")
 
     if not bill_value:
@@ -156,6 +148,7 @@ async def process_amount(
 async def transfer_tokens_handler(
         callback: CallbackQuery,
         state: FSMContext,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -168,7 +161,7 @@ async def transfer_tokens_handler(
     bill_type = state_data["bill_type"]
     bill_field = f"bill_for_{bill_type}"
 
-    sender = await telegram_user_service.get_telegram_user(user_id=callback.from_user.id)
+    sender = current_user
     receiver = await telegram_user_service.get_telegram_user(username=state_data["receiver_username"])
 
     sender_bill_value = getattr(sender, bill_field)
@@ -208,16 +201,11 @@ async def transfer_tokens_handler(
 @inject
 async def transfer_list_handler(
         callback: CallbackQuery,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
+        current_user: TelegramUser,
         transfer_service: TransferService = Provide[
             Container.transfer_service
         ],
 ):
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=callback.from_user.id
-    )
     if not current_user.is_admin:
         return
 

@@ -1,4 +1,5 @@
 from dependency_injector import containers, providers
+from redis.asyncio import Redis
 
 from app import loader
 from app.core.config import Settings
@@ -59,17 +60,24 @@ from app.services import (
     MatrixActivationNotifierService,
     TriumphBillService,
     TriumphBillTransactionService,
+    AdminImpersonationService,
 )
 from app.use_cases import (
     RegistrationContestUseCase,
     SponsorsContestUseCase,
 )
-
+from app.core.redis import init_redis_pool
 
 class Container(containers.DeclarativeContainer):
     settings = providers.Factory(Settings)
     db = providers.Singleton(SyncSession, db_url=settings.provided.postgres_url)
     session = providers.Factory(db.provided.create_session.call())
+    redis_client = providers.Resource(
+        init_redis_pool,
+        redis_url=settings.provided.redis_url,
+        decode_responses=settings.provided.redis_decode_responses,
+        health_check_interval=settings.provided.redis_health_check_interval
+    )
 
     # region repository
     repository_telegram_user = providers.Factory(
@@ -220,6 +228,11 @@ class Container(containers.DeclarativeContainer):
         TriumphBillTransactionService,
         repository_triumph_bill_transaction=repository_triumph_bill_transaction,
     )
+    impersonation_service = providers.Factory(
+        AdminImpersonationService,
+        redis_client=redis_client,
+        impersonation_user_id_key=settings.provided.impersonation_user_id_key,
+    )
     # endregion
 
     # region orchestrators
@@ -268,6 +281,7 @@ class Container(containers.DeclarativeContainer):
         "app.use_cases.donations",
 
         "app.middlewares.ban_user",
+        "app.middlewares.current_user",
         "app.middlewares.subscriptions",
 
         "app.utils.excel",

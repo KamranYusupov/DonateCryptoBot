@@ -38,14 +38,6 @@ async def about_handler(
     presentation_keyboard = InlineKeyboardBuilder()
     presentation_keyboard.add(
         InlineKeyboardButton(
-            text="🏆 КОНКУРС КУРАТОРОВ",
-            callback_data=settings.sponsors_contest_callback_prefix,
-        ),
-        InlineKeyboardButton(
-            text="🌊 ВОЛНА ИЗОБИЛИЯ",
-            callback_data=settings.registration_contest_callback_prefix,
-        ),
-        InlineKeyboardButton(
             text="🎬 Фильм «KOD 💵 DENEG»",
             callback_data="kod_deneg_movie"
         ),
@@ -55,29 +47,36 @@ async def about_handler(
         ),
         InlineKeyboardButton(
             text="📎 Инструкция к фильму",
-            url="https://t.me/kod_deneg_film/12"
+            url="https://t.me/kod_deneg_film/11"
         ),
         InlineKeyboardButton(
             text="🖥 Презентация",
             url=settings.presentation_link,
         ),
         InlineKeyboardButton(
-            text="📌 Канал сообщества",
+            text="🏆 КОНКУРС КУРАТОРОВ",
+            callback_data=settings.sponsors_contest_callback_prefix,
+        ),
+        InlineKeyboardButton(
+            text="🌊 ВОЛНА ИЗОБИЛИЯ",
+            callback_data=settings.registration_contest_callback_prefix,
+        ),
+        InlineKeyboardButton(
+            text="📌 Канал",
             url=settings.channel_link
         ),
         InlineKeyboardButton(
-            text="💬 Чат сообщества",
+            text="💬 Чат ",
             url=settings.chat_link
         ),
     )
-    presentation_keyboard.add()
-
+    sizes = (1, 1, 1, 1, 1, 1, 2)
     await SendFileFromLoadedFileIDOrSaveUseCase.send_photo(
         bot=bot,
         chat_id=message.from_user.id,
         file_path=settings.about_image_file_path,
         file_id_path=settings.about_image_file_id_path,
-        reply_markup=presentation_keyboard.adjust(1).as_markup(),
+        reply_markup=presentation_keyboard.adjust(*sizes).as_markup(),
     )
 
 @info_router.callback_query(F.data == "kod_deneg_movie")
@@ -122,6 +121,7 @@ async def kod_mood_movie_handler(
 @inject
 async def team_inline_handler(
         callback: CallbackQuery,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -133,10 +133,6 @@ async def team_inline_handler(
     callback_data_list = callback.data.split("_")
     is_archive = callback_data_list[0] == "archive"
 
-
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=callback.from_user.id
-    )
     matrices = await matrix_service.get_list(
         Matrix.status != DonateStatus.BRILLIANT,
         owner_id=current_user.id,
@@ -248,13 +244,11 @@ async def team_inline_handler(
 @inject
 async def referral_message_handler(
         message: Message,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
 ):
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=message.from_user.id
-    )
     if not current_user:
         return
 
@@ -373,10 +367,11 @@ async def referral_handler(
 @inject
 async def send_referral_message_handler(
         aiogram_type: Message | CallbackQuery,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
+        current_user: TelegramUser,
 ) -> None:
+    if not current_user:
+        return
+
     if isinstance(aiogram_type, Message):
         telegram_method = aiogram_type.answer
         page_number = 1
@@ -384,12 +379,6 @@ async def send_referral_message_handler(
         callback = aiogram_type
         page_number = int(callback.data.split("_")[-1])
         telegram_method = callback.message.edit_text
-
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=aiogram_type.from_user.id
-    )
-    if not current_user:
-        return
 
     message_text, reply_markup = await referral_handler(
         current_user=current_user,

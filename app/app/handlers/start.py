@@ -14,7 +14,7 @@ from app.schemas.telegram_user import TelegramUserEntity, generate_random_user
 from app.schemas.matrix import MatrixEntity
 from app.keyboards.donate import get_donate_keyboard
 from app.core.config import settings
-from app.models.telegram_user import status_list
+from app.models.telegram_user import status_list, TelegramUser
 from app.services.matrix_service import MatrixService
 from app.utils.sponsor import get_callback_value
 from app.services.donate_service import DonateService
@@ -35,12 +35,11 @@ async def command_start(
         message: Message,
         command: CommandObject,
         state: FSMContext,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
 ) -> None:
-    current_user = await telegram_user_service.get_telegram_user(user_id=message.from_user.id)
-
     sponsor_user_id = current_user.sponsor_user_id if current_user else command.args
     sponsor = await telegram_user_service.get_telegram_user(user_id=sponsor_user_id)
     if (not sponsor or sponsor.is_bot) and not current_user:
@@ -102,14 +101,11 @@ async def delete_msg_handler(
 async def cancel_handler(
         message: Message,
         state: FSMContext,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
 ):
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=message.from_user.id
-    )
-
     await message.answer(
         text="Действие отменено",
         reply_markup=get_reply_keyboard(current_user)

@@ -13,29 +13,22 @@ from app.services.triumph_bill_transaction_service import TriumphBillTransaction
 from app.utils.datetime import to_main_tz
 from app.utils.pagination import Paginator, get_pagination_buttons, OuterPaginator
 from app.utils.texts import get_triumph_bill_transaction_message, format_decimal
+from app.filters.admin import IsAdminFilter
 
 triumph_bill_transaction_router = Router()
 triumph_bill_transactions_list_per_page = 5
 
 @triumph_bill_transaction_router.callback_query(
-    F.data.startswith("triumph_bill_transactions_")
+    F.data.startswith("triumph_bill_transactions_"),
+    IsAdminFilter(),
 )
 @inject
 async def triumph_bill_transactions_list_handler(
         callback: CallbackQuery,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
         triumph_bill_transaction_service: TriumphBillTransactionService = Provide[
             Container.triumph_bill_transaction_service
         ],
 ):
-    current_user = await telegram_user_service.get(
-        user_id=callback.from_user.id
-    )
-    if not current_user.is_admin:
-        return
-
     callback_data = callback.data.split("_")
     page_number = int(callback_data[-1])
     base_callback_data = "_".join(callback_data[:-1])

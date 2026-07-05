@@ -86,7 +86,13 @@ class Settings(BaseSettings):
     # region Настройки Redis
     redis_host: str = Field(title="Хост redis", default="redis")
     redis_port: int | str = Field(title="Порт redis", default=6379)
+    redis_decode_responses: bool = Field(default=True)
+    redis_health_check_interval: int = Field(default=30)
     # endregion
+
+    # region Настройки Admin Impersonation Sessions
+    impersonation_user_id_key: str = Field(default="impersonation_user_id_key")
+    #
 
     # region Настройки TaskIQ
     taskqi_result_backend_result_ex_time: int = Field(

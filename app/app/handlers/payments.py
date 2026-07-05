@@ -16,6 +16,8 @@ from app.keyboards.inline import get_confirm_inline_keyboard
 from app.services.infra.crypto_bot_api_service import CryptoBotAPIService
 from app.keyboards.reply import reply_cancel_keyboard, get_reply_keyboard
 
+from app.models.telegram_user import TelegramUser
+
 payment_router = Router()
 
 class BuyTokensState(StatesGroup):
@@ -70,6 +72,7 @@ async def process_tokens_count(
 @inject
 async def buy_tokens_handler(
         callback: CallbackQuery,
+        current_user: TelegramUser,
         crypto_bot_api_service: CryptoBotAPIService = Provide[
             Container.crypto_bot_api_service
         ],
@@ -84,7 +87,7 @@ async def buy_tokens_handler(
     tokens_count = Decimal(callback.data.split("_")[-1])
 
     payload = {
-        "telegram_id": callback.from_user.id,
+        "telegram_id": current_user.user_id,
         "tokens_count": str(tokens_count),
         "messages_to_delete_ids": messages_to_delete_ids,
     }

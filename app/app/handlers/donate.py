@@ -67,6 +67,7 @@ donate_router = Router()
 async def captcha_handler(
         callback: CallbackQuery,
         state: FSMContext,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -74,10 +75,7 @@ async def captcha_handler(
             Container.session
         ]
 ) -> None:
-    current_user_exists = await telegram_user_service.exists(
-        user_id=callback.from_user.id,
-    )
-    if current_user_exists:
+    if current_user:
         return
 
     await state.clear()
@@ -135,6 +133,7 @@ async def captcha_handler(
 async def register_handler(
         callback: CallbackQuery,
         state: FSMContext,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -152,9 +151,6 @@ async def register_handler(
             Container.session
         ],
 ) -> None:
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=callback.from_user.id
-    )
     captcha_id = callback.data.split("_")[-4]
     option, attempt, sponsor_user_id = map(int, callback.data.split("_")[-3:])
 
@@ -162,6 +158,7 @@ async def register_handler(
         await state.clear()
         await send_donations_menu(
             from_user_id=current_user.user_id,
+            current_user_id=current_user.id,
             telegram_method=bot.send_message,
             telegram_user_service=telegram_user_service,
             matrix_service=matrix_service,
@@ -240,6 +237,7 @@ async def register_handler(
 @inject
 async def subscription_checker(
         callback: CallbackQuery,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -253,7 +251,7 @@ async def subscription_checker(
     sponsor_user_id = int(callback.data.split("_")[-1])
     reply_markup = await get_subscriptions_keyboard(
         bot=bot,
-        user_id=callback.from_user.id,
+        user_id=current_user.user_id,
         sponsor_user_id=sponsor_user_id,
     )
     if reply_markup:
@@ -265,10 +263,6 @@ async def subscription_checker(
         )
         return
 
-
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=callback.from_user.id
-    )
     sponsor = await telegram_user_service.get_telegram_user(
         user_id=current_user.sponsor_user_id
     )
@@ -355,6 +349,7 @@ async def subscription_checker(
 @inject
 async def donations_menu_handler(
         aiogram_type: Message | CallbackQuery,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -372,8 +367,10 @@ async def donations_menu_handler(
     telegram_method = bot.send_message if isinstance(aiogram_type, Message) \
         else aiogram_type.message.edit_text
 
+
     await send_donations_menu(
         from_user_id=aiogram_type.from_user.id,
+        current_user_id=current_user.id,
         telegram_method=telegram_method,
         telegram_user_service=telegram_user_service,
         matrix_service=matrix_service,
@@ -406,6 +403,7 @@ async def export_users_to_excel_callback_handler(
 @inject
 async def confirm_donate(
         callback: CallbackQuery,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -414,9 +412,6 @@ async def confirm_donate(
     callback_donate_data = "_".join(callback.data.split("_")[1:])
     donate_sum = Decimal(callback_donate_data.split("_")[-2])
     bill_type = BillType(callback_donate_data.split("_")[-1])
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=callback.from_user.id
-    )
     bill = current_user.get_bill_by_type(bill_type)
     need_to_buy_tokens = bill - donate_sum
 
@@ -458,6 +453,7 @@ async def confirm_donate(
 @inject
 async def donate_handler(
         callback: CallbackQuery,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -481,8 +477,8 @@ async def donate_handler(
 ) -> None:
     bill_type = BillType(callback.data.split("_")[-1])
     donate_sum = Decimal(callback.data.split("_")[-2])
-    current_user, *sponsors = await telegram_user_service.get_telegram_user_with_sponsors(
-        user_id=callback.from_user.id
+    sponsors = await telegram_user_service.get_sponsors(
+        sponsor_user_id=current_user.sponsor_user_id,
     )
     bill = current_user.get_bill_by_type(bill_type)
     updated_bill = bill - donate_sum
@@ -648,6 +644,7 @@ async def donate_handler(
     )
     await send_donations_menu_task.kiq(
         callback.from_user.id,
+        current_user_id=current_user.id,
     )
 
     if send_private_channel_link:
@@ -661,7 +658,7 @@ async def donate_handler(
             url=limited_link_obj.invite_link
         ))
         await send_photo_task.kiq(
-            chat_id=current_user.user_id,
+            chat_id=callback.from_user.id,
             file_path=settings.private_channel_invite_image_file_path,
             file_id_path=settings.private_channel_invite_image_file_id_path,
             caption=private_channel_invite_message.format(limited_link_obj.invite_link),
@@ -681,7 +678,7 @@ async def donate_handler(
         )
 
     await matrix_activation_notifier_service.notify_invited_users(
-        sponsor_user_id=callback.from_user.id,
+        sponsor_user_id=current_user.user_id,
         status=status,
     )
     await asyncio.gather(*[
@@ -695,6 +692,7 @@ async def donate_handler(
 @inject
 async def get_transactions_menu(
         callback: CallbackQuery,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -703,9 +701,7 @@ async def get_transactions_menu(
         "Транзакции мне 📈": f"transactions_to_me_1",
         "Транзакции от меня 📉": f"transactions_from_me_1",
     }
-    user_id = callback.from_user.id
-    user = await telegram_user_service.get_telegram_user(user_id=user_id)
-    if user.is_admin:
+    if current_user.is_admin:
         buttons.update({
             "Все транзакции 📊": f"all_transactions_1",
             "Транзакции в Сейф Триумф": "triumph_bill_transactions_1",
@@ -724,6 +720,7 @@ async def get_transactions_menu(
 @inject
 async def get_transactions_list_to_me(
         callback: CallbackQuery,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -734,10 +731,8 @@ async def get_transactions_list_to_me(
 ) -> None:
     page_number = int(callback.data.split("_")[-1])
 
-    user_id = callback.from_user.id
-    user = await telegram_user_service.get_telegram_user(user_id=user_id)
     transactions = await donate_confirm_service.get_donate_transaction_by_sponsor_id(
-        sponsor_id=user.id,
+        sponsor_id=current_user.id,
     )
 
     paginator = Paginator(transactions, page_number=page_number, per_page=5)
@@ -804,21 +799,15 @@ async def get_transactions_list_to_me(
 @inject
 async def get_transactions_list_from_me(
         callback: CallbackQuery,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
-        donate_service: DonateService = Provide[Container.donate_service],
-        matrix_service: MatrixService = Provide[Container.matrix_service],
+        current_user: TelegramUser,
         donate_confirm_service: DonateConfirmService = Provide[
             Container.donate_confirm_service
         ],
 ) -> None:
     page_number = int(callback.data.split("_")[-1])
 
-    user_id = callback.from_user.id
-    user = await telegram_user_service.get_telegram_user(user_id=user_id)
     donates = await donate_confirm_service.get_all_my_donates_and_transactions(
-        telegram_user_id=user.id,
+        telegram_user_id=current_user.id,
     )
 
     paginator = Paginator(list(donates.items()), page_number=page_number, per_page=3)

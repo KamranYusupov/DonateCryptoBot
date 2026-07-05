@@ -13,7 +13,9 @@ from app.middlewares.ban_user import (
     ban_user_middleware,
 )
 from app.middlewares.session_middleware import SQLAlchemySessionMiddleware
+from app.middlewares.current_user import CurrentUserMiddleware
 from app.middlewares.subscriptions import subscription_checker_middleware
+
 from loader import dp, bot
 
 if TYPE_CHECKING:
@@ -22,6 +24,7 @@ if TYPE_CHECKING:
 
 async def main(container: 'Container'):
     """Запуск бота."""
+    await container.init_resources()
 
     try:
         all_routers = get_all_routers()
@@ -29,16 +32,20 @@ async def main(container: 'Container'):
         dp.update.outer_middleware(
             SQLAlchemySessionMiddleware(sync_session=container.db())
         )
+
+        dp.message.outer_middleware(CurrentUserMiddleware())
+        dp.callback_query.outer_middleware(CurrentUserMiddleware())
+
         dp.message.middleware(private_chat_only_middleware)
-        dp.message.middleware(rate_limit_middleware)
+        dp.message.outer_middleware(rate_limit_middleware)
         dp.message.middleware(subscription_checker_middleware)
         dp.message.middleware(ban_user_middleware)
         dp.callback_query.middleware(ban_user_middleware)
 
-        await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot)
     finally:
         await bot.session.close()
+        await container.shutdown_resources()
 
 
 if __name__ == "__main__":

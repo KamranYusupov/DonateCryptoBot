@@ -30,6 +30,7 @@ from app.utils.texts import get_withdrawal_request_info_message
 from app.validators.crypto_wallets import ValidateWalletAddress
 from app.models.withdrawal_request import CryptoNetworkType
 from app.utils.bot import send_message_or_pass
+from app.models.telegram_user import TelegramUser
 
 withdrawal_requests_router = Router()
 
@@ -85,9 +86,7 @@ async def network_withdrawal_request_handler(
 async def process_wallet_address(
         message: Message,
         state: FSMContext,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
+        current_user: TelegramUser,
 ) -> None:
     wallet_address = message.text
     state_data = await state.get_data()
@@ -100,12 +99,8 @@ async def process_wallet_address(
 
     await state.update_data(wallet_address=wallet_address)
     await state.set_state(WithdrawalRequestState.tokens_count)
-
-    telegram_user = await telegram_user_service.get_telegram_user(
-        user_id=message.from_user.id
-    )
     await message.answer(
-        f"Отправьте количесто USDT для вывода(всего <b>{int(telegram_user.bill_for_withdraw)}</b>)."
+        f"Отправьте количесто USDT для вывода(всего <b>{int(current_user.bill_for_withdraw)}</b>)."
     )
 
 
@@ -166,20 +161,14 @@ async def process_tokens_count(
 async def send_withdrawal_request_handler(
         callback: CallbackQuery,
         state: FSMContext,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
+        current_user: TelegramUser,
         withdrawal_request_service: WithdrawalRequestService = Provide[
             Container.withdrawal_request_service
         ],
 ) -> None:
-    telegram_user = await telegram_user_service.get_telegram_user(
-        user_id=callback.from_user.id
-    )
-
     state_data = await state.get_data()
 
-    if state_data["tokens_count"] > telegram_user.bill_for_withdraw:
+    if state_data["tokens_count"] > current_user.bill_for_withdraw:
         await callback.message.edit_text(
             "❌ Число превышает сумму на балансе.",
         )
@@ -188,11 +177,11 @@ async def send_withdrawal_request_handler(
 
     await withdrawal_request_service.create_withdrawal_request(
         WithdrawalRequestEntity(
-            telegram_user_id=telegram_user.id,
+            telegram_user_id=current_user.id,
             **state_data,
         )
     )
-    telegram_user.bill_for_withdraw -= state_data["tokens_count"]
+    current_user.bill_for_withdraw -= state_data["tokens_count"]
     await state.clear()
     await callback.message.edit_text(
         "Заявка на вывод средств отправлена ✅. Средства поступят в течение 24 часов.",

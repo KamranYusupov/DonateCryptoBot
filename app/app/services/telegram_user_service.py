@@ -83,12 +83,12 @@ class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
 
         return bot_user
 
-    async def get_telegram_user_with_sponsors(
-        self, user_id: int
+    async def get_sponsors(
+        self, sponsor_user_id: int
     ) -> tuple[TelegramUser, TelegramUser, TelegramUser]:
 
-        return self._repository_telegram_user.get_telegram_user_with_sponsors(
-            user_id=user_id
+        return self._repository_telegram_user.get_sponsors(
+            sponsor_user_id=sponsor_user_id
         )
 
     async def get_one_sponsor(self, user_id: int):

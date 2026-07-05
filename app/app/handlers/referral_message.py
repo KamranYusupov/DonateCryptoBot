@@ -132,14 +132,12 @@ async def answer_created_message(
         message: Message,
         state: FSMContext,
         from_user_id: int,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
 ):
     data = await state.get_data()
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=from_user_id
-    )
     await message.answer(
         "Готовый вариант:",
         reply_markup=get_reply_keyboard(current_user)
@@ -222,13 +220,11 @@ async def send_complete_message_callback_handler(
 async def process_complete_message_handler(
         message: Message,
         state: FSMContext,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
 ):
-    current_user = await telegram_user_service.get_telegram_user(
-        user_id=message.from_user.id
-    )
     await state.update_data(complete_message=message)
     await state.set_state(MessageForm.confirm_referrals_send)
     await message.answer(
@@ -254,12 +250,11 @@ async def process_complete_message_handler(
 async def confirm_referrals_send_message_handler(
         callback: CallbackQuery,
         state: FSMContext,
+        current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
 ):
-    current_user = await telegram_user_service.get_telegram_user(user_id=callback.from_user.id)
-
     state_data = await state.get_data()
     to = state_data.get("to")
 
