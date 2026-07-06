@@ -36,12 +36,9 @@ async def transfer_callback_handler(
         callback: CallbackQuery,
         state: FSMContext,
         current_user: TelegramUser,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
 ) -> None:
     bill_type = callback.data.split("_")[-1]
-    bill_value = getattr(telegram_user, f"bill_for_{bill_type}")
+    bill_value = getattr(current_user, f"bill_for_{bill_type}")
 
     if not bill_value:
         await callback.message.edit_text("Баланс равен нулю.",)
@@ -89,6 +86,7 @@ async def process_receiver_username(
 async def process_amount(
         message: Message,
         state: FSMContext,
+        current_user: TelegramUser,
 ) -> None:
 
     try:
@@ -108,13 +106,13 @@ async def process_amount(
     state_data = await state.get_data()
     bill_type = state_data["bill_type"]
 
-    bill_value = getattr(telegram_user, f"bill_for_{bill_type}")
+    bill_value = getattr(current_user, f"bill_for_{bill_type}")
 
     if not bill_value:
         await state.clear()
         await message.answer(
             "❌ Некорректный ввод. Баланс равен нулю.",
-            reply_markup=get_reply_keyboard(telegram_user),
+            reply_markup=get_reply_keyboard(current_user),
         )
         return
     if amount > bill_value:

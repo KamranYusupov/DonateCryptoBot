@@ -16,8 +16,6 @@ class IsAdminFilter(BaseFilter):
             event: TelegramObject,
             real_user: TelegramUser | None = None,
     ) -> bool:
-        from loguru import logger
-        logger.info(str(real_user))
         if not real_user:
             return False
 
