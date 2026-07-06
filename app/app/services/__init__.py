@@ -17,6 +17,7 @@ from app.services.infra import (
     TelegramBotService,
     CryptoBotAPIService,
 )
+from app.services.admin_impersonation_service import AdminImpersonationService
 
 __all__ = (
     "TelegramUserService",
@@ -35,4 +36,5 @@ __all__ = (
     "MatrixActivationNotifierService",
     "TriumphBillService",
     "TriumphBillTransactionService",
+    "AdminImpersonationService",
 )
