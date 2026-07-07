@@ -23,7 +23,6 @@ class CurrentUserMiddleware(BaseMiddleware):
                 Container.impersonation_service
             ]
     ) -> Any:
-        from loguru import logger
         from_user = getattr(event, "from_user", None)
 
         if not from_user:
@@ -37,13 +36,11 @@ class CurrentUserMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         impersonation_user_id = await impersonation_service.get_impersonated_user_id()
-        logger.info(str(impersonation_user_id))
 
         if not impersonation_user_id:
             return await handler(event, data)
 
         impersonated_user = await telegram_user_service.get(user_id=impersonation_user_id)
-        logger.info(str(impersonated_user))
 
         if impersonated_user:
             data["current_user"] = impersonated_user
