@@ -21,6 +21,7 @@ from app.models.triumph_bill import (
     TriumphBillTransaction,
     TriumphBillTransactionType,
 )
+from app.models.referral_link import ReferralLink
 
 __all__ = [
     "AdminUser",
@@ -41,4 +42,5 @@ __all__ = [
     "ProcessedCryptoBotPaymentWebhook",
     "TriumphBillTransaction",
     "TriumphBillTransactionType",
+    "ReferralLink",
 ]
