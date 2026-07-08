@@ -32,6 +32,7 @@ nest-asyncio = "^1.6.0"
 taskiq = "^0.12.4"
 taskiq-redis = "^1.2.2"
 aioredis = "^2.0.1"
+nanoid = "^2.0.0"
 
 
 [build-system]

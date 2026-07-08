@@ -6,11 +6,17 @@ from sqlalchemy import (
     ForeignKey,
     UUID,
     Index,
-    UniqueConstraint,
+    String,
 )
+from nanoid import generate
 
 from app.db.base import Base
 from app.models.mixins import TimestampedMixin, UUIDMixin
+from app.core.config import settings
+
+
+def generate_nanoid():
+    return generate(size=10)
 
 
 class ReferralLink(UUIDMixin, TimestampedMixin, Base):
@@ -18,6 +24,13 @@ class ReferralLink(UUIDMixin, TimestampedMixin, Base):
 
     __tablename__ = "referral_links"
 
+    code = Column(
+        String(10),
+        default=generate_nanoid,
+        unique=True,
+        index=True,
+        nullable=False
+    )
     telegram_user_id = Column(
         UUID(as_uuid=True),
         ForeignKey("telegram_users.id"),
@@ -41,6 +54,6 @@ class ReferralLink(UUIDMixin, TimestampedMixin, Base):
     def url(self) -> str:
         return urljoin(
             base=settings.bot_link.format(bot_name=settings.bot_name),
-            url=f"?start={self.id}",
+            url=f"?start={self.code}",
         )
 
