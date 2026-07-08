@@ -15,7 +15,11 @@ from app.models.telegram_user import TelegramUser, DonateStatus
 from app.models.matrix import Matrix, MatrixNode
 from app.schemas.matrix import MatrixEntity
 from app.core.config import settings
-from app.utils.matrix import find_free_place_in_matrix, insert_into_matrices
+from app.utils.matrix import (
+    collect_matrix_ids,
+    find_free_place_in_matrix,
+    insert_into_matrices,
+)
 from app.schemas.transaction import (
     SponsorTransactionContextSchema,
     SystemTransactionContextSchema,
@@ -339,7 +343,14 @@ class DonateService:
             transactions_data: list,
             level_length: int = settings.level_length,
     ):
-        free_place_path = find_free_place_in_matrix(free_matrix.matrices, level_length)
+        matrix_ids = collect_matrix_ids(free_matrix.matrices)
+        order_map = self._repository_matrix.get_order_map(list(matrix_ids))
+
+        free_place_path = find_free_place_in_matrix(
+            free_matrix.matrices,
+            order_map,
+            level_length,
+        )
         free_place_level = len(free_place_path) + 1
         parents = self.get_matrix_parents(
             matrix=free_matrix,

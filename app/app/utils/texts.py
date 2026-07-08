@@ -276,6 +276,7 @@ def get_downline_nodes_message(
 
 def get_matrix_info_message(
         matrix: Matrix,
+        order_map: dict[str, int] | None = None,
         level_length: int = settings.level_length,
 ):
     """
@@ -293,7 +294,10 @@ def get_matrix_info_message(
 
     matrix_len = len(matrix.telegram_users)
     while matrix_len != settings.matrix_max_length:
-        free_place_path = find_free_place_in_matrix(matrices, level_length)
+        free_place_path = find_free_place_in_matrix(
+            matrices,
+            order_map=order_map,
+            level_length=level_length)
         free_place_level = len(free_place_path) + 1
 
         insert_into_matrices(

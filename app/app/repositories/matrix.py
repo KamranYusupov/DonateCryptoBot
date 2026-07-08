@@ -112,6 +112,19 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
         result = self._session.execute(statement)
         return result.scalars().all()
 
+    def get_order_map(self, matrix_ids: list[str]) -> dict[str, int]:
+        statement = (
+            select(Matrix.id)
+            .filter(Matrix.id.in_(matrix_ids))
+            .order_by(Matrix.created_at)
+        )
+        result = self._session.execute(statement)
+
+        return {
+            str(matrix_id): index
+            for index, matrix_id in enumerate(result.scalars().all())
+        }
+
 
 class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
     def _base_node_select(
