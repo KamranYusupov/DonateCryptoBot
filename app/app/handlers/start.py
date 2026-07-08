@@ -40,52 +40,73 @@ async def command_start(
             Container.telegram_user_service
         ],
 ) -> None:
-    sponsor_user_id = current_user.sponsor_user_id if current_user else command.args
-    sponsor = await telegram_user_service.get_telegram_user(user_id=sponsor_user_id)
-    if (not sponsor or sponsor.is_bot) and not current_user:
-        await message.answer("Неправильная ссылка")
-        return
-
-    if not current_user:
-        await message.answer(
-            f"Вы регистрируетесь по рекомендации {sponsor.first_name}"
-            f" {sponsor.last_name if sponsor.last_name else ''}"
-            f" - Продолжить регистрацию?",
-            reply_markup=get_confirm_inline_keyboard(
-                yes_button_data=f"yes_{sponsor_user_id}",
-                no_button_data="delete_msg",
-                sizes=(2, 1),
-            ),
-        )
-        return
-
-    if not current_user.captcha_verified:
-        await send_captcha(
-            message=message,
-            state=state,
-            sponsor_user_id=sponsor_user_id,
-        )
-        await state.set_state(CaptchaState.option)
-        return
-
     if current_user and current_user.captcha_verified:
         await message.answer(
             f"👋 Приветствую, {current_user.first_name}!\n\n",
             reply_markup=get_reply_keyboard(None)
         )
-        if not current_user.is_admin:
-            await message.answer(
-                f"Я твой куратор — @{sponsor.username}\n\n"
-                "📌 С чего начать:\n\n"
-                "✅ Смотреть фильм\n"
-                "✅ Изучить презентацию\n"
-                "✅ Разобраться с ботом\n\n"
-                "По всем вопросам — обращайся ко мне.\n\n"
-                "Твои первые шаги — ниже ⤵️"
-                ,
-                reply_markup=get_start_inline_keyboard(),
-            )
+        if current_user.is_admin:
+            return
+        sponsor = await telegram_user_service.get_telegram_user(
+            user_id=current_user.sponsor_user_id,
+        )
+        await message.answer(
+            f"Я твой куратор — @{sponsor.username}\n\n"
+            "📌 С чего начать:\n\n"
+            "✅ Смотреть фильм\n"
+            "✅ Изучить презентацию\n"
+            "✅ Разобраться с ботом\n\n"
+            "По всем вопросам — обращайся ко мне.\n\n"
+            "Твои первые шаги — ниже ⤵️",
+            reply_markup=get_start_inline_keyboard(),
+        )
         return
+
+    if current_user and not current_user.captcha_verified:
+        await send_captcha(
+            message=message,
+            state=state,
+            sponsor_user_id=current_user.sponsor_user_id,
+        )
+        await state.set_state(CaptchaState.option)
+        return
+
+    if not command.args:
+        await message.answer(
+            "Регистрация в боте происходит "
+            "только по реферальной ссылке."
+        )
+        return
+
+    referral_link_code = command.args
+    referral_link = await telegram_user_service.get_link_by_code(
+        code=referral_link_code,
+    )
+
+    if not referral_link:
+        await message.answer("Неправильная ссылка")
+        return
+
+    sponsor = await telegram_user_service.get_telegram_user(
+        id=referral_link.telegram_user_id,
+    )
+
+    if not referral_link.is_active:
+        await message.answer(
+            "🔗 Реферальная ссылка устарела\n\n"
+            f"✅ Напишите {sponsor.full_username} — запросите новую"
+        )
+        return
+
+    await message.answer(
+        f"Вы регистрируетесь по рекомендации {sponsor.full_name}"
+        f" - Продолжить регистрацию?",
+        reply_markup=get_confirm_inline_keyboard(
+            yes_button_data=f"yes_{referral_link.code}",
+            no_button_data="delete_msg",
+            sizes=(2, 1),
+        ),
+    )
 
 
 @start_router.callback_query(F.data == "delete_msg")

@@ -16,7 +16,7 @@ from .triumph_bill import triumph_bill_router
 from .triumph_bill_transaction import triumph_bill_transaction_router
 from .sponsors_contest import sponsors_contest_router
 from .registration_contest import registration_contest_router
-
+from .referral_link import referral_link_router
 
 def get_all_routers() -> Router:
     """Функция для регистрации всех router"""
@@ -39,6 +39,7 @@ def get_all_routers() -> Router:
         admin_router,
         triumph_bill_router,
         triumph_bill_transaction_router,
+        referral_link_router,
     )
 
     return router

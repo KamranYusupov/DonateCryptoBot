@@ -88,20 +88,32 @@ async def captcha_handler(
         )
         return
 
+    referral_link_code = callback.data.split("_")[-1]
+    referral_link = await telegram_user_service.get_link_by_code(
+        code=referral_link_code
+    )
+    sponsor = await telegram_user_service.get_telegram_user(
+        id=referral_link.telegram_user_id
+    )
+    if not referral_link.is_active:
+        await message.answer(
+            "🔗 Реферальная ссылка устарела\n\n"
+            f"✅ Напишите {sponsor.full_username} — запросите новую"
+        )
+        return
+    sponsor_user_id = sponsor.user_id
+    user_schema = get_schema_from_user(
+        callback.from_user,
+        depth_level=sponsor.depth_level + 1,
+        sponsor_user_id=sponsor_user_id,
+    )
     try:
-        sponsor_user_id = int(callback.data.split("_")[-1])
-        sponsor = await telegram_user_service.get_telegram_user(
-            user_id=sponsor_user_id
-        )
-        user_schema = get_schema_from_user(
-            callback.from_user,
-            depth_level=sponsor.depth_level + 1,
-            sponsor_user_id=sponsor_user_id,
-        )
-
         current_user = await telegram_user_service.create_telegram_user(
             user=user_schema,
             sponsor=sponsor,
+        )
+        await telegram_user_service.set_link_expired(
+            referral_link_id=referral_link.id,
         )
         session.commit()
     except Exception:

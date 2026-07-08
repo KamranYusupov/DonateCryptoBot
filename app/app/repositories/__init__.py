@@ -15,6 +15,7 @@ from app.repositories.admin_statistic import RepositoryAdminStatistic
 from app.repositories.matrix_statistic import RepositoryMatrixStatistic
 from app.repositories.registration_statistic import RepositoryRegistrationStatistic
 from app.repositories.triumph_bill_transaction import RepositoryTriumphBillTransaction
+from app.repositories.referral_link import RepositoryReferralLink
 
 
 __all__ = [
@@ -35,4 +36,5 @@ __all__ = [
     "RepositoryMatrixStatistic",
     "RepositoryRegistrationStatistic",
     "RepositoryTriumphBillTransaction",
+    "RepositoryReferralLink",
 ]

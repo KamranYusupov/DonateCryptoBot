@@ -1,19 +1,27 @@
 import uuid
 from decimal import Decimal
 from typing import Tuple, Any, List, Optional
+from sqlalchemy.exc import IntegrityError
 
 from app.repositories.telegram_user import RepositoryTelegramUser
+from app.repositories.referral_link import RepositoryReferralLink
 from app.models.telegram_user import TelegramUser, DonateStatus
 from app.schemas.telegram_user import TelegramUserEntity, generate_random_user
 from app.models.telegram_user import BillType
+from app.models.referral_link import ReferralLink
 from app.services.base.crud_service import CrudServiceMixin
 
 
 class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
 
-    def __init__(self, repository_telegram_user: RepositoryTelegramUser) -> None:
+    def __init__(
+            self,
+            repository_telegram_user: RepositoryTelegramUser,
+            repository_referral_link: RepositoryReferralLink,
+    ) -> None:
         super().__init__(repository=repository_telegram_user)
         self._repository_telegram_user = repository_telegram_user
+        self._repository_referral_link = repository_referral_link
 
     async def get_list(
             self,
@@ -191,4 +199,39 @@ class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
 
     async def get_username_by_id(self, telegram_user_id: uuid.UUID) -> Optional[str]:
         return self._repository_telegram_user.get_username_by_id(telegram_user_id)
+
+
+    async def get_link_by_code(
+            self,
+            code: str,
+    ) -> Optional[ReferralLink]:
+        return self._repository_referral_link.get(
+            code=code,
+        )
+
+    async def get_active_referral_link(
+            self,
+            telegram_user_id: uuid.UUID,
+    ) -> Optional[ReferralLink]:
+        return self._repository_referral_link.get(
+            telegram_user_id=telegram_user_id,
+            is_active=True,
+        )
+
+    async def generate_referral_link(
+            self,
+            telegram_user_id: uuid.UUID,
+    ) -> ReferralLink:
+        return self._repository_referral_link.generate_referral_link(
+            telegram_user_id=telegram_user_id
+        )
+
+    async def set_link_expired(
+            self,
+            referral_link_id: uuid.UUID,
+    ) -> None:
+        self._repository_referral_link.update(
+            obj_id=referral_link_id,
+            obj_in={"is_active": False},
+        )
 

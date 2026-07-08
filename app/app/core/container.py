@@ -21,7 +21,9 @@ from app.models import (
     AdminStatistic,
     MatrixStatistic,
     ProcessedCryptoBotPaymentWebhook,
-    RegistrationStatistic, TriumphBillTransaction,
+    RegistrationStatistic,
+    TriumphBillTransaction,
+    ReferralLink,
 )
 from app.orchestrators.crypto_bot_payment import CryptoBotPaymentOrchestrator
 from app.repositories import (
@@ -41,7 +43,8 @@ from app.repositories import (
     RepositoryAdminStatistic,
     RepositoryMatrixStatistic,
     RepositoryRegistrationStatistic,
-    RepositoryTriumphBillTransaction
+    RepositoryTriumphBillTransaction,
+    RepositoryReferralLink,
 )
 from app.services import (
     TelegramUserService,
@@ -141,6 +144,11 @@ class Container(containers.DeclarativeContainer):
         model=TriumphBillTransaction,
         session=session,
     )
+    repository_referral_link = providers.Factory(
+        RepositoryReferralLink,
+        model=ReferralLink,
+        session=session,
+    )
     # endregion
 
     # region infra services
@@ -157,7 +165,9 @@ class Container(containers.DeclarativeContainer):
 
     # region services
     telegram_user_service = providers.Factory(
-        TelegramUserService, repository_telegram_user=repository_telegram_user
+        TelegramUserService,
+        repository_telegram_user=repository_telegram_user,
+        repository_referral_link=repository_referral_link,
     )
 
     matrix_service = providers.Factory(
@@ -277,6 +287,7 @@ class Container(containers.DeclarativeContainer):
         "app.handlers.registration_contest",
         "app.handlers.sponsors_contest",
         "app.handlers.triumph_bill_transaction",
+        "app.handlers.referral_link",
 
         "app.use_cases.donations",
 
