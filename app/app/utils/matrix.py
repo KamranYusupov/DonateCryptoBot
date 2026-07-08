@@ -40,17 +40,6 @@ def get_matrices_list(matrices) -> tuple[list[Matrix], list[Matrix]]:
     return first_level_matrices, second_level_matrices
 
 
-def find_first_level_matrix_id(
-        matrix: Matrix,
-        second_level_matrix_id: Matrix.id
-) -> Matrix.id | None:
-    for first_level_matrix_id, lst in matrix.matrices.items():
-        if str(second_level_matrix_id) in lst:
-            return uuid.UUID(first_level_matrix_id)
-
-    return None
-
-
 def get_archived_matrices(
         matrices: List[Matrix],
 ) -> List[Matrix]:
@@ -90,8 +79,24 @@ def get_main_matrices(
     return main_matrices
 
 
+def collect_matrix_ids(
+        node: dict | list,
+        result: set[str] | None = None,
+) -> set[str]:
+    if result is None:
+        result = set()
+
+    if isinstance(node, dict):
+        for key, value in node.items():
+            result.add(key)
+            collect_matrix_ids(value, result)
+
+    return result
+
+
 def find_free_place_in_matrix(
         matrices: dict,
+        order_map: dict[str, int] | None = None,
         level_length: int = settings.level_length
 ) -> list[str]:
     if len(matrices) < level_length:
@@ -102,7 +107,15 @@ def find_free_place_in_matrix(
 
         for node, path in nodes:
             if isinstance(node, dict):
-                for key, value in node.items():
+                node_items = node.items()
+
+                if order_map:
+                    node_items = sorted(
+                        node_items,
+                        key=lambda item: order_map.get(item[0], float("inf"))
+                    )
+
+                for key, value in node_items:
                     new_path = path + [key]
 
                     if isinstance(value, list):

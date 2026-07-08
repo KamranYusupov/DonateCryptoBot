@@ -70,6 +70,7 @@ async def send_donations_menu(
     )
 
     if current_user.is_admin:
+        default_buttons["АКТИВНЫЕ ПЛОЩАДКИ"] = "team_1"
         default_buttons["Транзакции 💳".upper()] = "transactions"
 
         admin_statistic = statistic_service.get_admin_statistic()
