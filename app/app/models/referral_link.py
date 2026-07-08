@@ -1,3 +1,5 @@
+from urllib.parse import urljoin
+
 from sqlalchemy import (
     Column,
     Boolean,
@@ -27,5 +29,18 @@ class ReferralLink(UUIDMixin, TimestampedMixin, Base):
 
     __table_args__ = (
         Index("idx_active_user_link", telegram_user_id, is_active),
-        UniqueConstraint("telegram_user_id", "is_active"),
+        Index(
+            "idx_unique_active_link_per_user",
+            telegram_user_id,
+            unique=True,
+            postgresql_where=(is_active == True)
+        ),
     )
+
+    @property
+    def url(self) -> str:
+        return urljoin(
+            base=settings.bot_link.format(bot_name=settings.bot_name),
+            url=f"?start={self.id}",
+        )
+
