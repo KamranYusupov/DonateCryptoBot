@@ -32,13 +32,13 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             status: Optional[DonateStatus] = None,
             **kwargs
     ):
-        return self._repository_matrix_node.get(
+        return await self._repository_matrix_node.get(
             *args,
             status=status,
             **kwargs,
         )
 
-    def create_matrix_with_root_node(
+    async def create_matrix_with_root_node(
             self,
             owner_id: UUID,
             status: DonateStatus,
@@ -48,7 +48,7 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             status=status,
             engine_type=MatrixEngineType.NODES
         )
-        matrix = self._repository_matrix.create(
+        matrix = await self._repository_matrix.create(
             obj_in=matrix_entity.model_dump()
         )
 
@@ -58,20 +58,20 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             level=0,
             position=1,
         )
-        matrix_node = self._repository_matrix_node.create(
+        matrix_node = await self._repository_matrix_node.create(
             obj_in=matrix_node_schema.model_dump()
         )
         matrix.root_node_id = matrix_node.id
 
         return matrix_node
 
-    def _find_available_node(
+    async def _find_available_node(
             self,
             sponsor_id: UUID,
             status: DonateStatus,
     ) -> MatrixNode:
-        sponsor = self._repository_telegram_user.get(id=sponsor_id)
-        sponsor_node = self._repository_matrix_node.get(
+        sponsor = await self._repository_telegram_user.get(id=sponsor_id)
+        sponsor_node = await self._repository_matrix_node.get(
             owner_id=sponsor.id,
             status=status,
             for_update=True
@@ -84,14 +84,14 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
 
         while not available_node:
             if not target_node:
-                sponsor = self._repository_telegram_user.get(user_id=sponsor.sponsor_user_id)
-                target_node = self._repository_matrix_node.get(
+                sponsor = await self._repository_telegram_user.get(user_id=sponsor.sponsor_user_id)
+                target_node = await self._repository_matrix_node.get(
                     owner_id=sponsor.id,
                     status=status,
                     for_update=True,
                 )
 
-            available_node = self._repository_matrix_node.get_available_node(
+            available_node = await self._repository_matrix_node.get_available_node(
                 matrix_id=target_node.matrix_id,
                 level=target_node.level,
                 position=target_node.position,
@@ -102,7 +102,7 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
                 break
 
             if sponsor.is_admin:
-                available_node = self.create_matrix_with_root_node(
+                available_node = await self.create_matrix_with_root_node(
                     owner_id=sponsor.id,
                     status=status,
                 )
@@ -127,11 +127,11 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             position=inserted_node.position,
         )
         if is_created:
-            self._repository_matrix_node.increment_downline_count_by_positions(
+            await self._repository_matrix_node.increment_downline_count_by_positions(
                 matrix_id=inserted_node.matrix_id,
                 positions=upline_positions,
             )
-        active_upline_nodes = self._repository_matrix_node.get_nodes_by_positions(
+        active_upline_nodes = await self._repository_matrix_node.get_nodes_by_positions(
             MatrixNode.last_activation >= (
                     datetime.now() - timedelta(days=365)
             ),
@@ -147,7 +147,7 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             sponsor_id: UUID,
             status: DonateStatus,
     ) -> tuple[MatrixNode, bool]:
-        current_user_node = self._repository_matrix_node.get(
+        current_user_node = await self._repository_matrix_node.get(
             owner_id=current_user_id,
             status=status,
         )
@@ -168,8 +168,8 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             sponsor_id: UUID,
             status: DonateStatus
     ) -> MatrixNode:
-        available_node = self._find_available_node(sponsor_id, status)
-        position, updated_children_count = self._repository_matrix_node.reserve_child_slot(
+        available_node = await self._find_available_node(sponsor_id, status)
+        position, updated_children_count = await self._repository_matrix_node.reserve_child_slot(
             matrix_node_id=available_node.id
         )
         new_position = (position * 2) + updated_children_count - 1
@@ -180,7 +180,7 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             position=new_position,
             level=available_node.level + 1,
         )
-        return self._repository_matrix_node.create(
+        return await self._repository_matrix_node.create(
             obj_in=matrix_node_schema.model_dump()
         )
 
@@ -200,7 +200,7 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             matrix_id: UUID,
             positions: Sequence[int],
     ):
-        return self._repository_matrix_node.get_nodes_by_positions(
+        return await self._repository_matrix_node.get_nodes_by_positions(
             MatrixNode.last_activation >= (
                     datetime.now() - timedelta(days=365)
             ),
@@ -215,6 +215,6 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             level: int,
             max_level: int = settings.matrix_max_level
     ) -> list[MatrixNode]:
-        return self._repository_matrix_node.get_downline_nodes(
+        return await self._repository_matrix_node.get_downline_nodes(
             matrix_id, position, level, max_level,
         )

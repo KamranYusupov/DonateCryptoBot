@@ -3,7 +3,7 @@ from redis.asyncio import Redis
 
 from app import loader
 from app.core.config import Settings
-from app.db.session import SyncSession
+from app.db.session import init_db_pool
 
 from app.models import (
     AdminUser,
@@ -73,8 +73,13 @@ from app.core.redis import init_redis_pool
 
 class Container(containers.DeclarativeContainer):
     settings = providers.Factory(Settings)
-    db = providers.Singleton(SyncSession, db_url=settings.provided.postgres_url)
-    session = providers.Factory(db.provided.create_session.call())
+
+    db_manager = providers.Resource(
+        init_db_pool,
+        db_url=settings.provided.postgres_url
+    )
+    session = providers.Factory(db_manager.provided.create_session.call())
+
     redis_client = providers.Resource(
         init_redis_pool,
         redis_url=settings.provided.redis_url,

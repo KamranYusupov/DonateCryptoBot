@@ -16,7 +16,7 @@ from app.tasks.taskiq.dependencies.container import ContainerDependency
 async def update_sponsors_contest_task(
     container: ContainerDependency,
 ) -> None:
-    sponsors_contests_service = container.sponsors_contests_service()
+    sponsors_contests_service = await container.sponsors_contests_service()
     await sponsors_contests_service.process_periodic_update()
 
 
@@ -31,5 +31,5 @@ async def update_sponsors_contest_task(
 async def update_registration_contest_task(
     container: ContainerDependency,
 ) -> None:
-    registration_contests_service = container.registration_contests_service()
+    registration_contests_service = await container.registration_contests_service()
     await registration_contests_service.process_periodic_update()

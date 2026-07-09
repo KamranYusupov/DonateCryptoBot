@@ -7,5 +7,14 @@ from app.core.taskiq import broker
 async def on_worker_startup(state):
     from app.core.container import Container
 
-    state.container = Container()
+    container = Container()
+    await container.init_resources()
+    state.container = container
     loguru.logger.info("Worker is starting...")
+
+
+@broker.on_event(TaskiqEvents.WORKER_SHUTDOWN)
+async def on_worker_startup(state):
+
+    await container.shutdown_resources()
+    loguru.logger.info("Worker is stoping...")

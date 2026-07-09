@@ -37,7 +37,7 @@ class RegistrationContestService(
             "user_id": user_id,
             "contest_id": current_contest.id,
         }
-        return self._repository_contest_point.create(contest_data)
+        return await self._repository_contest_point.create(contest_data)
 
     def _get_period_start(self) -> datetime:
         return get_saturday_noon_period_start()
@@ -46,7 +46,7 @@ class RegistrationContestService(
             self,
             user_ids: set[int]
     ) -> Dict[int, str]:
-        users = self._repository_telegram_user.list(
+        users = await  self._repository_telegram_user.list(
             TelegramUser.user_id.in_(user_ids)
         ) if user_ids else []
 

@@ -1,31 +1,31 @@
 from typing import List, Dict, Any, Optional, Sequence
 
 from sqlalchemy import insert, update, select, func
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class BulkCreateMixin:
     """Примесь для массовой вставки записей."""
 
     _model: Any
-    _session: Session
+    _session: AsyncSession
 
-    def bulk_create(self, objects_in: List[Dict]) -> None:
+    async def bulk_create(self, objects_in: List[Dict]) -> None:
         if not objects_in:
             return
 
         statement = insert(self._model).values(objects_in)
-        self._session.execute(statement)
-        self._session.flush()
+        await self._session.execute(statement)
+        await self._session.flush()
 
 
 class BulkUpdateMixin:
     """Примесь для массового обновления записей."""
 
     _model: Any
-    _session: Session
+    _session: AsyncSession
 
-    def bulk_update(
+    async def bulk_update(
             self,
             objects_in: List[Dict],
             return_objects: bool = False
@@ -37,25 +37,26 @@ class BulkUpdateMixin:
 
         if return_objects:
             statement = statement.returning(self._model)
-            result = self._session.execute(statement, objects_in)
-            self._session.flush()
+            result = await self._session.execute(statement, objects_in)
+            await self._session.flush()
             return result.scalars().all()
 
-        self._session.execute(statement, objects_in)
-        self._session.flush()
+        await self._session.execute(statement, objects_in)
+        await self._session.flush()
         return None
-    
-    
+
+
 class CountMixin:
     """Примесь для получения числа записей."""
 
     _model: Any
-    _session: Session
+    _session: AsyncSession
 
-    def get_count(self, **kwargs) -> None:
+    async def get_count(self, **kwargs) -> None:
         statement = (
             select(func.count(self._model.id))
             .filter_by(**kwargs)
         )
 
-        return self._session.execute(statement).scalar()
+        result = await self._session.execute(statement)
+        return result.scalar()

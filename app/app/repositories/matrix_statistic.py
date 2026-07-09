@@ -21,13 +21,13 @@ class RepositoryMatrixStatistic:
         self._session = session
         self._model = model
 
-    def get_activation_count(self) -> int:
+    async def get_activation_count(self) -> int:
         statement = select(MatrixStatistic.activation_count)
 
-        result = self._session.execute(statement)
+        result = await self._session.execute(statement)
         return result.scalar_one()
 
-    def increment_activations_count(self) -> int:
+    async def increment_activations_count(self) -> int:
         statement = (
             update(MatrixStatistic)
             .where(MatrixStatistic.id == 1)
@@ -35,5 +35,5 @@ class RepositoryMatrixStatistic:
             .returning(MatrixStatistic.activation_count)
         )
 
-        result = self._session.execute(statement)
+        result = await self._session.execute(statement)
         return result.scalar()

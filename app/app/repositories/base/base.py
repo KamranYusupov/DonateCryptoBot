@@ -15,16 +15,16 @@ class RepositoryBase(Generic[ModelType,]):
         self._model = model
         self._session = session
 
-    def create(self, obj_in) -> ModelType:
+    async def create(self, obj_in) -> ModelType:
         obj_in_data = dict(obj_in)
         db_obj = self._model(**obj_in_data)
 
         self._session.add(db_obj)
-        self._session.flush()
+        await self._session.flush()
 
         return db_obj
 
-    def get(
+    async def get(
         self,
         *args,
         **kwargs,
@@ -34,13 +34,15 @@ class RepositoryBase(Generic[ModelType,]):
             .filter(*args)
             .filter_by(**kwargs)
         )
-        return self._session.execute(statement).scalars().first()
+        result = await self._session.execute(statement)
+        return result.scalars().first()
 
-    def list(self, *args, **kwargs):
+    async def list(self, *args, **kwargs):
         statement = select(self._model).filter(*args).filter_by(**kwargs)
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
-    def update(self, *, obj_id: UUID, obj_in) -> ModelType:
+    async def update(self, *, obj_id: UUID, obj_in) -> ModelType:
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
@@ -49,16 +51,17 @@ class RepositoryBase(Generic[ModelType,]):
         statement = (
             update(self._model).where(self._model.id == obj_id).values(**update_data)
         )
-        self._session.execute(statement)
+        await self._session.execute(statement)
 
-    def delete(self, *args, obj_id: UUID, **kwargs) -> None:
+    async def delete(self, *args, obj_id: UUID, **kwargs) -> None:
         statement = delete(self._model).where(self._model.id == obj_id)
-        self._session.execute(statement)
+        await self._session.execute(statement)
 
-    def exists(self, *args, **kwargs) -> bool:
+    async def exists(self, *args, **kwargs) -> bool:
         try:
             statement = select(self._model).filter(*args).filter_by(**kwargs)
-            self._session.execute(statement).one()
+            result = await self._session.execute(statement)
+            result.one()
         except MultipleResultsFound:
             pass
         except NoResultFound:

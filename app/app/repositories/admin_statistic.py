@@ -9,11 +9,12 @@ from app.repositories.base import RepositoryBase
 class RepositoryAdminStatistic(RepositoryBase[AdminStatistic]):
     """Репозиторий статистики админа"""
 
-    def get(self) -> bool:
+    async def get(self) -> bool:
         statement = select(AdminStatistic)
-        return self._session.execute(statement).scalar_one()
+        result = await self._session.execute(statement)
+        return result.scalar_one()
 
-    def increment_system_bill_and_total_donates_sum(
+    async def increment_system_bill_and_total_donates_sum(
             self,
             *,
             system_bill_amount: Decimal | int,
@@ -30,9 +31,9 @@ class RepositoryAdminStatistic(RepositoryBase[AdminStatistic]):
         }
 
         statement = update(AdminStatistic).values(**values)
-        self._session.execute(statement)
+        await self._session.execute(statement)
 
-    def increment_system_bill(
+    async def increment_system_bill(
             self,
             amount: Decimal | int,
             triumph: bool = True,
@@ -43,9 +44,9 @@ class RepositoryAdminStatistic(RepositoryBase[AdminStatistic]):
         values = {system_bill_field_name: system_bill_field + amount}
 
         statement = update(AdminStatistic).values(**values)
-        self._session.execute(statement)
+        await self._session.execute(statement)
 
-    def increment_total_donates_sum(
+    async def increment_total_donates_sum(
             self,
             amount: int | Decimal,
     ) -> None:
@@ -53,7 +54,7 @@ class RepositoryAdminStatistic(RepositoryBase[AdminStatistic]):
         values = {"total_donates_sum": total_donates_sum_field + amount}
 
         statement = update(AdminStatistic).values(**values)
-        self._session.execute(statement)
+        await self._session.execute(statement)
 
 
 

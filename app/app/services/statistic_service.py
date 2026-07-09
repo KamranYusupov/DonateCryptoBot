@@ -1,5 +1,7 @@
 from typing import Any
 
+from sqlalchemy.util import await_only
+
 from app.repositories.matrix_statistic import RepositoryMatrixStatistic
 from app.repositories.admin_statistic import RepositoryAdminStatistic
 from app.repositories.registration_statistic import RepositoryRegistrationStatistic
@@ -17,31 +19,31 @@ class StatisticService:
         self._repository_matrix_statistic = repository_matrix_statistic
         self._repository_registration_statistic = repository_registration_statistic
 
-    def get_admin_statistic(self) -> AdminStatisticSchema:
-        admin_statistic = self._repository_admin_statistic.get()
+    async def get_admin_statistic(self) -> AdminStatisticSchema:
+        admin_statistic = await self._repository_admin_statistic.get()
         return AdminStatisticSchema.model_validate(admin_statistic)
 
-    def update_admin_statistic(self, **kwargs) -> None:
+    async def update_admin_statistic(self, **kwargs) -> None:
         obj_in = UpdateAdminStatisticSchema(**kwargs)
-        return self._repository_admin_statistic.update(
+        return await self._repository_admin_statistic.update(
             obj_id=1,
             obj_in=obj_in,
         )
 
-    def get_matrix_activations_count(self) -> int:
-        return self._repository_matrix_statistic.get_activation_count()
+    async def get_matrix_activations_count(self) -> int:
+        return await self._repository_matrix_statistic.get_activation_count()
 
-    def increment_matrix_activations_count(self) -> int:
-        return (
+    async def increment_matrix_activations_count(self) -> int:
+        return await (
             self._repository_matrix_statistic
             .increment_activations_count()
         )
 
-    def get_registrations_count(self) -> int:
-        return self._repository_registration_statistic.get_count()
+    async def get_registrations_count(self) -> int:
+        return await self._repository_registration_statistic.get_count()
 
-    def increment_registrations_count(self) -> int:
-        return (
+    async def increment_registrations_count(self) -> int:
+        return await (
             self._repository_registration_statistic
             .increment_count()
         )

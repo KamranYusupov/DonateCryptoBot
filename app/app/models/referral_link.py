@@ -1,3 +1,4 @@
+import string
 from urllib.parse import urljoin
 
 from sqlalchemy import (
@@ -16,7 +17,11 @@ from app.core.config import settings
 
 
 def generate_nanoid():
-    return generate(size=10)
+    alphabet = (string.ascii_letters + string.digits + "-")
+    return generate(
+        size=10,
+        alphabet=alphabet
+    )
 
 
 class ReferralLink(UUIDMixin, TimestampedMixin, Base):

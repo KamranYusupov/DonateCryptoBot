@@ -2,27 +2,26 @@ from uuid import uuid4
 
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.db.session import SyncSession, scope
+from app.db.session import scope, DBManager
 
 
 class SQLAlchemySessionMiddleware(BaseHTTPMiddleware):
     """Middleware для commit & close session"""
 
-    def __init__(self, app, sync_session: SyncSession):
-        super().__init__(app)
-        self._sync_session = sync_session
-
     async def dispatch(self, request, call_next):
+        container = request.app.state.container
+
+        db_manager = await container.db_manager()
         scope_token = scope.set(str(uuid4()))
-        session = self._sync_session.create_session()
+        session = db_manager.create_session()
 
         try:
             response = await call_next(request)
-            session.commit()
+            await session.commit()
             return response
         except:
-            session.rollback()
+            await session.rollback()
             raise
         finally:
-            self._sync_session.remove()
+            await self._db_manager.remove()
             scope.reset(scope_token)

@@ -11,7 +11,7 @@ from app.models.transfer import Transfer
 class RepositoryTransfer(RepositoryBase[Transfer]):
     """Репозиторий конкурса кураторов"""
 
-    def get_list(
+    async def get_list(
             self,
             *args,
             join_sender: bool = False,
@@ -25,6 +25,6 @@ class RepositoryTransfer(RepositoryBase[Transfer]):
             options.append(selectinload(Transfer.recipient))
 
         statement = select(Transfer).options(*options).order_by(Transfer.created_at.desc())
-        result  = self._session.execute(statement)
+        result = await self._session.execute(statement)
 
         return result.scalars().all()

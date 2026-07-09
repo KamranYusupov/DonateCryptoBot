@@ -15,7 +15,7 @@ from app.core.config import settings
 class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
     """Репозиторий телеграм пользователя"""
 
-    def get_list(
+    async def get_list(
             self,
             *args,
             join_sponsor: bool = False,
@@ -33,34 +33,37 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
             .filter_by(**kwargs)
             .order_by(TelegramUser.created_at)
         )
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
-    def get_ids(self, *args, **kwargs) -> list[UUID]:
+    async def get_ids(self, *args, **kwargs) -> list[UUID]:
         statement = (
             select(TelegramUser.id)
             .filter(*args)
             .filter_by(**kwargs)
         )
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
-    def get_username_by_id(self, telegram_user_id: uuid.UUID) -> Optional[str]:
+    async def get_username_by_id(self, telegram_user_id: uuid.UUID) -> Optional[str]:
         statement = (
             select(TelegramUser.username)
             .where(TelegramUser.id == telegram_user_id)
         )
 
-        result = self._session.execute(statement)
+        result = await self._session.execute(statement)
         return result.scalar_one_or_none()
 
-    def get_user_ids(self, *args, **kwargs) -> list[int]:
+    async def get_user_ids(self, *args, **kwargs) -> list[int]:
         statement = (
             select(TelegramUser.user_id)
             .filter(*args)
             .filter_by(**kwargs)
         )
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
-    def get_active_users_by_ids(self, ids: list[UUID], **kwargs):
+    async def get_active_users_by_ids(self, ids: list[UUID], **kwargs):
         statement = (
             select(TelegramUser)
             .where(
@@ -70,12 +73,13 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
             .filter_by(**kwargs)
         )
 
-        users = self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        users = result.scalars().all()
         mapping = {user.id: user for user in users}
 
         return [mapping[i] for i in ids if i in mapping]
 
-    def get_count(
+    async def get_count(
             self,
             *args,
             **kwargs
@@ -85,9 +89,10 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
             .filter(*args)
             .filter_by(**kwargs)
         )
-        return self._session.execute(statement).scalar()
+        result = await self._session.execute(statement)
+        return result.scalar()
 
-    def get_invited_users(
+    async def get_invited_users(
             self,
             sponsor_user_id: int
     ):
@@ -101,9 +106,10 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
             .order_by(TelegramUser.created_at)
         )
 
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
-    def get_sponsors(
+    async def get_sponsors(
         self, sponsor_user_id: int
     ) -> tuple[TelegramUser, TelegramUser, TelegramUser]:
         t1, t2, t3 = [aliased(TelegramUser) for _ in range(3)]
@@ -114,18 +120,18 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
             .filter(t1.user_id == sponsor_user_id)
             .limit(1)
         )
-        result = self._session.execute(statement)
+        result = await self._session.execute(statement)
 
         return result.one_or_none()
 
 
-    def get_sponsor_recursively(
+    async def get_sponsor_recursively(
             self,
             *args,
             sponsor_user_id: int,
             **kwargs
     ) -> TelegramUser | None:
-        sponsor_by_user_id = self.get(user_id=sponsor_user_id)
+        sponsor_by_user_id = await self.get(user_id=sponsor_user_id)
 
         if not sponsor_by_user_id:
             return None
@@ -133,26 +139,27 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
         if not (args or kwargs):
             return sponsor_by_user_id
 
-        sponsor_by_full_query = self.get(*args, user_id=sponsor_user_id, **kwargs)
+        sponsor_by_full_query = await self.get(*args, user_id=sponsor_user_id, **kwargs)
         if sponsor_by_full_query:
             return sponsor_by_full_query
 
-        return self.get_sponsor_recursively(
+        return await self.get_sponsor_recursively(
             *args,
             sponsor_user_id=sponsor_by_user_id.sponsor_user_id,
             **kwargs)
 
 
-    def get_telegram_users_by_ids(
+    async def get_telegram_users_by_ids(
             self,
             telegram_users_ids: list[UUID]
     ) -> list[TelegramUser]:
         statement = select(TelegramUser).filter(
             TelegramUser.id.in_(telegram_users_ids)
         )
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
-    def get_bills(
+    async def get_bills(
             self,
             *args,
             bill_type: BillType,
@@ -160,9 +167,10 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
     ) -> list[Decimal]:
         bill_field = getattr(TelegramUser, f"bill_for_{bill_type.value}")
         statement = select(bill_field).filter(*args).filter_by(**kwargs)
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
-    def get_triumph_bills_sum(
+    async def get_triumph_bills_sum(
             self,
             *args,
             **kwargs,
@@ -173,10 +181,10 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
             .filter_by(**kwargs)
         )
 
-        result = self._session.execute(statement)
+        result = await self._session.execute(statement)
         return result.scalar()  or Decimal("0.0")
 
-    def increment_bill(
+    async def increment_bill(
             self,
             telegram_user_id: UUID,
             bill_type: BillType,
@@ -199,9 +207,9 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
             .values(**update_values)
         )
 
-        self._session.execute(statement)
+        await self._session.execute(statement)
 
-    def increment_bill_for_registration(
+    async def increment_bill_for_registration(
             self,
             telegram_user_id: UUID,
             bill_type: BillType,
@@ -222,11 +230,9 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
             .values(**update_values)
         )
 
-        self._session.execute(statement)
+        await self._session.execute(statement)
 
-
-
-    def increase_triumph_bills_by_percent(
+    async def increase_triumph_bills_by_percent(
             self,
             percent: Decimal = settings.triumph_bill_increase_percent,
     ) -> None:
@@ -247,4 +253,4 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
             )
         )
 
-        self._session.execute(statement)
+        await self._session.execute(statement)

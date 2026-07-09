@@ -301,7 +301,7 @@ class Settings(BaseSettings):
         if self.database_url:
             return self.database_url
         return PostgresDsn.build(
-            scheme="postgresql",
+            scheme="postgresql+asyncpg",
             username=self.postgres_user,
             password=self.postgres_password,
             host=self.postgres_host,

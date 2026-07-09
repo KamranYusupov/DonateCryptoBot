@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 import uvicorn
 from fastapi import FastAPI
 
@@ -6,19 +8,30 @@ from app.api.endpoints.routers import api_router
 from app.core.container import Container
 from app.api.middlewares.session import SQLAlchemySessionMiddleware
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    container = Container()
+    await container.init_resources()
+
+    app.state.container = container
+
+    yield
+
+    await container.shutdown_resources()
+
+
 def create_app() -> FastAPI:
-    app_kwargs = {}
+    app_kwargs: Dict[str, Any] = {"lifespan": lifespan}
     if not settings.debug:
-       app_kwargs.update(dict(
-           docs_url=None,
-           redoc_url=None,
-           openapi_url=None
-       ) )
+       app_kwargs.update({
+           "docs_url": None,
+           "redoc_url": None,
+           "openapi_url": None
+       })
 
     fastapi_app = FastAPI(**app_kwargs)
-    container = Container()
-    fastapi_app.container = container
-    fastapi_app.add_middleware(SQLAlchemySessionMiddleware, sync_session=container.db())
+    fastapi_app.add_middleware(SQLAlchemySessionMiddleware)
     fastapi_app.include_router(api_router, prefix=settings.api_prefix)
 
     return fastapi_app

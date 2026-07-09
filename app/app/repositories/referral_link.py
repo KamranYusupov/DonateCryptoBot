@@ -10,17 +10,16 @@ class RepositoryReferralLink(
 ):
     """Репозиторий реферальных ссылок"""
 
-    def generate_referral_link(
+    async def generate_referral_link(
             self,
             telegram_user_id: uuid.UUID,
     ) -> ReferralLink:
         try:
-            with self._session.begin_nested():
+            async with self._session.begin_nested():
                 referral_link = ReferralLink(
                     telegram_user_id=telegram_user_id
                 )
                 self._session.add(referral_link)
-                self._session.flush()
                 return referral_link
 
         except IntegrityError:

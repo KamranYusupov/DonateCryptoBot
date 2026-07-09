@@ -29,8 +29,9 @@ async def main(container: 'Container'):
     try:
         all_routers = get_all_routers()
         dp.include_routers(all_routers)
+        db_manager = await container.db_manager()
         dp.update.outer_middleware(
-            SQLAlchemySessionMiddleware(sync_session=container.db())
+            SQLAlchemySessionMiddleware(db_manager)
         )
 
         dp.message.outer_middleware(CurrentUserMiddleware())

@@ -73,9 +73,9 @@ async def send_donations_menu(
         default_buttons["АКТИВНЫЕ ПЛОЩАДКИ"] = "team_1"
         default_buttons["Транзакции 💳".upper()] = "transactions"
 
-        admin_statistic = statistic_service.get_admin_statistic()
-        matrix_activation_count = statistic_service.get_matrix_activations_count()
-        registration_count = statistic_service.get_registrations_count()
+        admin_statistic = await statistic_service.get_admin_statistic()
+        matrix_activation_count = await statistic_service.get_matrix_activations_count()
+        registration_count = await statistic_service.get_registrations_count()
 
         registration_step = (
             registration_count

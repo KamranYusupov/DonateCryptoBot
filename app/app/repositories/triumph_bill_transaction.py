@@ -13,7 +13,7 @@ class RepositoryTriumphBillTransaction(
     RepositoryBase[TriumphBillTransaction],
     CountMixin,
 ):
-    def get_ordered_ids(
+    async def get_ordered_ids(
             self,
             limit: Optional[int] = None,
             offset: Optional[int] = None,
@@ -27,10 +27,10 @@ class RepositoryTriumphBillTransaction(
             .offset(offset)
         )
 
-        result = self._session.execute(statement)
+        result = await self._session.execute(statement)
         return result.scalars().all()
 
-    def get_ordered_transactions(
+    async def get_ordered_transactions(
             self,
             limit: Optional[int] = None,
             offset: Optional[int] = None,
@@ -44,5 +44,5 @@ class RepositoryTriumphBillTransaction(
             .offset(offset)
         )
 
-        result = self._session.execute(statement)
+        result = await self._session.execute(statement)
         return result.scalars().all()
