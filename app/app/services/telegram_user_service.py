@@ -3,6 +3,7 @@ from decimal import Decimal
 from typing import Tuple, Any, List, Optional
 from sqlalchemy.exc import IntegrityError
 
+from app.models import TelegramUser
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.repositories.referral_link import RepositoryReferralLink
 from app.models.telegram_user import TelegramUser, DonateStatus
@@ -29,39 +30,39 @@ class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
             join_sponsor: bool = False,
             **kwargs
     ) -> list[TelegramUser]:
-        return self._repository_telegram_user.get_list(
+        return await self._repository_telegram_user.get_list(
             *args,
             join_sponsor=join_sponsor,
             **kwargs
         )
 
     async def get_user_ids(self, *args, **kwargs) -> list[int]:
-        return self._repository_telegram_user.get_user_ids(*args, **kwargs)
+        return await self._repository_telegram_user.get_user_ids(*args, **kwargs)
 
-    async def get_telegram_user(self, **kwargs) -> TelegramUser:
-        return self._repository_telegram_user.get(**kwargs)
+    async def get_telegram_user(self, **kwargs) -> TelegramUser | None:
+        return await self._repository_telegram_user.get(**kwargs)
 
-    async def exists(self, **kwargs) -> TelegramUser:
-        return self._repository_telegram_user.exists(**kwargs)
+    async def exists(self, **kwargs) -> bool:
+        return await self._repository_telegram_user.exists(**kwargs)
 
-    async def get_admin(self) -> TelegramUser:
-        return self._repository_telegram_user.get(is_admin=True)
+    async def get_admin(self) -> TelegramUser | None:
+        return await self._repository_telegram_user.get(is_admin=True)
 
     async def create_telegram_user(
         self,
         user: TelegramUserEntity,
         sponsor: TelegramUser = None,
     ) -> TelegramUser | None:
-        user_exist = self._repository_telegram_user.get(user_id=user.user_id)
+        user_exist = await self._repository_telegram_user.get(user_id=user.user_id)
         if user_exist:
             return user_exist
         if sponsor:
             user.sponsor_user_id = sponsor.user_id
             sponsor.invites_count += 1 if not user.is_bot else 0
-        return self._repository_telegram_user.create(obj_in=user.model_dump())
+        return await self._repository_telegram_user.create(obj_in=user.model_dump())
 
     async def raw_create(self, obj_in):
-        return self._repository_telegram_user.create(obj_in=obj_in)
+        return await self._repository_telegram_user.create(obj_in=obj_in)
 
     async def create_bot_user(
             self,
@@ -95,18 +96,18 @@ class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
         self, sponsor_user_id: int
     ) -> tuple[TelegramUser, TelegramUser, TelegramUser]:
 
-        return self._repository_telegram_user.get_sponsors(
+        return await self._repository_telegram_user.get_sponsors(
             sponsor_user_id=sponsor_user_id
         )
 
     async def get_one_sponsor(self, user_id: int):
-        return self._repository_telegram_user.get_one_sponsor(user_id=user_id)
+        return await self._repository_telegram_user.get_one_sponsor(user_id=user_id)
 
     async def delete(self, obj_id: uuid.UUID):
-        self._repository_telegram_user.delete(obj_id=obj_id)
+        await self._repository_telegram_user.delete(obj_id=obj_id)
 
     async def get_sponsor_recursively(self, *args, sponsor_user_id: int, **kwargs):
-        return self._repository_telegram_user.get_sponsor_recursively(
+        return await self._repository_telegram_user.get_sponsor_recursively(
             *args, sponsor_user_id=sponsor_user_id, **kwargs
         )
 
@@ -115,7 +116,7 @@ class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
             sponsor_user_id: int
     ):
         """Получение списка всех приглашенных пользователей"""
-        return self._repository_telegram_user.get_invited_users(
+        return await self._repository_telegram_user.get_invited_users(
             sponsor_user_id=sponsor_user_id
         )
 
@@ -127,7 +128,7 @@ class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
         depth = 0
 
         while True:
-            user = self._repository_telegram_user.get(user_id=current_id)
+            user = await self._repository_telegram_user.get(user_id=current_id)
 
             if not user:
                 return None
@@ -142,17 +143,17 @@ class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
                 return None
 
     async def get_count(self, *args, **kwargs) -> int:
-        return self._repository_telegram_user.get_count(*args, **kwargs)
+        return await self._repository_telegram_user.get_count(*args, **kwargs)
 
     async def update(self, obj_id: uuid.UUID, obj_in):
-        return self._repository_telegram_user.update(obj_id=obj_id, obj_in=obj_in)
+        return await self._repository_telegram_user.update(obj_id=obj_id, obj_in=obj_in)
 
     async def get_ids(self, *args, **kwargs) -> List[uuid.UUID]:
-        return self._repository_telegram_user.get_ids(*args, **kwargs)
+        return await self._repository_telegram_user.get_ids(*args, **kwargs)
 
     async def get_bills_for_activation_sum(self, *args, **kwargs):
         return sum(
-            self._repository_telegram_user.get_bills(
+            await self._repository_telegram_user.get_bills(
                 *args,
                 bill_type=BillType.ACTIVATION,
                 **kwargs,
@@ -161,7 +162,7 @@ class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
 
     async def get_bills_for_withdraw_sum(self, *args, **kwargs):
         return sum(
-            self._repository_telegram_user.get_bills(
+            await self._repository_telegram_user.get_bills(
                 *args,
                 bill_type=BillType.WITHDRAW,
                 **kwargs,
@@ -169,7 +170,7 @@ class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
         )
 
     async def get_triumph_bills_sum(self, **kwargs) -> Decimal:
-        return self._repository_telegram_user.get_triumph_bills_sum(**kwargs)
+        return await self._repository_telegram_user.get_triumph_bills_sum(**kwargs)
 
     async def increment_bill(
             self,
@@ -178,7 +179,7 @@ class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
             amount: Decimal,
             with_donates_sum: bool = False,
     ) -> None:
-        self._repository_telegram_user.increment_bill(
+        await self._repository_telegram_user.increment_bill(
             telegram_user_id=telegram_user_id,
             bill_type=bill_type,
             amount=amount,
@@ -191,21 +192,21 @@ class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
             bill_type: BillType,
             amount: Decimal,
     ) -> None:
-        self._repository_telegram_user.increment_bill_for_registration(
+        await self._repository_telegram_user.increment_bill_for_registration(
             telegram_user_id=telegram_user_id,
             bill_type=bill_type,
             amount=amount,
         )
 
     async def get_username_by_id(self, telegram_user_id: uuid.UUID) -> Optional[str]:
-        return self._repository_telegram_user.get_username_by_id(telegram_user_id)
+        return await self._repository_telegram_user.get_username_by_id(telegram_user_id)
 
 
     async def get_link_by_code(
             self,
             code: str,
     ) -> Optional[ReferralLink]:
-        return self._repository_referral_link.get(
+        return await self._repository_referral_link.get(
             code=code,
         )
 
@@ -213,7 +214,7 @@ class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
             self,
             telegram_user_id: uuid.UUID,
     ) -> Optional[ReferralLink]:
-        return self._repository_referral_link.get(
+        return await self._repository_referral_link.get(
             telegram_user_id=telegram_user_id,
             is_active=True,
         )
@@ -222,7 +223,7 @@ class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
             self,
             telegram_user_id: uuid.UUID,
     ) -> ReferralLink:
-        return self._repository_referral_link.generate_referral_link(
+        return await self._repository_referral_link.generate_referral_link(
             telegram_user_id=telegram_user_id
         )
 
@@ -230,7 +231,7 @@ class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
             self,
             referral_link_id: uuid.UUID,
     ) -> None:
-        self._repository_referral_link.update(
+        await self._repository_referral_link.update(
             obj_id=referral_link_id,
             obj_in={"is_active": False},
         )

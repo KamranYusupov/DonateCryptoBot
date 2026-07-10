@@ -15,15 +15,16 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
     """Репозиторий матрицы"""
 
 
-    def get_list(self, *args, order_by_create_at: bool = False, **kwargs):
+    async def get_list(self, *args, order_by_create_at: bool = False, **kwargs):
         statement = select(Matrix).filter(*args).filter_by(**kwargs)
 
         if order_by_create_at:
             statement = statement.order_by(Matrix.created_at)
 
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
-    def get_parent_matrix(
+    async def get_parent_matrix(
             self,
             matrix_id: Matrix.id,
             status: DonateStatus,
@@ -40,14 +41,13 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
         )
         if for_update:
             statement = statement.with_for_update()
+        result = await self._session.execute(statement)
         if return_all:
-            result = self._session.execute(statement).scalars().all()
-        else:
-            result = self._session.execute(statement).scalars().first()
+            return result.scalars().all()
 
-        return result
+        return result.scalars().first()
 
-    def get_user_matrices(
+    async def get_user_matrices(
             self,
             owner_id: uuid.UUID,
             status: DonateStatus | None = None,
@@ -66,9 +66,10 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
         if for_update:
             statement = statement.with_for_update()
 
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
-    def get_matrices_by_ids_list(
+    async def get_matrices_by_ids_list(
             self,
             matrices_ids: list[str | uuid.UUID],
             mapping: bool = False,
@@ -77,8 +78,8 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
         statement = select(Matrix).filter(Matrix.id.in_(matrices_ids))
         if for_update:
             statement = statement.with_for_update()
-        matrices = self._session.execute(statement).scalars().all()
-
+        result = await self._session.execute(statement)
+        matrices = result.scalars().all()
 
         if not mapping:
             return matrices
@@ -86,7 +87,7 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
         matrices_map = {str(m.id): m for m in matrices}
         return [matrices_map[str(i)] for i in matrices_ids]
 
-    def get_owner_ids_by_matrices_ids_list(
+    async def get_owner_ids_by_matrices_ids_list(
             self,
             matrices_ids: list[uuid.UUID]
     ) -> list[uuid.UUID]:
@@ -97,28 +98,29 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
             Matrix.id.in_(matrices_ids)
         )
 
-        rows = self._session.execute(statement).all()
+        result = await self._session.execute(statement)
+        rows = result.all()
         mapping = {str(row.id): row.owner_id for row in rows}
 
         return [mapping[str(i)] for i in matrices_ids]
 
-    def get_unique_statuses_by_owner_id(self, owner_id: uuid.UUID) -> Sequence[DonateStatus]:
+    async def get_unique_statuses_by_owner_id(self, owner_id: uuid.UUID) -> Sequence[DonateStatus]:
         statement = (
             select(Matrix.status)
             .filter_by(owner_id=owner_id)
             .distinct()
         )
 
-        result = self._session.execute(statement)
+        result = await self._session.execute(statement)
         return result.scalars().all()
 
-    def get_order_map(self, matrix_ids: list[str]) -> dict[str, int]:
+    async def get_order_map(self, matrix_ids: list[str]) -> dict[str, int]:
         statement = (
             select(Matrix.id)
             .filter(Matrix.id.in_(matrix_ids))
             .order_by(Matrix.created_at)
         )
-        result = self._session.execute(statement)
+        result = await self._session.execute(statement)
 
         return {
             str(matrix_id): index
@@ -151,7 +153,7 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
 
         return statement
 
-    def increment_downline_count_by_positions(
+    async def increment_downline_count_by_positions(
             self,
             matrix_id: uuid.UUID,
             positions: Sequence[int],
@@ -167,14 +169,14 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
         )
 
         if not returning:
-            result = self._session.execute(statement)
+            result = await self._session.execute(statement)
             return result.rowcount
 
         statement = statement.returning(MatrixNode)
-        result = self._session.execute(statement)
+        result = await self._session.execute(statement)
         return result.scalars().all()
 
-    def get(
+    async def get(
             self,
             *args,
             status: Optional[DonateStatus] = None,
@@ -190,10 +192,10 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
             skip_locked=skip_locked,
             **kwargs
         ).limit(1)
-        result = self._session.execute(statement)
+        result = await self._session.execute(statement)
         return result.scalars().first()
 
-    def get_available_node(
+    async def get_available_node(
             self,
             matrix_id: uuid.UUID,
             position: int,
@@ -223,10 +225,10 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
             .limit(1)
         )
 
-        result = self._session.execute(statement)
+        result = await self._session.execute(statement)
         return result.scalars().first()
 
-    def get_downline_nodes(
+    async def get_downline_nodes(
             self,
             matrix_id: uuid.UUID,
             position: int,
@@ -247,9 +249,10 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
             .order_by(MatrixNode.level, MatrixNode.position)
         )
 
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
-    def get_nodes_by_positions(
+    async def get_nodes_by_positions(
             self,
             *args,
             positions: Sequence[int],
@@ -265,10 +268,10 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
 
         )
 
-        result = self._session.execute(statement)
+        result = await self._session.execute(statement)
         return result.scalars().all()
 
-    def reserve_child_slot(
+    async def reserve_child_slot(
             self,
             matrix_node_id: uuid.UUID,
     ) -> tuple[int, int] | None:
@@ -280,7 +283,7 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
             .values(children_count=MatrixNode.children_count + 1)
             .returning(MatrixNode.position, MatrixNode.children_count)
         )
-        result = self._session.execute(statement)
+        result = await self._session.execute(statement)
         return result.one()
 
 

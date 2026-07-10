@@ -36,7 +36,7 @@ class TriumphBillTransactionService(CrudServiceMixin[RepositoryTriumphBillTransa
             offset: Optional[int] = None,
             **kwargs
     ) -> Sequence[TriumphBillTransaction]:
-        return (
+        return await (
             self._repository_triumph_bill_transaction
             .get_ordered_transactions(
                 limit=limit,
@@ -46,4 +46,4 @@ class TriumphBillTransactionService(CrudServiceMixin[RepositoryTriumphBillTransa
         )
 
     async def get_count(self, **kwargs):
-        return self._repository_triumph_bill_transaction.get_count(**kwargs)
+        return await self._repository_triumph_bill_transaction.get_count(**kwargs)

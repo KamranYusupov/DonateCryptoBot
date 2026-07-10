@@ -16,25 +16,27 @@ class RepositoryContestBase(
 ):
     """Абстрактный репозиторий для конкурсов"""
 
-    def get_ordered_ids(self, *args, **kwargs) -> List:
+    async def get_ordered_ids(self, *args, **kwargs) -> List:
         statement = (
             select(self._model.id)
             .filter(*args)
             .filter_by(**kwargs)
             .order_by(desc(self._model.start_at))
         )
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
-    def get_ordered_list(self, *args, **kwargs) -> List[ContestModelType]:
+    async def get_ordered_list(self, *args, **kwargs) -> List[ContestModelType]:
         statement = (
             select(self._model)
             .filter(*args)
             .filter_by(**kwargs)
             .order_by(desc(self._model.start_at))
         )
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
-    def get_last(self, *args, **kwargs) -> Optional[ContestModelType]:
+    async def get_last(self, *args, **kwargs) -> Optional[ContestModelType]:
         statement = (
             select(self._model)
             .filter(*args)
@@ -42,9 +44,10 @@ class RepositoryContestBase(
             .order_by(desc(self._model.start_at))
             .limit(1)
         )
-        return self._session.execute(statement).scalars().first()
+        result = await self._session.execute(statement)
+        return result.scalars().first()
 
-    def get_previous_active_contest(self, current_contest_id: uuid.UUID):
+    async def get_previous_active_contest(self, current_contest_id: uuid.UUID):
         statement = (
             select(self._model)
             .where(
@@ -54,7 +57,7 @@ class RepositoryContestBase(
             .order_by(desc(self._model.start_at))
             .limit(1)
         )
-        result = self._session.execute(statement)
+        result = await self._session.execute(statement)
         return result.scalar_one_or_none()
 
 
@@ -64,15 +67,16 @@ class RepositoryContestPointBase(
 ):
     """Абстрактный репозиторий для баллов конкурса"""
 
-    def get_count(self, *args, **kwargs) -> int:
+    async def get_count(self, *args, **kwargs) -> int:
         statement = (
             select(func.count(self._model.id))
             .filter(*args)
             .filter_by(**kwargs)
         )
-        return self._session.execute(statement).scalar()
+        result = await self._session.execute(statement)
+        return result.scalar()
 
-    def get_grouped_points(self, contest_id: uuid.UUID) -> list[tuple[int, int]]:
+    async def get_grouped_points(self, contest_id: uuid.UUID) -> list[tuple[int, int]]:
         """
         Возвращает список кортежей (user_id, points_count),
         отсортированный  по количеству поинтов и created_at последнего point,
@@ -88,5 +92,5 @@ class RepositoryContestPointBase(
                 func.max(self._model.created_at).asc(),
             )
         )
-        result = self._session.execute(statement)
+        result = await self._session.execute(statement)
         return result.all()

@@ -174,7 +174,7 @@ async def admin(
         matrix_dict = {"owner_id": admin_user.id, "status": status}
 
         if status == DonateStatus.BRILLIANT:
-            matrix_node_service.create_matrix_with_root_node(
+            await matrix_node_service.create_matrix_with_root_node(
                 **matrix_dict
             )
             continue

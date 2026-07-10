@@ -12,18 +12,18 @@ def commit_and_close_session(func):
         scope_token = scope.set(str(uuid4()))
         container = kwargs.get("container")
 
-        db = container.db()
-        session = db.create_session()
+        db_manager = await container.db_manager()
+        session = db_manager.create_session()
 
         try:
             result = await func(*args, **kwargs)
-            session.commit()
+            await session.commit()
             return result
         except Exception as e:
-            session.rollback()
+            await session.rollback()
             raise e
         finally:
-            db.remove()
+            await db_manager.remove()
             scope.reset(scope_token)
 
     return wrapper

@@ -15,7 +15,7 @@ class TriumphBillService(CrudServiceMixin[RepositoryTelegramUser]):
         self._repository_telegram_user = repository_telegram_user
 
     async def increment_one(self, user_id: int, amount: int) -> None    :
-        user = self._repository_telegram_user.get(
+        user = await self._repository_telegram_user.get(
             user_id=user_id,
         )
         if user.triumph_bill is None:
@@ -27,7 +27,7 @@ class TriumphBillService(CrudServiceMixin[RepositoryTelegramUser]):
             self,
             percent: Decimal = settings.triumph_bill_increase_percent
     ) -> None:
-        return (
+        return await (
             self._repository_telegram_user
             .increase_triumph_bills_by_percent(percent)
         )

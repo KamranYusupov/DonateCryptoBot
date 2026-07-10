@@ -75,7 +75,7 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
             "matrix_id": matrix_id,
         }
         donate = DonateEntity(**donate_dict)
-        donate_obj = self._repository_donate.create(obj_in=donate.model_dump())
+        donate_obj = await self._repository_donate.create(obj_in=donate.model_dump())
         await self._create_donate_transaction(
             donate_id=donate_obj.id, transactions=transactions
         )
@@ -95,7 +95,7 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
             receiver = transaction.receiver
 
             if receiver.is_banned:
-                receiver = self._repository_telegram_user.get(is_admin=True)
+                receiver = await self._repository_telegram_user.get(is_admin=True)
 
             donate_transaction_dict_obj = CreateDonateTransactionSchema(
                 sponsor_id=receiver.id,
@@ -103,29 +103,29 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
                 quantity=transaction.quantity,
                 type_=transaction.type_,
             )
-            self._repository_donate_transaction.create(
+            await self._repository_donate_transaction.create(
                 obj_in=donate_transaction_dict_obj.model_dump()
             )
 
     async def get_donate_by_id(self, donate_id: uuid.UUID):
         """Получить донат по id доната"""
-        return self._repository_donate.get(id=donate_id)
+        return await self._repository_donate.get(id=donate_id)
 
     async def get_donate_by_telegram_user_id(
             self,
             telegram_user_id: uuid.UUID,
     ):
-        return self._repository_donate.get_donate_by_telegram_user_id(
+        return await self._repository_donate.get_donate_by_telegram_user_id(
             telegram_user_id=telegram_user_id,
         )
 
     async def get_donate_transaction_by_id(self, donate_transaction_id: uuid.UUID):
         """Получить транзакцию по id"""
-        return self._repository_donate_transaction.get(id=donate_transaction_id)
+        return await self._repository_donate_transaction.get(id=donate_transaction_id)
 
     async def get_donate_transaction_by_sponsor_id(self, sponsor_id: uuid.UUID):
         """Получить список транзакций по id спонсора (кому должны перечислить)."""
-        return self._repository_donate_transaction.get_donate_transaction_by_sponsor_id(
+        return await self._repository_donate_transaction.get_donate_transaction_by_sponsor_id(
             sponsor_id
         )
 
@@ -135,10 +135,10 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
     ):
         """Получить все свои отправленные донаты в виде словаря {донат: транзакции доната}"""
         get_donates_kwargs = {"telegram_user_id": telegram_user_id}
-        donates = self._repository_donate.get_donates_list(**get_donates_kwargs)
+        donates = await self._repository_donate.get_donates_list(**get_donates_kwargs)
         output_dict = {}
         for donate in donates:
-            donate_transactions = self._repository_donate_transaction.list(
+            donate_transactions = await self._repository_donate_transaction.list(
                 donate_id=donate.id
             )
             output_dict[donate] = donate_transactions
@@ -149,7 +149,7 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
             donate_id: uuid.UUID,
             return_schemas: bool = False,
     ) -> List[DonateTransactionSchema]:
-        transactions = self._repository_donate_transaction.list(
+        transactions = await self._repository_donate_transaction.list(
             donate_id=donate_id,
         )
 
@@ -169,12 +169,12 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
             donate_id: uuid.UUID,
             is_bot: bool = False
     ):
-        donate_quantity = self._repository_donate.get_quantity_by_id(donate_id)
+        donate_quantity = await self._repository_donate.get_quantity_by_id(donate_id)
         if donate_quantity is None:
             raise DonateNotFoundError(f"Donate with id: {donate_id} not found.")
 
         status = self.get_donate_status(int(donate_quantity))
-        transactions = self._repository_donate_transaction.list(
+        transactions = await self._repository_donate_transaction.list(
             donate_id=donate_id,
         )
         system_bill_donate = 0
@@ -184,7 +184,7 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
                 system_bill_donate += transaction.quantity
                 continue
 
-            self._repository_telegram_user.increment_bill(
+            await self._repository_telegram_user.increment_bill(
                 telegram_user_id=transaction.sponsor_id,
                 bill_type=BillType.WITHDRAW,
                 amount=transaction.quantity,
@@ -194,13 +194,13 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
                 system_bill_donate -= transaction.quantity
 
         if not system_bill_donate:
-            self._repository_admin_statistic.increment_total_donates_sum(
+            await self._repository_admin_statistic.increment_total_donates_sum(
                 amount=donate_quantity,
             )
             return
 
         is_triumph = get_is_status_triumph(status)
-        self._repository_admin_statistic.increment_system_bill_and_total_donates_sum(
+        await self._repository_admin_statistic.increment_system_bill_and_total_donates_sum(
             system_bill_amount=system_bill_donate,
             total_donates_sum_amount=donate_quantity,
             triumph=is_triumph
@@ -213,46 +213,46 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
         """Получить все свои отправленные донаты в виде словаря {донат: транзакции доната}"""
         get_donates_kwargs = dict()
 
-        donates = self._repository_donate.get_donates_list(**get_donates_kwargs)
+        donates = await self._repository_donate.get_donates_list(**get_donates_kwargs)
         output_dict = {}
         for donate in donates:
-            donate_transactions = self._repository_donate_transaction.list(
+            donate_transactions = await self._repository_donate_transaction.list(
                 donate_id=donate.id
             )
             output_dict[donate] = donate_transactions
         return output_dict
 
     async def get_all_donate_transactions(self):
-        return self._repository_donate_transaction.get_transactions_list()
+        return await self._repository_donate_transaction.get_transactions_list()
 
     async def delete_donate_with_transactions(self, donate_id: uuid.UUID) -> None:
-        return self._repository_donate.delete_donate_with_transactions(
+        return await self._repository_donate.delete_donate_with_transactions(
             donate_id=donate_id
         )
 
     async def get_donates_count(self, *args, **kwargs) -> int:
-        return self._repository_donate.get_count(*args, **kwargs)
+        return await self._repository_donate.get_count(*args, **kwargs)
 
     async def get_donates_by_matrices_ids(self, matrices_ids: List[uuid.UUID | str]):
-        return self._repository_donate.get_donates_by_matrices_ids(matrices_ids)
+        return await self._repository_donate.get_donates_by_matrices_ids(matrices_ids)
 
     async def get_system_bill(self) -> Decimal:
         transactions_quantities = (
-            self._repository_donate_transaction.get_transactions_quantities(
+            await self._repository_donate_transaction.get_transactions_quantities(
                 type_=DonateTransactionType.SYSTEM
             )
         )
         bots_transactions_quantities = \
-            self._repository_donate_transaction.get_bots_transactions_quantities()
+            await self._repository_donate_transaction.get_bots_transactions_quantities()
 
         return sum(transactions_quantities) - sum(bots_transactions_quantities)
 
     async def get_donates_sum(self, *args, **kwargs) -> Decimal:
-        return sum(self._repository_donate.get_donates_quantities(*args, **kwargs))
+        return sum(await self._repository_donate.get_donates_quantities(*args, **kwargs))
 
     async def get_transactions_sum(self, *args, **kwargs):
         return sum(
-            self._repository_donate_transaction.get_transactions_quantities(
+            await self._repository_donate_transaction.get_transactions_quantities(
                 *args,
                 **kwargs
             )

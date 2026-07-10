@@ -56,7 +56,7 @@ class BaseContestService(Generic[ContestRepositoryType, ContestPointRepositoryTy
 
     async def get_current_contest(self) -> ContestModelType:
         period_start = self._get_period_start()
-        return self._repository_contest.get(start_at=period_start)
+        return await self._repository_contest.get(start_at=period_start)
 
     async def get_or_create_current_contest(self) -> Tuple[ContestModelType, bool]:
         current_contest = await self.get_current_contest()
@@ -64,31 +64,31 @@ class BaseContestService(Generic[ContestRepositoryType, ContestPointRepositoryTy
             return current_contest, False
 
         period_start = self._get_period_start()
-        current_contest = self._repository_contest.create(
+        current_contest = await self._repository_contest.create(
             {"start_at": period_start}
         )
         return current_contest, True
 
     async def get_contest_points(self, *args, **kwargs) -> List[ContestPointModelType]:
-        return self._repository_contest_point.list(*args, **kwargs)
+        return await self._repository_contest_point.list(*args, **kwargs)
 
     async def contest_exists(self, *args, **kwargs) -> bool:
-        return self._repository_contest.exists(*args, **kwargs)
+        return await self._repository_contest.exists(*args, **kwargs)
 
     async def get_contest(self, *args, **kwargs) -> ContestModelType:
-        return self._repository_contest.get(*args, **kwargs)
+        return await self._repository_contest.get(*args, **kwargs)
 
     async def get_contests_list(self, *args, **kwargs) -> List[ContestModelType]:
-        return self._repository_contest.get_ordered_list(*args, **kwargs)
+        return await self._repository_contest.get_ordered_list(*args, **kwargs)
 
     async def get_ids(self, *args, **kwargs) -> List[uuid.UUID]:
-        return self._repository_contest.get_ordered_ids(*args, **kwargs)
+        return await self._repository_contest.get_ordered_ids(*args, **kwargs)
 
     async def get_last_contest(self, *args, **kwarg) -> ContestModelType:
-        return self._repository_contest.get_last(*args, **kwarg)
+        return await self._repository_contest.get_last(*args, **kwarg)
 
     async def get_previous_active_contest(self, current_contest_id: uuid.UUID):
-        return self._repository_contest.get_previous_active_contest(
+        return await self._repository_contest.get_previous_active_contest(
             current_contest_id=current_contest_id
         )
 
@@ -107,11 +107,11 @@ class BaseContestService(Generic[ContestRepositoryType, ContestPointRepositoryTy
 
     async def update_results(self, contest_id: uuid.UUID) -> None:
         """Единый оркестратор обновления для ВСЕХ типов конкурсов."""
-        contest = self._repository_contest.get(id=contest_id)
+        contest = await self._repository_contest.get(id=contest_id)
         if not contest:
             return
 
-        users_points = self._repository_contest_point.get_grouped_points(contest_id=contest.id)
+        users_points = await self._repository_contest_point.get_grouped_points(contest_id=contest.id)
         if not users_points:
             return
 
@@ -148,7 +148,7 @@ class BaseContestService(Generic[ContestRepositoryType, ContestPointRepositoryTy
 
         update_data = update_schema.model_dump(exclude_unset=True)
         if update_data:
-            self._repository_contest.update(
+            await self._repository_contest.update(
                 obj_id=contest.id,
                 obj_in=update_data
             )
@@ -164,7 +164,7 @@ class BaseContestService(Generic[ContestRepositoryType, ContestPointRepositoryTy
         )
         if previous_contest:
             await self.update_results(previous_contest.id)
-            self._repository_contest.update(
+            await self._repository_contest.update(
                 obj_id=previous_contest.id,
                 obj_in={"is_archived": True}
             )

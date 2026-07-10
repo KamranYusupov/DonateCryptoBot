@@ -96,7 +96,7 @@ async def captcha_handler(
         id=referral_link.telegram_user_id
     )
     if not referral_link.is_active:
-        await message.answer(
+        await callback.message.edit_text(
             "🔗 Реферальная ссылка устарела\n\n"
             f"✅ Напишите {sponsor.full_username} — запросите новую"
         )
@@ -115,12 +115,12 @@ async def captcha_handler(
         await telegram_user_service.set_link_expired(
             referral_link_id=referral_link.id,
         )
-        session.commit()
+        await session.commit()
     except Exception:
-        session.rollback()
+        await session.rollback()
         raise
     finally:
-        session.close()
+        await session.close()
 
     await send_captcha(
         message=callback.message,
@@ -210,8 +210,8 @@ async def register_handler(
             obj_id=current_user.id,
             obj_in=dict(is_banned=True),
         )
-        session.commit()
-        session.close()
+        await session.commit()
+        await session.close()
 
         await delete_message_or_pass(callback.message)
         await callback.message.answer(
@@ -236,8 +236,8 @@ async def register_handler(
             obj_id=current_user.id,
             obj_in=dict(captcha_verified=True),
         )
-        session.commit()
-        session.close()
+        await session.commit()
+        await session.close()
 
     await delete_message_or_pass(callback.message)
     await state.clear()
@@ -307,7 +307,7 @@ async def subscription_checker(
         obj_id=current_user.id,
         obj_in=dict(is_donate_for_registration_sent=True)
     )
-    registration_count = statistic_service.increment_registrations_count()
+    registration_count = await statistic_service.increment_registrations_count()
     is_increase_triumph_bills_step = (
         registration_count
         % settings.triumph_bills_increase_registration_interval == 0
@@ -335,8 +335,8 @@ async def subscription_checker(
             bill_type=BillType.TRIUMPH,
             amount=settings.donate_for_registration
         )
-        admin_statistic = statistic_service.get_admin_statistic()
-        statistic_service.update_admin_statistic(
+        admin_statistic = await statistic_service.get_admin_statistic()
+        await statistic_service.update_admin_statistic(
             donates_sum_for_registration=(
                 admin_statistic.donates_sum_for_registration
                 + settings.donate_for_registration
@@ -580,7 +580,7 @@ async def donate_handler(
             })
             matrix_id = matrix.id
 
-        donate_service.update_transactions_data_with_system_transaction(
+        await donate_service.update_transactions_data_with_system_transaction(
             transactions_data,
             donate_sum=donate_sum,
         )
@@ -639,13 +639,13 @@ async def donate_handler(
             current_user.private_channel_link_sent = True
             send_private_channel_link = True
 
-        matrix_activations_count = statistic_service.increment_matrix_activations_count()
-        session.commit()
+        matrix_activations_count = await statistic_service.increment_matrix_activations_count()
+        await session.commit()
     except Exception as e:
-        session.rollback()
+        await session.rollback()
         raise e
     finally:
-        session.close()
+        await session.close()
 
 
     await apply_bot_matrix_tasks(**create_tasks_data)

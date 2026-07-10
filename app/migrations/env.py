@@ -1,5 +1,7 @@
+import asyncio
 from logging.config import fileConfig
 
+from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
@@ -32,23 +34,28 @@ def run_migrations_offline() -> None:
     with context.begin_transaction():
         context.run_migrations()
 
-
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
     configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = str(settings.postgres_url)
-    connectable = engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
+    connectable = create_async_engine(
+        configuration["sqlalchemy.url"],
         poolclass=pool.NullPool,
     )
 
-    with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+    async def do_run_migrations():
+        async with connectable.connect() as connection:
+            await connection.run_sync(do_configure_and_run)
 
+    def do_configure_and_run(connection):
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+        )
         with context.begin_transaction():
             context.run_migrations()
 
+    asyncio.run(do_run_migrations())
 
 if context.is_offline_mode():
     run_migrations_offline()

@@ -14,19 +14,19 @@ class CrudServiceMixin(Generic[RepositoryType]):
         self._repository = repository
 
     async def create(self, obj_in) -> ModelType:
-        return self._repository.create(obj_in=obj_in)
+        return await self._repository.create(obj_in=obj_in)
 
     async def get(self, *args, **kwargs) -> Optional[ModelType]:
-        return self._repository.get(*args, **kwargs)
+        return await self._repository.get(*args, **kwargs)
 
     async def list(self, *args, **kwargs) -> Sequence[ModelType]:
-        return self._repository.list(*args, **kwargs)
+        return await self._repository.list(*args, **kwargs)
 
     async def update(self, *, obj_id: UUID, obj_in) -> ModelType:
-        return self._repository.update(obj_id=obj_id, obj_in=obj_in)
+        return await self._repository.update(obj_id=obj_id, obj_in=obj_in)
 
     async def delete(self, *args, obj_id: UUID, **kwargs) -> None:
-        return self._repository.delete(*args, obj_id=obj_id, **kwargs)
+        return await self._repository.delete(*args, obj_id=obj_id, **kwargs)
 
     async def exists(self, *args, **kwargs) -> bool:
-        return self._repository.exists(*args, **kwargs)
+        return await self._repository.exists(*args, **kwargs)

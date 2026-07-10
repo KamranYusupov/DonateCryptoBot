@@ -12,10 +12,10 @@ class CryptoBotProcessedWebhookService(CrudServiceMixin[RepositoryProcessedCrypt
         self._repository_processed_webhook = repository_processed_webhook
 
     async def get_by_update_id(self, update_id: int):
-        return self._repository_processed_webhook.get(update_id=update_id)
+        return await self._repository_processed_webhook.get(update_id=update_id)
 
     async def exists(self, update_id: int):
-        return self._repository_processed_webhook.exists(update_id=update_id)
+        return await self._repository_processed_webhook.exists(update_id=update_id)
 
     async def create_by_request_body(self, body: UpdateWebhookSchema):
-        return self._repository_processed_webhook.create(obj_in=body.model_dump())
+        return await self._repository_processed_webhook.create(obj_in=body.model_dump())

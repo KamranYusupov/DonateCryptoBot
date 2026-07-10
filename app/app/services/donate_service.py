@@ -53,7 +53,7 @@ class DonateService:
 
         return None
 
-    def get_matrix_parents(
+    async def get_matrix_parents(
             self,
             matrix: Matrix,
             count: int,
@@ -62,7 +62,7 @@ class DonateService:
         current_matrix = matrix
 
         for _ in range(count):
-            current_matrix = self._repository_matrix.get_parent_matrix(
+            current_matrix = await self._repository_matrix.get_parent_matrix(
                 current_matrix.id,
                 status=current_matrix.status,
                 for_update=True,
@@ -108,7 +108,7 @@ class DonateService:
 
         return transactions_data
 
-    def update_transactions_data_with_system_transaction(
+    async def update_transactions_data_with_system_transaction(
             self,
             transactions_data: list[DonateTransactionContextSchema],
             donate_sum: Decimal,
@@ -121,7 +121,7 @@ class DonateService:
         donate_reminder = donate_sum - transactions_sum
 
         if donate_reminder:
-            admin_user = self._repository_telegram_user.get(is_admin=True)
+            admin_user = await self._repository_telegram_user.get(is_admin=True)
             receiver_schema = TransactionReceiverSchema.model_validate(admin_user)
             transaction = SystemTransactionContextSchema(
                 receiver=receiver_schema,
@@ -142,7 +142,7 @@ class DonateService:
         transaction_quantity = donate_sum * transaction_percent / 100
 
         owner_ids_node_map = {node.owner_id: node for node in nodes}
-        receivers = self._repository_telegram_user.get_active_users_by_ids(
+        receivers = await self._repository_telegram_user.get_active_users_by_ids(
             ids=list(owner_ids_node_map.keys()),
         )
 
@@ -174,7 +174,7 @@ class DonateService:
         transaction_quantity = donate_sum * transaction_percent / 100
 
         path_matrices = list(
-            self._repository_matrix.get_matrices_by_ids_list(
+            await self._repository_matrix.get_matrices_by_ids_list(
                 free_place_path,
                 for_update=True,
             )
@@ -188,7 +188,7 @@ class DonateService:
             donate_receivers_ids.append(path_matrix.owner_id)
             path_matrices_ids_map[path_matrix.owner_id] = path_matrix
 
-        donate_receivers = self._repository_telegram_user.get_active_users_by_ids(
+        donate_receivers = await self._repository_telegram_user.get_active_users_by_ids(
             ids=donate_receivers_ids,
             is_bot=False,
         )
@@ -217,10 +217,10 @@ class DonateService:
             owner_id=current_user.id,
             status=matrix_to_add.status,
         )
-        created_matrix = self._repository_matrix.create(obj_in=created_matrix_entity.model_dump())
+        created_matrix = await self._repository_matrix.create(obj_in=created_matrix_entity.model_dump())
         created_matrix.created_at = current_time
 
-        matrix_to_add_path_matrices = self._repository_matrix.get_matrices_by_ids_list(
+        matrix_to_add_path_matrices = await self._repository_matrix.get_matrices_by_ids_list(
             free_place_path,
             mapping=True,
             for_update=True,
@@ -289,7 +289,7 @@ class DonateService:
             )
             return found_matrix, None
 
-        sponsor_matrices = self._repository_matrix.get_user_matrices(
+        sponsor_matrices = await self._repository_matrix.get_user_matrices(
             owner_id=sponsor.id,
             status=status,
             for_update=True,
@@ -313,7 +313,7 @@ class DonateService:
                     owner_id=sponsor.id,
                     status=status,
                 )
-                matrix = self._repository_matrix.create(obj_in=matrix_entity)
+                matrix = await self._repository_matrix.create(obj_in=matrix_entity)
                 matrix.matrices, matrix.telegram_users = {},  []
                 created_matrix = await self._handle_insertion_to_free_matrix(
                     matrix,
@@ -344,7 +344,7 @@ class DonateService:
             level_length: int = settings.level_length,
     ):
         matrix_ids = collect_matrix_ids(free_matrix.matrices)
-        order_map = self._repository_matrix.get_order_map(list(matrix_ids))
+        order_map = await self._repository_matrix.get_order_map(list(matrix_ids))
 
         free_place_path = find_free_place_in_matrix(
             free_matrix.matrices,
@@ -352,7 +352,7 @@ class DonateService:
             level_length,
         )
         free_place_level = len(free_place_path) + 1
-        parents = self.get_matrix_parents(
+        parents = await self.get_matrix_parents(
             matrix=free_matrix,
             count=settings.matrix_max_level - free_place_level
         )
@@ -388,7 +388,7 @@ class DonateService:
         while iter_count <= max_iterations:
             iter_count += 1
 
-            next_sponsor = self._repository_telegram_user.get(
+            next_sponsor = await self._repository_telegram_user.get(
                 user_id=user_to_add.sponsor_user_id
             )
 
@@ -399,7 +399,7 @@ class DonateService:
                 user_to_add = next_sponsor
                 continue
 
-            next_sponsor_matrices = self._repository_matrix.get_user_matrices(
+            next_sponsor_matrices = await self._repository_matrix.get_user_matrices(
                 owner_id=next_sponsor.id,
                 status=status,
                 for_update=True,
@@ -425,7 +425,7 @@ class DonateService:
                     owner_id=next_sponsor.id,
                     status=status,
                 )
-                matrix = self._repository_matrix.create(obj_in=matrix_entity)
+                matrix = await self._repository_matrix.create(obj_in=matrix_entity)
                 matrix.matrices, matrix.telegram_users = {}, []
                 created_matrix = await self._handle_insertion_to_free_matrix(
                     matrix,

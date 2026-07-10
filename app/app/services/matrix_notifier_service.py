@@ -121,7 +121,7 @@ class MatrixActivationNotifierService:
             sponsor_user_id: int,
             status: DonateStatus,
     ) -> None:
-        sponsor = self._repository_telegram_user.get(
+        sponsor = await self._repository_telegram_user.get(
             user_id=sponsor_user_id,
         )
         if not sponsor:
@@ -131,7 +131,7 @@ class MatrixActivationNotifierService:
             username=sponsor.username,
             status=status,
         )
-        invited_users = self._repository_telegram_user.list(
+        invited_users = await self._repository_telegram_user.list(
             sponsor_user_id=sponsor_user_id,
         )
 

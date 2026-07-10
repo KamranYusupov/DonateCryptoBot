@@ -22,12 +22,12 @@ async def add_bot_to_matrix_task(
         *,
         container: ContainerDependency,
 ) -> None:
-    matrix_service = container.matrix_service()
-    matrix_node_service = container.matrix_node_service()
-    telegram_user_service = container.telegram_user_service()
-    donate_service = container.donate_service()
-    donate_confirm_service = container.donate_confirm_service()
-    matrix_activation_notifier_service = container.matrix_activation_notifier_service()
+    matrix_service = await container.matrix_service()
+    matrix_node_service = await container.matrix_node_service()
+    telegram_user_service = await container.telegram_user_service()
+    donate_service = await container.donate_service()
+    donate_confirm_service = await container.donate_confirm_service()
+    matrix_activation_notifier_service = await container.matrix_activation_notifier_service()
     telegram_bot_service = container.telegram_bot_service()
 
     donate_sum = Decimal(donate_sum_str)

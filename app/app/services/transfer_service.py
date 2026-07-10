@@ -27,7 +27,7 @@ class TransferService(CrudServiceMixin[RepositoryTransfer]):
             join_receiver: bool = False,
             **kwargs
     ) -> list[Transfer]:
-        return self._repository_transfer.get_list(
+        return await self._repository_transfer.get_list(
             *args,
             join_sender,
             join_receiver,
@@ -35,13 +35,13 @@ class TransferService(CrudServiceMixin[RepositoryTransfer]):
         )
 
     async def get_transfer(self, **kwargs) -> Transfer:
-        return self._repository_transfer.get(**kwargs)
+        return await self._repository_transfer.get(**kwargs)
 
     async def exists(self, **kwargs) -> Transfer:
-        return self._repository_transfer.exists(**kwargs)
+        return await self._repository_transfer.exists(**kwargs)
 
     async def create_transfer(
         self,
         obj_in: TransferCreateSchema,
     ) -> Transfer | None:
-        return self._repository_transfer.create(obj_in=obj_in.model_dump())
+        return await self._repository_transfer.create(obj_in=obj_in.model_dump())

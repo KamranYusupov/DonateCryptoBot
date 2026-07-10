@@ -14,7 +14,7 @@ from app.models.matrix import Matrix, MatrixEngineType
 class RepositoryDonate(RepositoryBase[Donate]):
     """Репозиторий доната"""
 
-    def get_matrix_engine_type(
+    async def get_matrix_engine_type(
             self,
             donate_id: uuid.UUID,
     ) -> MatrixEngineType:
@@ -24,19 +24,19 @@ class RepositoryDonate(RepositoryBase[Donate]):
             .where(Donate.id == donate_id)
         )
 
-        result = self._session.execute(statement)
+        result = await self._session.execute(statement)
         return result.scalar()
 
-    def get_quantity_by_id(self, donate_id: uuid.UUID) -> Optional[Decimal]:
+    async def get_quantity_by_id(self, donate_id: uuid.UUID) -> Optional[Decimal]:
         statement = (
             select(Donate.quantity)
             .where(Donate.id == donate_id)
         )
 
-        result = self._session.execute(statement)
+        result = await self._session.execute(statement)
         return result.scalar_one_or_none()
 
-    def get_donates_list(self, *args, **kwargs):
+    async def get_donates_list(self, *args, **kwargs):
         statement = (
             select(Donate)
             .filter(*args)
@@ -44,9 +44,10 @@ class RepositoryDonate(RepositoryBase[Donate]):
             .order_by(Donate.created_at.desc())
         )
 
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
-    def get_donate_by_telegram_user_id(
+    async def get_donate_by_telegram_user_id(
             self,
             telegram_user_id: uuid.UUID,
     ):
@@ -56,9 +57,10 @@ class RepositoryDonate(RepositoryBase[Donate]):
             )
         ).order_by(Donate.created_at.desc())
 
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
-    def delete_donate_with_transactions(self, donate_id: uuid.UUID):
+    async def delete_donate_with_transactions(self, donate_id: uuid.UUID):
         delete_transactions_statement = (
             delete(DonateTransaction)
             .where(DonateTransaction.donate_id == donate_id)
@@ -69,19 +71,20 @@ class RepositoryDonate(RepositoryBase[Donate]):
             .where(Donate.id == donate_id)
         )
 
-        self._session.execute(delete_transactions_statement)
-        self._session.execute(delete_donate_statement)
+        await self._session.execute(delete_transactions_statement)
+        await self._session.execute(delete_donate_statement)
 
-    def get_count(self, *args, **kwargs) -> int:
+    async def get_count(self, *args, **kwargs) -> int:
         statement = (
             select(func.count(Donate.id))
             .filter(*args)
             .filter_by(**kwargs)
         )
 
-        return self._session.execute(statement).scalar()
+        result = await self._session.execute(statement)
+        return result.scalar()
 
-    def get_donates_by_matrices_ids(
+    async def get_donates_by_matrices_ids(
             self,
             matrices_ids: List[uuid.UUID | str],
             **kwargs,
@@ -93,35 +96,39 @@ class RepositoryDonate(RepositoryBase[Donate]):
             .order_by(Donate.created_at.desc())
         )
 
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
-    def get_donates_quantities(self, *args, **kwargs):
+    async def get_donates_quantities(self, *args, **kwargs):
         statement = (
             select(Donate.quantity)
             .join(Donate.telegram_user)
             .filter(TelegramUser.is_bot == False, *args).filter_by(**kwargs))
 
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
 
 class RepositoryDonateTransaction(RepositoryBase[DonateTransaction]):
     """Репозиторий доната"""
 
-    def get_transactions_list(self):
+    async def get_transactions_list(self):
         statement = select(DonateTransaction).order_by(
             DonateTransaction.created_at.desc()
         )
 
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
-    def get_transactions_quantities(self, *args, **kwargs):
+    async def get_transactions_quantities(self, *args, **kwargs):
         statement = select(
             DonateTransaction.quantity
         ).filter(*args).filter_by(**kwargs)
 
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
-    def get_bots_transactions_quantities(self):
+    async def get_bots_transactions_quantities(self):
         statement = (
             select(DonateTransaction.quantity)
             .join(DonateTransaction.donate)
@@ -132,14 +139,16 @@ class RepositoryDonateTransaction(RepositoryBase[DonateTransaction]):
             )
         )
 
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 
-    def get_donate_transaction_by_sponsor_id(self, sponsor_id: uuid.UUID):
+    async def get_donate_transaction_by_sponsor_id(self, sponsor_id: uuid.UUID):
         statement = (
             select(DonateTransaction)
             .filter_by(sponsor_id=sponsor_id)
             .order_by(DonateTransaction.created_at.desc())
         )
 
-        return self._session.execute(statement).scalars().all()
+        result = await self._session.execute(statement)
+        return result.scalars().all()
 

@@ -23,21 +23,21 @@ class MatrixService(CrudServiceMixin[RepositoryMatrix]):
         self._repository_telegram_user = repository_telegram_user
 
     async def get_list(self, *args, order_by_create_at: bool = False,**kwargs) -> list[Matrix]:
-        return self._repository_matrix.get_list(
+        return await self._repository_matrix.get_list(
             *args,
             order_by_create_at=order_by_create_at,
             **kwargs
         )
 
     async def get_matrix(self, **kwargs) -> Matrix | None:
-        return self._repository_matrix.get(**kwargs)
+        return await self._repository_matrix.get(**kwargs)
 
     async def get_user_matrices(
             self,
             owner_id: uuid.UUID,
             status: DonateStatus | None = None,
     ) -> list[Matrix]:
-        return self._repository_matrix.get_user_matrices(
+        return await self._repository_matrix.get_user_matrices(
             owner_id=owner_id,
             status=status,
         )
@@ -45,7 +45,7 @@ class MatrixService(CrudServiceMixin[RepositoryMatrix]):
     async def get_parent_matrix(
             self, matrix_id: Matrix.id, status: DonateStatus, return_all: bool = False
     )-> Matrix:
-        return self._repository_matrix.get_parent_matrix(
+        return await self._repository_matrix.get_parent_matrix(
             matrix_id=matrix_id, status=status, return_all=return_all
         )
 
@@ -53,7 +53,7 @@ class MatrixService(CrudServiceMixin[RepositoryMatrix]):
         parents = []
 
         for _ in range(count):
-            current_parent_matrix = self._repository_matrix.get_parent_matrix(
+            current_parent_matrix = await self._repository_matrix.get_parent_matrix(
                 matrix.id,
                 status=matrix.status,
             )
@@ -64,13 +64,13 @@ class MatrixService(CrudServiceMixin[RepositoryMatrix]):
         return parents
 
     async def create_matrix(self, matrix: MatrixEntity) -> Matrix:
-        return self._repository_matrix.create(obj_in=matrix.model_dump())
+        return await self._repository_matrix.create(obj_in=matrix.model_dump())
 
     async def delete(self, obj_id: uuid.UUID):
-        self._repository_matrix.delete(obj_id=obj_id)
+        await self._repository_matrix.delete(obj_id=obj_id)
 
     async def get_unique_statuses_by_owner_id(self, owner_id: uuid.UUID):
-        return self._repository_matrix.get_unique_statuses_by_owner_id(
+        return await self._repository_matrix.get_unique_statuses_by_owner_id(
             owner_id=owner_id
         )
 
