@@ -133,9 +133,6 @@ async def answer_created_message(
         state: FSMContext,
         from_user_id: int,
         current_user: TelegramUser,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
 ):
     data = await state.get_data()
     await message.answer(
@@ -165,6 +162,7 @@ async def answer_created_message(
 async def process_button_link_handler(
         message: Message,
         state: FSMContext,
+        current_user: TelegramUser,
 ):
     if not message.text.startswith(("http://", "https://")):
         await message.answer(
@@ -177,12 +175,17 @@ async def process_button_link_handler(
     await answer_created_message(
         message,
         state,
-        from_user_id=message.from_user.id
+        from_user_id=message.from_user.id,
+        current_user=current_user,
     )
 
 
 @referral_router.callback_query(F.data == "skip_referrals_msg_state")
-async def skip_step(callback: CallbackQuery, state: FSMContext):
+async def skip_step(
+        callback: CallbackQuery,
+        state: FSMContext,
+        current_user: TelegramUser,
+):
     await callback.message.delete()
     current_state = await state.get_state()
 
@@ -196,7 +199,8 @@ async def skip_step(callback: CallbackQuery, state: FSMContext):
         await answer_created_message(
             callback.message,
             state,
-            from_user_id=callback.from_user.id
+            from_user_id=callback.from_user.id,
+            current_user=current_user,
         )
 
 
