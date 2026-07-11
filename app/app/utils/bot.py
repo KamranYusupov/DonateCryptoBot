@@ -24,7 +24,6 @@ from app.models.donate import DonateTransactionType
 from app.models.telegram_user import DonateStatus, status_emoji_list, statuses_colors_data
 from app.schemas.telegram_user import TelegramUserEntity
 from app.keyboards.inline import links_buttons
-from app.utils.captcha import generate_math_captcha
 from app.keyboards.donate import get_donate_keyboard
 
 
@@ -322,44 +321,3 @@ async def send_subscription_menu(
         reply_markup=keyboard.adjust(*sizes).as_markup(),
     )
 
-async def send_captcha(
-        message: Message,
-        state: FSMContext,
-        sponsor_user_id: int,
-        attempt: int = 1,
-        exception_text: str = "",
-) -> None:
-    text, answer, options = generate_math_captcha(
-        options_count=settings.math_captcha_options_count
-    )
-
-    captcha_id = str(uuid.uuid4())
-    buttons = {
-        str(option): f"register_{captcha_id}_{option}_{attempt}_{sponsor_user_id}"
-        for option in options
-    }
-
-    sizes = (min(len(options), 3),) * math.ceil(len(options) / 3)
-
-    await delete_message_or_pass(message)
-
-    message_text = f"<b>{text}</b>"
-
-    if exception_text:
-        message_text = f"{exception_text}\n\n{message_text}"
-
-    await message.answer(
-        message_text,
-        reply_markup=get_donate_keyboard(
-            buttons=buttons,
-            sizes=sizes,
-        ),
-    )
-    await state.update_data(
-        captcha_id=captcha_id,
-        answer=answer,
-        expires_at=(
-                datetime.now() + timedelta(seconds=settings.captcha_time_to_solve_seconds)
-        ).timestamp(),
-
-    )

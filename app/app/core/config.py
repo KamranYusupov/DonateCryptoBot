@@ -188,13 +188,6 @@ class Settings(BaseSettings):
     update_contests_task_delay: int = Field(default=300)
     # endregion
 
-    # region Настройки Captcha
-    captcha_time_to_solve_seconds: int = Field(title="Время на решение каптчи", default=60)
-    math_captcha_options_count: int = Field(default=6)
-    math_captcha_max_attempts_count: int = Field(default=2)
-    # endregion
-
-
     # Настройки Taskiq задач
     add_bot_to_matrix_first_task_interval: IntervalConfig = Field(
         title="Интервал ожидания первой задачи добавления бота в матрицу",

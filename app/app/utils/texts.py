@@ -472,7 +472,7 @@ def get_matrix_transaction_message_text(
         "💸 <b>+{quantity_str}$</b> на счёт\n"
         "🎯 Площадка: <b>{status_str}</b> \n"
         "{statistic_line}\n\n"
-        "🎁 Получено: <b>${receiver_donates_sum}</b>\n\n"
+        "<b>🎁 Получено: ${receiver_donates_sum}</b>\n\n"
         "🔥 Делитесь <b>KOD💵DENEG</b> — получайте бонусы."
     )
 

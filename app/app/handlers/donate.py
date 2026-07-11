@@ -8,6 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 from aiogram.types import CallbackQuery, FSInputFile
 from aiogram.types import Message
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from dependency_injector.wiring import inject, Provide
 
@@ -38,7 +39,6 @@ from app.utils.pagination import Paginator
 from app.utils.excel import export_users_to_excel
 from app.models.donate import DonateTransactionType
 from app.loader import bot
-from app.utils.bot import send_captcha
 from app.models.telegram_user import TelegramUser, BillType
 from app.models.matrix import MatrixEngineType
 from app.keyboards.donate import get_start_inline_keyboard
@@ -50,7 +50,6 @@ from app.utils.bot import get_schema_from_user
 from app.services.statistic_service import StatisticService
 from app.keyboards.inline import get_subscriptions_keyboard, get_confirm_inline_keyboard
 from app.utils.bot import send_subscription_menu
-from app.states.captcha import CaptchaState
 from app.use_cases.donations import send_donations_menu
 from app.utils.texts import (
     format_decimal,
@@ -64,28 +63,17 @@ donate_router = Router()
 
 @donate_router.callback_query(F.data.startswith("yes_"))
 @inject
-async def captcha_handler(
+async def registration_confirm_handler(
         callback: CallbackQuery,
-        state: FSMContext,
         current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
-        session: Session = Provide[
+        session: AsyncSession = Provide[
             Container.session
         ]
 ) -> None:
     if current_user:
-        return
-
-    await state.clear()
-    if not callback.from_user.username:
-        await callback.message.answer(
-            "Для регистрации добавьте пожалуйста <em>username</em> в свой telegram аккаунт",
-            reply_markup=get_donate_keyboard(
-                buttons={"Попробовать ещё раз": callback.data}
-            )
-        )
         return
 
     referral_link_code = callback.data.split("_")[-1]
@@ -101,6 +89,7 @@ async def captcha_handler(
             f"✅ Напишите {sponsor.full_username} — запросите новую"
         )
         return
+
     sponsor_user_id = sponsor.user_id
     user_schema = get_schema_from_user(
         callback.from_user,
@@ -116,18 +105,14 @@ async def captcha_handler(
             referral_link_id=referral_link.id,
         )
         await session.commit()
-    except Exception:
+    except:
         await session.rollback()
         raise
     finally:
         await session.close()
 
-    await send_captcha(
-        message=callback.message,
-        state=state,
-        sponsor_user_id=sponsor_user_id,
-    )
-    await state.set_state(CaptchaState.option)
+    await delete_message_or_pass(callback.message)
+    await send_subscription_menu(callback, sponsor_user_id)
     await send_message_or_pass(
         bot=callback.bot,
         chat_id=sponsor_user_id,
@@ -138,111 +123,6 @@ async def captcha_handler(
             "🌀 Состояние → Действие → Результат"
         )
     )
-
-
-@donate_router.callback_query(F.data.startswith("register_"))
-@inject
-async def register_handler(
-        callback: CallbackQuery,
-        state: FSMContext,
-        current_user: TelegramUser,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
-        matrix_service: MatrixService = Provide[Container.matrix_service],
-        matrix_node_service: MatrixNodeService = Provide[
-            Container.matrix_node_service
-        ],
-        sponsors_contests_service: SponsorsContestService = Provide[
-            Container.sponsors_contests_service
-        ],
-        statistic_service: StatisticService = Provide[
-            Container.statistic_service
-        ],
-        session: Session = Provide[
-            Container.session
-        ],
-) -> None:
-    captcha_id = callback.data.split("_")[-4]
-    option, attempt, sponsor_user_id = map(int, callback.data.split("_")[-3:])
-
-    if current_user.captcha_verified:
-        await state.clear()
-        await send_donations_menu(
-            from_user_id=current_user.user_id,
-            current_user_id=current_user.id,
-            telegram_method=bot.send_message,
-            telegram_user_service=telegram_user_service,
-            matrix_service=matrix_service,
-            matrix_node_service=matrix_node_service,
-            sponsors_contests_service=sponsors_contests_service,
-            statistic_service=statistic_service,
-        )
-        return
-
-    now = datetime.now()
-    state_data = await state.get_data()
-
-    if captcha_id != state_data.get("captcha_id"):
-        await callback.message.edit_text("Проверка устарела.")
-        return
-
-    captcha_expires_at = datetime.fromtimestamp(
-        state_data["expires_at"]
-    )
-
-    if captcha_expires_at <= now:
-        await send_captcha(
-            message=callback.message,
-            state=state,
-            sponsor_user_id=sponsor_user_id,
-            attempt=attempt,
-            exception_text=(
-                "❌⌛️ Время на решение вышло. "
-                "Попробуйте еще раз."
-            ),
-        )
-        return
-
-    answer = int(state_data["answer"])
-    if option != answer and attempt >= settings.math_captcha_max_attempts_count:
-        await telegram_user_service.update(
-            obj_id=current_user.id,
-            obj_in=dict(is_banned=True),
-        )
-        await session.commit()
-        await session.close()
-
-        await delete_message_or_pass(callback.message)
-        await callback.message.answer(
-            "❌ Проверка не пройдена. \n\nВаш аккаунт заблокирован. "
-            "Для снятия блокировки, свяжитесь со службой поддержки. "
-            f"@{settings.support_username}"
-        )
-        await state.clear()
-        return
-    elif option != answer:
-        await send_captcha(
-            message=callback.message,
-            state=state,
-            sponsor_user_id=sponsor_user_id,
-            attempt=attempt + 1,
-            exception_text="❌ Неверный вариант ответа.",
-        )
-        return
-
-    if not current_user.captcha_verified:
-        await telegram_user_service.update(
-            obj_id=current_user.id,
-            obj_in=dict(captcha_verified=True),
-        )
-        await session.commit()
-        await session.close()
-
-    await delete_message_or_pass(callback.message)
-    await state.clear()
-
-    await send_subscription_menu(callback, sponsor_user_id)
 
 
 @donate_router.callback_query(F.data.startswith("menu_"))

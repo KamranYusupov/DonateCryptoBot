@@ -23,8 +23,7 @@ from app.keyboards.reply import get_reply_keyboard
 from app.utils.matrix import get_matrices_length
 from app.services.donate_confirm_service import DonateConfirmService
 from app.keyboards.donate import get_start_inline_keyboard
-from app.utils.bot import get_schema_from_user, send_captcha
-from app.states.captcha import CaptchaState
+from app.utils.bot import get_schema_from_user
 
 start_router = Router()
 
@@ -34,13 +33,12 @@ start_router = Router()
 async def command_start(
         message: Message,
         command: CommandObject,
-        state: FSMContext,
         current_user: TelegramUser,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
 ) -> None:
-    if current_user and current_user.captcha_verified:
+    if current_user:
         await message.answer(
             f"👋 Приветствую, {current_user.first_name}!\n\n",
             reply_markup=get_reply_keyboard(None)
@@ -62,15 +60,6 @@ async def command_start(
         )
         return
 
-    if current_user and not current_user.captcha_verified:
-        await send_captcha(
-            message=message,
-            state=state,
-            sponsor_user_id=current_user.sponsor_user_id,
-        )
-        await state.set_state(CaptchaState.option)
-        return
-
     if not command.args:
         await message.answer(
             "Регистрация в боте происходит "
@@ -78,9 +67,20 @@ async def command_start(
         )
         return
 
-    referral_link_code = command.args
+    if command.args.isdigit():
+        sponsor_user_id = int(command.args)
+        sponsor = await telegram_user_service.get_telegram_user(
+            user_id=sponsor_user_id,
+        )
+        if sponsor:
+            await message.answer(
+                "🔗 Реферальная ссылка устарела\n\n"
+                f"✅ Напишите {sponsor.full_username} — запросите новую"
+            )
+            return
+
     referral_link = await telegram_user_service.get_link_by_code(
-        code=referral_link_code,
+        code=command.args,
     )
 
     if not referral_link:
@@ -166,7 +166,6 @@ async def admin(
         status=DonateStatus.get_status_list()[-1],
         depth_level=0,
         is_admin=True,
-        captcha_verified=True,
     )
     admin_user = await telegram_user_service.create_telegram_user(user=user_schema)
 
