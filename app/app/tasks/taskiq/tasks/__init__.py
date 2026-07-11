@@ -9,11 +9,13 @@ from app.tasks.taskiq.tasks.business import (
     increase_triumph_bills_task,
     update_sponsors_contest_task,
     update_registration_contest_task,
+    send_matrix_transaction_message_task,
 )
 
 __all__ = (
     "add_bot_to_matrix_task",
     "apply_bot_matrix_tasks",
+    "send_matrix_transaction_message_task",
     "increase_triumph_bills_task",
     "send_db_backup_task",
     "send_message_task",

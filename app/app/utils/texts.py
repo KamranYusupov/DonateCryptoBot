@@ -459,6 +459,7 @@ def get_system_transaction_message_text(
 def get_matrix_transaction_message_text(
         *,
         receiver_str: str,
+        receiver_donates_sum: Decimal,
         status: DonateStatus,
         quantity: Decimal,
         matrix_length: int,
@@ -471,6 +472,7 @@ def get_matrix_transaction_message_text(
         "💸 <b>+{quantity_str}$</b> на счёт\n"
         "🎯 Площадка: <b>{status_str}</b> \n"
         "{statistic_line}\n\n"
+        "🎁 Получено: <b>${receiver_donates_sum}</b>\n\n"
         "🔥 Делитесь <b>KOD💵DENEG</b> — получайте бонусы."
     )
 
@@ -490,6 +492,7 @@ def get_matrix_transaction_message_text(
 
     return template.format(
         receiver_str=receiver_str,
+        receiver_donates_sum=format_decimal(receiver_donates_sum),
         status_str=status_str,
         statistic_line=statistic_line,
         quantity_str=format_decimal(quantity),

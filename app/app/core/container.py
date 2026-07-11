@@ -65,6 +65,10 @@ from app.services import (
     TriumphBillTransactionService,
     AdminImpersonationService,
 )
+from app.infrastructure.adapters import (
+    TelegramBotTaskIQAdapter,
+    MatrixNotifierTaskIQAdapter,
+)
 from app.use_cases import (
     RegistrationContestUseCase,
     SponsorsContestUseCase,
@@ -156,6 +160,15 @@ class Container(containers.DeclarativeContainer):
     )
     # endregion
 
+    # region infra adapters
+    telegram_bot_taskiq_adapter = providers.Factory(
+        TelegramBotTaskIQAdapter
+    )
+    matrix_notifier_taskiq_adapter = providers.Factory(
+        MatrixNotifierTaskIQAdapter
+    )
+    # endregion
+
     # region infra services
     telegram_bot_service = providers.Factory(
         TelegramBotService,
@@ -233,7 +246,8 @@ class Container(containers.DeclarativeContainer):
     matrix_activation_notifier_service = providers.Factory(
         MatrixActivationNotifierService,
         repository_telegram_user=repository_telegram_user,
-        telegram_bot_service=telegram_bot_service,
+        telegram_bot_adapter=telegram_bot_taskiq_adapter,
+        matrix_notifier_adapter=matrix_notifier_taskiq_adapter,
     )
     triumph_bill_service = providers.Factory(
         TriumphBillService,

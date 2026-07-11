@@ -3,13 +3,19 @@ from datetime import datetime, timedelta
 import uuid
 from decimal import Decimal
 import random
+import logging
 
 from app.core.config import settings
 from app.core.taskiq import broker, redis_source
 from app.models.matrix import Matrix, MatrixEngineType, MatrixNode
-from app.db.commit_decorator import commit_and_close_session
+from app.db.commit_decorator import commit_and_close_session, set_scope_session
+from app.models.telegram_user import DonateStatus
+from app.repositories import RepositoryTelegramUser
+from app.services import TelegramBotService
 from app.tasks.taskiq.dependencies.container import ContainerDependency
-from app.utils.texts import format_decimal
+from app.utils.texts import format_decimal, get_matrix_transaction_message_text
+
+logger = logging.getLogger(__name__)
 
 
 @broker.task(name="Add bot to Matrix")
@@ -167,3 +173,54 @@ async def apply_bot_matrix_tasks(
             **task_data,
         )
     )
+
+
+@broker.task(retry_on_error=True)
+@set_scope_session
+async def send_matrix_transaction_message_task(
+        receiver_id: str,
+        chat_id: int,
+        receiver_str: str,
+        status: DonateStatus,
+        matrix_length: int,
+        triumph: bool,
+        quantity: Decimal,
+        is_public: bool = False,
+        *,
+        container: ContainerDependency,
+) -> None:
+    try:
+        receiver_id = uuid.UUID(receiver_id)
+    except ValueError:
+        logger.error("Invalid receiver_id. Task accepts only UUID!")
+        return
+
+    repository_telegram_user: RepositoryTelegramUser = \
+        await container.repository_telegram_user()
+
+    donates_sum = await repository_telegram_user.get_donates_sum_with_for_update_by_id(
+        receiver_id
+    )
+
+    if donates_sum is None:
+        logger.error(f"donates_sum not found for TelegramUser.id: {receiver_id}")
+        return
+
+    telegram_bot_service: TelegramBotService = \
+        container.telegram_bot_service()
+
+    message_text = get_matrix_transaction_message_text(
+        receiver_str=receiver_str,
+        status=status,
+        matrix_length=matrix_length,
+        triumph=triumph,
+        quantity=quantity,
+        receiver_donates_sum=donates_sum,
+        is_public=is_public,
+    )
+
+    await telegram_bot_service.send_message(
+        chat_id=chat_id,
+        text=message_text,
+    )
+

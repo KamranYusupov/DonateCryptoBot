@@ -254,3 +254,16 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
         )
 
         await self._session.execute(statement)
+
+    async def get_donates_sum_with_for_update_by_id(
+            self,
+            telegram_user_id: uuid.UUID
+    ) -> Decimal | None:
+        statement = (
+            select(TelegramUser.donates_sum)
+            .where(TelegramUser.id == telegram_user_id)
+            .with_for_update()
+        )
+
+        result = await self._session.execute(statement)
+        return result.scalar_one_or_none()
