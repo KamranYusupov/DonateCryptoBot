@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from typing import Iterable, Awaitable, Any
-from itertools import batched
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +13,7 @@ async def gather_by_batches(
     """
     Конкурентно выполняет корутины пачками, не блокируя Event Loop.
     """
-    for chunk in batched(coroutines, chunk_size):
+    for chunk in coroutines: #FIXME: get bachted func!
 
         results = await asyncio.gather(*chunk, return_exceptions=True)
 
