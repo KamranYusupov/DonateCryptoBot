@@ -23,5 +23,5 @@ class SQLAlchemySessionMiddleware(BaseHTTPMiddleware):
             await session.rollback()
             raise
         finally:
-            await self._db_manager.remove()
+            await db_manager.remove()
             scope.reset(scope_token)

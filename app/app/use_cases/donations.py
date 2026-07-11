@@ -40,6 +40,9 @@ async def send_donations_menu(
     if telegram_method == bot.send_message:
         telegram_method_kwargs["chat_id"] = from_user_id
 
+    if not isinstance(current_user_id, uuid.UUID):
+        return
+
     current_user = await telegram_user_service.get_telegram_user(
         id=current_user_id
     )

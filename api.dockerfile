@@ -6,6 +6,7 @@ COPY ./app/pyproject.toml ./app/poetry.lock* /app/
 RUN pip install --upgrade pip && \
     pip install poetry && \
     poetry config virtualenvs.create false && \
+    poetry lock && \
     poetry install --no-root
 
 EXPOSE 8000
