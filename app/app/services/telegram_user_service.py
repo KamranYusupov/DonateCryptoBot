@@ -1,6 +1,6 @@
 import uuid
 from decimal import Decimal
-from typing import Tuple, Any, List, Optional
+from typing import Tuple, Any, List, Optional, Sequence
 from sqlalchemy.exc import IntegrityError
 
 from app.models import TelegramUser
@@ -235,4 +235,8 @@ class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
             obj_id=referral_link_id,
             obj_in={"is_active": False},
         )
+
+    async def get_user_ids_by_active_triumph_bill(self) -> Sequence[int]:
+        return await self._repository_telegram_user.get_user_ids_by_active_triumph_bill()
+
 

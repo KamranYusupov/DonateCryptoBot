@@ -27,6 +27,7 @@ from app.tasks.taskiq.tasks.infra.telegram import (
     send_message_task,
     send_photo_task,
     mass_mailing_task,
+    mass_mailing_task_by_batches_task,
 )
 from app.tasks.taskiq.tasks.business.contest import (
     update_registration_contest_task,
@@ -194,8 +195,13 @@ async def subscription_checker(
     )
     if registration_count != 0 and is_increase_triumph_bills_step:
         await increase_triumph_bills_task.kiq()
-        await send_message_task.kiq(
-            chat_id=settings.donates_channel_id,
+        chat_ids = [settings.donates_channel_id]
+        chat_ids.extend(
+            await telegram_user_service
+            .get_user_ids_by_active_triumph_bill()
+        )
+        await mass_mailing_task_by_batches_task.kiq(
+            chat_ids=chat_ids,
             text=increase_triumph_bills_message_text,
         )
 
@@ -370,7 +376,7 @@ async def donate_handler(
         statistic_service: StatisticService = Provide[
             Container.statistic_service
         ],
-        session: Session = Provide[Container.session],
+        session: AsyncSession = Provide[Container.session],
 ) -> None:
     bill_type = BillType(callback.data.split("_")[-1])
     donate_sum = Decimal(callback.data.split("_")[-2])
@@ -567,10 +573,19 @@ async def donate_handler(
         matrix_activations_count
         % settings.triumph_bills_increase_activation_interval == 0
     )
+    await send_donations_menu_task.kiq(
+        callback.from_user.id,
+        current_user_id=current_user.id,
+    )
     if matrix_activations_count != 0 and is_increase_triumph_bills_step:
         await increase_triumph_bills_task.kiq()
-        await send_message_task.kiq(
-            chat_id=settings.donates_channel_id,
+        chat_ids = [settings.donates_channel_id]
+        chat_ids.extend(
+            await telegram_user_service
+            .get_user_ids_by_active_triumph_bill()
+        )
+        await mass_mailing_task_by_batches_task.kiq(
+            chat_ids=chat_ids,
             text=increase_triumph_bills_message_text,
         )
 

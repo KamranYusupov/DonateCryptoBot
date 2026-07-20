@@ -1,7 +1,7 @@
 import uuid
 from decimal import Decimal
 from uuid import UUID
-from typing import Optional
+from typing import Optional, Sequence
 
 from sqlalchemy import select, func, update
 from sqlalchemy.orm import joinedload, aliased
@@ -267,3 +267,6 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
 
         result = await self._session.execute(statement)
         return result.scalar_one_or_none()
+
+    async def get_user_ids_by_active_triumph_bill(self) -> Sequence[int]:
+        return await self.get_user_ids(TelegramUser.triumph_bill > 0)

@@ -12,7 +12,7 @@ async def increase_triumph_bills_task(
         *,
         container: ContainerDependency,
 ) -> None:
-    triumph_bill_service = container.triumph_bill_service()
+    triumph_bill_service = await container.triumph_bill_service()
     await triumph_bill_service.increase_bills_by_percent(
         percent=settings.triumph_bill_increase_percent,
     )
