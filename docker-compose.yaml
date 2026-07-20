@@ -98,7 +98,7 @@ services:
 
   nginx:
     container_name: ${PROJECT_SLUG}_nginx
-    build: ./app/nginx
+    build: ./nginx
     ports:
       - "80:80"
     depends_on:

@@ -102,7 +102,7 @@ services:
   nginx:
     container_name: ${PROJECT_SLUG}_nginx
     build:
-      context: ./app/nginx
+      context: ./nginx
       dockerfile: prod.dockerfile
     ports:
       - "80:80"

@@ -1,9 +1,9 @@
 FROM python:3.11
 
-WORKDIR /app/
+WORKDIR /
 
 ENV INSTALL_DEV=true
-COPY ./app/pyproject.toml ./app/poetry.lock* /app/
+COPY ./pyproject.toml ./poetry.lock* /
 
 RUN apt update && \
     apt install -y python3-pip && \
@@ -13,6 +13,6 @@ RUN apt update && \
     bash -c "if [ $INSTALL_DEV == 'true' ] ; then poetry install --no-root ; else poetry install --no-root --no-dev ; fi" && \
     apt update && apt install -y postgresql-client
 
-COPY ./app /app
-ENV PYTHONPATH=/app
+COPY . .
+ENV PYTHONPATH=/
 

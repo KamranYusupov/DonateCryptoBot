@@ -1,8 +1,8 @@
 FROM tiangolo/uvicorn-gunicorn-fastapi:python3.11
 
-WORKDIR /app/
+WORKDIR /
 
-COPY ./app/pyproject.toml ./app/poetry.lock* /app/
+COPY ./pyproject.toml ./poetry.lock* /
 RUN pip install --upgrade pip && \
     pip install poetry && \
     poetry config virtualenvs.create false && \
@@ -11,11 +11,11 @@ RUN pip install --upgrade pip && \
 
 EXPOSE 8000
 
-COPY ./entrypoint.sh /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 
-COPY ./app /app
-ENV PYTHONPATH=/app
+COPY . .
+ENV PYTHONPATH=/
 
 ENTRYPOINT ["/entrypoint.sh"]
