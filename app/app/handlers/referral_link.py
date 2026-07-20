@@ -61,7 +61,7 @@ async def referral_message_handler(
     await message.answer(
         "Нет активной ссылки.",
         reply_markup=get_donate_keyboard(
-            buttons={"Сгенерировать": "generate_referral_link"}
+            buttons={"🧬 СОЗДАТЬ ССЫЛКУ 🧬": "generate_referral_link"}
         )
     )
 

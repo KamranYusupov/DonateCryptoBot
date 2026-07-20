@@ -208,6 +208,11 @@ async def subscription_checker(
     if not settings.send_donate_for_registration:
         return
 
+    await telegram_user_service.increment_bill(
+        telegram_user_id=current_user.id,
+        bill_type=BillType.TRIUMPH,
+        amount=settings.donate_for_registration
+    )
     is_sponsor_status_bronze_or_higher = (
         DonateStatus.BRONZE.get_status_donate_value()
         <= sponsor.status.get_status_donate_value()
@@ -216,11 +221,6 @@ async def subscription_checker(
             sponsor.donates_sum_for_registration
             < settings.max_donates_sum_for_registration
     ):
-        await telegram_user_service.increment_bill(
-            telegram_user_id=current_user.id,
-            bill_type=BillType.TRIUMPH,
-            amount=settings.donate_for_registration
-        )
         await telegram_user_service.increment_bill_for_registration(
             telegram_user_id=sponsor.id,
             bill_type=BillType.TRIUMPH,
