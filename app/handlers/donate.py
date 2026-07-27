@@ -238,12 +238,16 @@ async def subscription_checker(
             send_message_task.kiq(
                 chat_id=sponsor.user_id,
                 text=registration_donate_triumph_bill_text.format(
+                    settings.donate_for_registration,
                     f"от {current_user.full_username}"
                 ),
             ),
             send_message_task.kiq(
                 chat_id=settings.donates_channel_id,
-                text=registration_donate_triumph_bill_text.format(""),
+                text=registration_donate_triumph_bill_text.format(
+                    settings.donate_for_registration,
+                    ""
+                ),
             )
         )
 
