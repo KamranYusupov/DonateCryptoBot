@@ -224,7 +224,7 @@ async def subscription_checker(
         await telegram_user_service.increment_bill_for_registration(
             telegram_user_id=sponsor.id,
             bill_type=BillType.TRIUMPH,
-            amount=settings.donate_for_registration
+            amount=settings.donate_for_registration_to_sponsor
         )
         admin_statistic = await statistic_service.get_admin_statistic()
         await statistic_service.update_admin_statistic(
@@ -238,7 +238,7 @@ async def subscription_checker(
             send_message_task.kiq(
                 chat_id=sponsor.user_id,
                 text=registration_donate_triumph_bill_text.format(
-                    settings.donate_for_registration,
+                    settings.donate_for_registration_to_sponsor,
                     f"от {current_user.full_username}"
                 ),
             ),
