@@ -1,3 +1,4 @@
+import os.path
 import time
 import subprocess
 
@@ -43,8 +44,8 @@ class ChangeHandler(FileSystemEventHandler):
 
 
 if __name__ == "__main__":
-    app_dir = Path("/app/app")
-    script_path = app_dir / "main.py"
+    app_dir = Path("/app")
+    script_path = os.path.join(app_dir, "main.py")
 
     event_handler = ChangeHandler(script_path)
     observer = Observer()
