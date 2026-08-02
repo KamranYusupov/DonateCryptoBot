@@ -10,13 +10,14 @@ from app.keyboards.donate import get_donate_keyboard
 from app.keyboards.inline import get_bill_type_choice_buttons
 from app.core.container import Container
 from app.models.telegram_user import DonateStatus
-from app.services import DonateConfirmService
-from app.services.telegram_user_service import TelegramUserService
-from app.utils.texts import format_decimal
+from app.services import (
+    DonateConfirmService,
+    StatisticService,
+)
+from app.utils.texts import format_decimal, get_triumph_bill_increase_statistic_text
 from app.models.telegram_user import TelegramUser
 
 bill_type_router = Router()
-
 
 @bill_type_router.callback_query(F.data.startswith("confirm_donate_"))
 @bill_type_router.callback_query(F.data == "start_transfer")
@@ -25,11 +26,11 @@ bill_type_router = Router()
 async def bill_type_handler(
         callback: CallbackQuery,
         current_user: TelegramUser,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
         donate_confirm_service: DonateConfirmService = Provide[
             Container.donate_confirm_service
+        ],
+        statistic_service: StatisticService = Provide[
+            Container.statistic_service
         ],
 ) -> None:
     callback_data = callback.data.split("_")
@@ -56,7 +57,15 @@ async def bill_type_handler(
 
     elif callback.data == "increment_trumph_bill":
         callback_prefix = "start_increment_trumph_bill"
-        message_text = html.bold(
+        matrix_activation_count = await statistic_service.get_matrix_activations_count()
+        registration_count = await statistic_service.get_registrations_count()
+
+        message_text = get_triumph_bill_increase_statistic_text(
+            matrix_activation_count=matrix_activation_count,
+            registration_count=registration_count,
+        )
+        message_text += html.bold(
+            "\n\n"
             f"🏦 Сейф Триумф: "
             f"{format_decimal(current_user.triumph_bill)} USDT.\n\n"
         )

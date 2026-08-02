@@ -24,6 +24,7 @@ from app.utils.texts import (
     get_matrices_statuses_statistic_message,
     get_matrices_length_statistic_message, format_decimal,
 )
+from utils.texts import get_triumph_bill_increase_statistic_text
 
 
 async def send_donations_menu(
@@ -79,22 +80,9 @@ async def send_donations_menu(
         admin_statistic = await statistic_service.get_admin_statistic()
         matrix_activation_count = await statistic_service.get_matrix_activations_count()
         registration_count = await statistic_service.get_registrations_count()
-
-        registration_step = (
-            registration_count
-            % settings.triumph_bills_increase_registration_interval
-        )
-        registration_step_str = (
-            f"{registration_step}/"
-            f"{settings.triumph_bills_increase_registration_interval}"
-        )
-        matrix_activation_step = (
-            matrix_activation_count
-            % settings.triumph_bills_increase_activation_interval
-        )
-        matrix_activation_step_str = (
-            f"{matrix_activation_step}/"
-            f"{settings.triumph_bills_increase_activation_interval}"
+        triumph_bill_increase_statistic_text = get_triumph_bill_increase_statistic_text(
+            matrix_activation_count,
+            registration_count,
         )
 
         users_count = await telegram_user_service.get_count(is_bot=False)
@@ -152,9 +140,7 @@ async def send_donations_menu(
             f"<b>${format_decimal(triumph_bills_sum)}</b>\n\n"
             "С балансом для вывода +10: "
             f"<b>{users_count_with_bill_for_withdraw_gte_10}</b>\n\n"
-            f"До умножения сейфа Триумф "
-            f"<b>{matrix_activation_step_str}</b> активаций и "
-            f"<b>{registration_step_str}</b> регистраций.\n\n"
+            f"{triumph_bill_increase_statistic_text}\n\n"
         ) + message_text
 
         buttons = default_buttons

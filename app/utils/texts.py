@@ -559,3 +559,38 @@ private_channel_invite_message = (
     "⬇️ Присоединяйтесь сейчас: {0}\n\n"
     "🌀 Состояние → Действие → Результат"
 )
+
+triumph_bill_increase_statistic_text = (
+    "📈 До увеличения сейфа <b>{matrix_activation_step_str}</b> активаций "
+    "и <b>{registration_step_str}</b> регистраций."
+)
+
+def get_triumph_bill_increase_statistic_text(
+        matrix_activation_count: int,
+        registration_count: int,
+        increase_activation_interval: int = \
+            settings.triumph_bills_increase_activation_interval,
+        increase_registration_interval: int = \
+                settings.triumph_bills_increase_registration_interval,
+) -> str:
+    registration_step = (
+        registration_count
+        % settings.triumph_bills_increase_registration_interval
+    )
+    matrix_activation_step = (
+        matrix_activation_count
+        % settings.triumph_bills_increase_activation_interval
+    )
+    registration_step_str = (
+        f"{registration_step}/"
+        f"{increase_registration_interval}"
+    )
+    matrix_activation_step_str = (
+        f"{matrix_activation_step}/"
+        f"{increase_activation_interval}"
+    )
+
+    return triumph_bill_increase_statistic_text.format(
+        matrix_activation_step_str=matrix_activation_step_str,
+        registration_step_str=registration_step_str,
+    )
