@@ -4,8 +4,7 @@ from aiogram.types import TelegramObject
 
 from dependency_injector.wiring import Provide, inject
 
-from app.services.admin_impersonation_service import AdminImpersonationService
-from app.services.telegram_user_service import TelegramUserService
+from app.tasks.taskiq.tasks import update_username_task
 from app.core.container import Container
 
 class CurrentUserMiddleware(BaseMiddleware):
@@ -16,19 +15,23 @@ class CurrentUserMiddleware(BaseMiddleware):
             handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
             event: TelegramObject,
             data: Dict[str, Any],
-            telegram_user_service: TelegramUserService = Provide[
-                Container.telegram_user_service
-            ],
-            impersonation_service: AdminImpersonationService = Provide[
-                Container.impersonation_service
-            ]
     ) -> Any:
+        telegram_user_service = await Container.telegram_user_service()
+        impersonation_service = await Container.impersonation_service()
+
         from_user = getattr(event, "from_user", None)
 
         if not from_user:
             return await handler(event, data)
 
         user = await telegram_user_service.get(user_id=from_user.id)
+
+        if user.username != from_user.username:
+            await update_username_task.kiq(
+                telegram_user_id=user.id,
+                new_username=from_user.username,
+            )
+
         data["real_user"] = user
         data["current_user"] = user
 

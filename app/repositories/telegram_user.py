@@ -270,3 +270,17 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
 
     async def get_user_ids_by_active_triumph_bill(self) -> Sequence[int]:
         return await self.get_user_ids(TelegramUser.triumph_bill > 0)
+
+    async def update_username(
+            self,
+            telegram_user_id: uuid.UUID,
+            new_username: str,
+    ) -> int:
+        statement = (
+            update(TelegramUser)
+            .where(TelegramUser.id == telegram_user_id)
+            .values(username=new_username)
+        )
+
+        result = await self._session.execute(statement)
+        return result.rowcount

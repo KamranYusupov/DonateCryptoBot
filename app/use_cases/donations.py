@@ -24,7 +24,7 @@ from app.utils.texts import (
     get_matrices_statuses_statistic_message,
     get_matrices_length_statistic_message, format_decimal,
 )
-from utils.texts import get_triumph_bill_increase_statistic_text
+from app.utils.texts import get_triumph_bill_increase_statistic_text
 
 
 async def send_donations_menu(
