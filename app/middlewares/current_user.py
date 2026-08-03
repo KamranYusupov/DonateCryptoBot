@@ -34,7 +34,10 @@ class CurrentUserMiddleware(BaseMiddleware):
 
         user = await telegram_user_service.get(user_id=from_user.id)
 
-        if user.username != from_user.username:
+        if (
+            user and from_user.username is not None
+            and user.username != from_user.username
+        ):
             await update_username_task.kiq(
                 telegram_user_id=user.id,
                 new_username=from_user.username,
