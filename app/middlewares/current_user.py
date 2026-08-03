@@ -6,6 +6,11 @@ from dependency_injector.wiring import Provide, inject
 
 from app.tasks.taskiq.tasks import update_username_task
 from app.core.container import Container
+from app.services import (
+    TelegramUserService,
+    AdminImpersonationService,
+)
+
 
 class CurrentUserMiddleware(BaseMiddleware):
 
@@ -15,10 +20,13 @@ class CurrentUserMiddleware(BaseMiddleware):
             handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
             event: TelegramObject,
             data: Dict[str, Any],
+            telegram_user_service: TelegramUserService = Provide[
+                Container.telegram_user_service
+            ],
+            impersonation_service: AdminImpersonationService = Provide[
+                Container.impersonation_service
+            ]
     ) -> Any:
-        telegram_user_service = await Container.telegram_user_service()
-        impersonation_service = await Container.impersonation_service()
-
         from_user = getattr(event, "from_user", None)
 
         if not from_user:
