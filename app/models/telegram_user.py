@@ -87,12 +87,45 @@ statuses_colors_data = {
     DonateStatus.BRILLIANT: "🏆",
 }
 
+
+class GlobalMarketingDonateStatus(enum.Enum):
+    NOT_ACTIVE = (0, "не активирован", Decimal("0"))
+    SEPTEMBER = (1, "Сентябрь", Decimal("10"))
+    OCTOBER = (2, "Октябрь", Decimal("20"))
+    NOVEMBER = (3, "Ноябрь", Decimal("80"))
+    DECEMBER = (4, "Декабрь", Decimal("320"))
+    JANUARY = (5, "Январь", Decimal("1280"))
+    FEBRUARY = (6, "Февраль", Decimal("5120"))
+    MARCH = (7, "Март", Decimal("20480"))
+    APRIL = (8, "Апрель", Decimal("81920"))
+    MAY = (9, "Май", Decimal("327680"))
+    JUNE = (10, "Июнь", Decimal("1310720"))
+    JULY = (11, "Июль", Decimal("5242880"))
+    AUGUST = (12, "Август", Decimal("20971520"))
+
+    def __init__(self, order: int, label: str, amount: Decimal):
+        self.order = order
+        self.label = label
+        self.amount = amount
+
+    def __str__(self) -> str:
+        return self.label
+
 class TelegramUser(UUIDMixin, TimestampedMixin, AbstractTelegramUser, Base):
     """Модель телеграм пользователя"""
 
     __tablename__ = "telegram_users"
 
-    status = Column(Enum(DonateStatus), default=DonateStatus.NOT_ACTIVE)
+    status = Column(
+        Enum(DonateStatus),
+        default=DonateStatus.NOT_ACTIVE,
+        index=True,
+    )
+    global_marketing_status = Column(
+        Enum(GlobalMarketingDonateStatus),
+        default=GlobalMarketingDonateStatus.NOT_ACTIVE,
+        index=True,
+    )
     sponsor_user_id = Column(
         BigInteger,
         ForeignKey("telegram_users.user_id"),
