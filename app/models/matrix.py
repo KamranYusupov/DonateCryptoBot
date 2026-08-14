@@ -14,7 +14,7 @@ from sqlalchemy import (
     Index,
     UniqueConstraint,
     func,
-    Numeric,
+    Numeric, CheckConstraint,
 )
 from sqlalchemy.sql import text
 from sqlalchemy.dialects.postgresql import JSONB
@@ -24,13 +24,16 @@ from sqlalchemy_json import mutable_json_type
 
 from app.models.mixins import UUIDMixin, TimestampedMixin
 from app.db.base import Base
-from app.models.telegram_user import DonateStatus
+from app.models.telegram_user import DonateStatus, GlobalMarketingDonateStatus
 
 
 class MatrixEngineType(enum.Enum):
     JSON = "legacy_json"
     NODES = "nodes"
 
+class MatrixMarketingType(enum.Enum):
+    START = "start"
+    GLOBAL = "global"
 
 class MatrixEngineTypeMixin:
     engine_type = Column(
@@ -50,7 +53,19 @@ class Matrix(Base, UUIDMixin, TimestampedMixin, MatrixEngineTypeMixin):
         default=uuid.uuid4,
         index=True,
     )
+    marketing_type = Column(
+        Enum(MatrixMarketingType),
+        nullable=False,
+        default=MatrixMarketingType.START,
+        server_default=text("'START'"),
+        index=True,
+    )
     status = Column(Enum(DonateStatus), default=DonateStatus.NOT_ACTIVE, index=True)
+    global_marketing_status = Column(
+        Enum(GlobalMarketingDonateStatus),
+        default=GlobalMarketingDonateStatus.NOT_ACTIVE,
+        index=True,
+    )
     closed_places_count = Column(
         BigInteger,
         default=0,
@@ -85,7 +100,27 @@ class Matrix(Base, UUIDMixin, TimestampedMixin, MatrixEngineTypeMixin):
         post_update=True,
     )
 
-    __table_args__ = {"extend_existing": True}
+    __table_args__ = (
+        CheckConstraint(
+            """
+            (
+                marketing_type = 'START'
+                AND engine_type IN ('JSON', 'NODES')
+                AND status IS NOT NULL
+                AND global_marketing_status IS NULL
+            )
+            OR
+            (
+                marketing_type = 'GLOBAL'
+                AND engine_type = 'NODES'
+                AND status IS NULL
+                AND global_marketing_status IS NOT NULL
+            )
+            """,
+            name="ck_matrix_marketing_engine",
+        ),
+        {"extend_existing": True},
+    )
 
 
 class MatrixNode(UUIDMixin, TimestampedMixin, Base):
