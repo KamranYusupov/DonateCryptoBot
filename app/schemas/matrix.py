@@ -3,17 +3,28 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
-from app.models.matrix import MatrixEngineType
-from app.models.telegram_user import DonateStatus
+from app.models.matrix import MatrixEngineType, MatrixMarketingType
+from app.models.telegram_user import (
+    DonateStatus,
+    GlobalMarketingDonateStatus,
+)
 
 
 class MatrixEntity(BaseModel):
     """Модель пользователя"""
 
     owner_id: uuid.UUID = Field(title="ID владельца")
-    status: DonateStatus | str = Field(title="Статус доната")
+    status: DonateStatus | None = Field(
+        title="Статус доната",
+        default=None,
+    )
+    global_marketing_status: GlobalMarketingDonateStatus | None = Field(
+        title="Статус доната Global маркетинга",
+        default=None
+    )
+    marketing_type: MatrixMarketingType = MatrixMarketingType.START
     engine_type: MatrixEngineType = MatrixEngineType.JSON
     root_node_id: Optional[uuid.UUID] = None
 

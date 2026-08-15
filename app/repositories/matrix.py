@@ -2,18 +2,29 @@ import uuid
 from typing import Optional, Sequence, List
 
 import loguru
-from sqlalchemy import select, func, update
-
+from sqlalchemy import (
+    select,
+    func,
+    update,
+    cast,
+    BigInteger,
+    ARRAY,
+)
 from app.models.telegram_user import DonateStatus
+from models.telegram_user import GlobalMarketingDonateStatus
+from app.schemas.marketing import MatrixMarketingScope
 from .base import RepositoryBase
-from app.repositories.base.mixins import BulkCreateMixin
-from app.models.matrix import Matrix, MatrixNode
+from app.models.matrix import Matrix, MatrixNode, MatrixMarketingType
 from app.core.config import settings
+
+_MARKETING_STATUS_COLUMNS_MAPPING = {
+    MatrixMarketingType.START: Matrix.status,
+    MatrixMarketingType.GLOBAL: Matrix.global_marketing_status,
+}
 
 
 class RepositoryMatrix(RepositoryBase[Matrix]):
     """Репозиторий матрицы"""
-
 
     async def get_list(self, *args, order_by_create_at: bool = False, **kwargs):
         statement = select(Matrix).filter(*args).filter_by(**kwargs)
@@ -26,15 +37,16 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
 
     async def get_parent_matrix(
             self,
-            matrix_id: Matrix.id,
-            status: DonateStatus,
+            matrix_id: uuid.UUID,
+            marketing_scope: MatrixMarketingScope,
             return_all: bool = False,
             for_update: bool = False,
     ) -> Matrix | list[Matrix]:
+        status_column = _MARKETING_STATUS_COLUMNS_MAPPING[marketing_scope.marketing_type]
         statement = (
             select(Matrix)
             .where(
-                (Matrix.status == status)
+                (status_column == marketing_scope.status)
                 & (Matrix.matrices.has_key(str(matrix_id)))
             )
             .order_by(Matrix.created_at)
@@ -50,17 +62,18 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
     async def get_user_matrices(
             self,
             owner_id: uuid.UUID,
-            status: DonateStatus | None = None,
+            marketing_scope: MatrixMarketingScope | None = None,
             for_update: bool = False,
     ) -> list[Matrix]:
-        statement_filter_by_kwargs = {"owner_id": owner_id}
+        statement_where_args = (Matrix.owner_id == owner_id, )
 
-        if status:
-            statement_filter_by_kwargs["status"] = status
+        if marketing_scope:
+            status_column = _MARKETING_STATUS_COLUMNS_MAPPING[marketing_scope.marketing_type]
+            statement_where_args += (status_column == marketing_scope.status)
 
         statement = (
             select(Matrix)
-            .filter_by(**statement_filter_by_kwargs)
+            .where(*statement_where_args)
             .order_by(Matrix.created_at)
         )
         if for_update:
@@ -132,10 +145,11 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
     def _base_node_select(
             self,
             *args,
-            status: Optional[DonateStatus] = None,
+            marketing_scope: Optional[MatrixMarketingScope] = None,
             for_update: bool = False,
             skip_locked: bool = False,
-            **kwargs):
+            **kwargs
+    ):
         statement = select(MatrixNode).where(*args).filter_by(**kwargs)
 
         if for_update:
@@ -144,12 +158,15 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
                 .with_for_update(skip_locked=skip_locked)
             )
 
-        if status:
+        if marketing_scope is not None:
             statement = (
                 statement
                 .join(Matrix, onclause=MatrixNode.matrix)
-                .where(Matrix.status == status)
             )
+            status_column = \
+                _MARKETING_STATUS_COLUMNS_MAPPING[marketing_scope.marketing_type]
+
+            statement = statement.where(status_column == marketing_scope.status)
 
         return statement
 
@@ -179,7 +196,7 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
     async def get(
             self,
             *args,
-            status: Optional[DonateStatus] = None,
+            marketing_scope: Optional[MatrixMarketingScope] = None,
             for_update: bool = False,
             skip_locked: bool = False,
             **kwargs
@@ -187,7 +204,7 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
 
         statement = self._base_node_select(
             *args,
-            status=status,
+            marketing_scope=marketing_scope,
             for_update=for_update,
             skip_locked=skip_locked,
             **kwargs
@@ -256,16 +273,24 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
             self,
             *args,
             positions: Sequence[int],
+            marketing_scope: Optional[MatrixMarketingScope] = None,
             **kwargs
     ) -> List[MatrixNode]:
-        statement = (
-            select(MatrixNode)
-            .where(
-                *args,
-                MatrixNode.position.in_(positions),
-            )
-            .filter_by(**kwargs)
+        statement = self._base_node_select(
+            *args,
+            MatrixNode.position.in_(positions),
+            marketing_scope=marketing_scope,
+            **kwargs
+        )
 
+        statement = (
+            statement
+            .order_by(
+                func.array_position(
+                    cast(positions, ARRAY(BigInteger)),
+                    MatrixNode.position,
+                )
+            )
         )
 
         result = await self._session.execute(statement)
@@ -285,6 +310,3 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
         )
         result = await self._session.execute(statement)
         return result.one()
-
-
-
