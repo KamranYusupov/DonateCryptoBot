@@ -403,7 +403,7 @@ def get_sponsor_activation_text(
         status: DonateStatus,
 ) -> str:
     status_color_emoji = statuses_colors_data.get(status)
-    status_str = f"{status_color_emoji} {status.value.upper()}"
+    status_str = f"{status_color_emoji} {status.label.upper()}"
 
     return sponsor_activation_text_template.format(
         username=username,

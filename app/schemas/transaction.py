@@ -4,7 +4,8 @@ from typing import Literal, Annotated, Union
 from pydantic import BaseModel, Field, ConfigDict
 
 from app.models.donate import DonateTransactionType
-from app.models.telegram_user import DonateStatus
+from app.models.telegram_user import DonateStatus, GlobalMarketingDonateStatus
+
 
 
 class TransactionReceiverSchema(BaseModel):
@@ -33,13 +34,13 @@ class SystemTransactionContextSchema(BaseTransactionContextSchema):
 class SponsorTransactionContextSchema(BaseTransactionContextSchema):
     type_: Literal[DonateTransactionType.SPONSOR] = DonateTransactionType.SPONSOR
     sender_str: str
-    status: DonateStatus
+    status: DonateStatus | GlobalMarketingDonateStatus
     sponsor_depth: int
 
 
 class MatrixTransactionContextSchema(BaseTransactionContextSchema):
     type_: Literal[DonateTransactionType.MATRIX] = DonateTransactionType.MATRIX
-    status: DonateStatus
+    status: DonateStatus | GlobalMarketingDonateStatus
     matrix_length: int
     triumph: bool = False
 

@@ -1,6 +1,5 @@
 import loguru
 from aiogram import Router, F
-from aiogram.exceptions import TelegramAPIError
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart, CommandObject, Command
@@ -10,20 +9,16 @@ from app.core.container import Container
 from app.keyboards.inline import get_confirm_inline_keyboard
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.telegram_user_service import TelegramUserService
-from app.schemas.telegram_user import TelegramUserEntity, generate_random_user
 from app.schemas.matrix import MatrixEntity
-from app.keyboards.donate import get_donate_keyboard
-from app.core.config import settings
 from app.models.telegram_user import status_list, TelegramUser
 from app.services.matrix_service import MatrixService
-from app.utils.sponsor import get_callback_value
-from app.services.donate_service import DonateService
 from app.models.telegram_user import DonateStatus
 from app.keyboards.reply import get_reply_keyboard
-from app.utils.matrix import get_matrices_length
-from app.services.donate_confirm_service import DonateConfirmService
 from app.keyboards.donate import get_start_inline_keyboard
 from app.utils.bot import get_schema_from_user
+from app.models.matrix import MatrixEngineType
+from app.models.telegram_user import GlobalMarketingDonateStatus
+from app.schemas.marketing import StartMarketingScope, GlobalMarketingScope
 
 start_router = Router()
 
@@ -123,9 +118,6 @@ async def cancel_handler(
         message: Message,
         state: FSMContext,
         current_user: TelegramUser,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
 ):
     await message.answer(
         text="Действие отменено",
@@ -170,22 +162,30 @@ async def admin(
     admin_user = await telegram_user_service.create_telegram_user(user=user_schema)
 
     for status in status_list:
-        matrix_dict = {"owner_id": admin_user.id, "status": status}
-
         if status == DonateStatus.BRILLIANT:
             await matrix_node_service.create_matrix_with_root_node(
-                **matrix_dict
+                owner_id=admin_user.id,
+                marketing_scope=StartMarketingScope(
+                    status=status,
+                )
             )
             continue
 
+        matrix_schema = MatrixEntity.from_marketing_scope(
+            owner_id=admin_user.id,
+            engine_type=MatrixEngineType.JSON,
+            marketing_scope=StartMarketingScope(
+                status=status,
+            ),
+        )
+        await matrix_service.create_matrix(matrix_schema)
 
-        await matrix_service.create_matrix(
-            matrix=MatrixEntity(
-                **matrix_dict,
+    for status in list(GlobalMarketingDonateStatus):
+        await matrix_node_service.create_matrix_with_root_node(
+            owner_id=admin_user.id,
+            marketing_scope=GlobalMarketingScope(
+                status=status,
             )
         )
 
-    await message.answer(
-        f"✅ Готово - {admin_user.referral_url}",
-        reply_markup=get_reply_keyboard(admin_user),
-    )
+    await message.answer("Готово ✅")

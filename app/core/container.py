@@ -64,6 +64,7 @@ from app.services import (
     TriumphBillService,
     TriumphBillTransactionService,
     AdminImpersonationService,
+    GlobalMarketingDonateService,
 )
 from app.infrastructure.adapters import (
     TelegramBotTaskIQAdapter,
@@ -261,6 +262,15 @@ class Container(containers.DeclarativeContainer):
         AdminImpersonationService,
         redis_client=redis_client,
         impersonation_user_id_key=settings.provided.impersonation_user_id_key,
+    )
+    # endregion
+
+    # region application services
+    global_marketing_donate_service = providers.Factory(
+        GlobalMarketingDonateService,
+        donate_service=donate_service,
+        matrix_node_service=matrix_node_service,
+        repository_telegram_user=repository_telegram_user,
     )
     # endregion
 

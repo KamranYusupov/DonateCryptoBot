@@ -11,7 +11,6 @@ from sqlalchemy import (
     ARRAY,
 )
 from app.models.telegram_user import DonateStatus
-from models.telegram_user import GlobalMarketingDonateStatus
 from app.schemas.marketing import MatrixMarketingScope
 from .base import RepositoryBase
 from app.models.matrix import Matrix, MatrixNode, MatrixMarketingType
@@ -159,14 +158,15 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
             )
 
         if marketing_scope is not None:
-            statement = (
-                statement
-                .join(Matrix, onclause=MatrixNode.matrix)
-            )
             status_column = \
                 _MARKETING_STATUS_COLUMNS_MAPPING[marketing_scope.marketing_type]
 
-            statement = statement.where(status_column == marketing_scope.status)
+            statement = (
+                statement
+                .join(Matrix, onclause=MatrixNode.matrix)
+                .where(status_column == marketing_scope.status)
+            )
+
 
         return statement
 

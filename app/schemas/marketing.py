@@ -10,12 +10,12 @@ from app.models.telegram_user import (
 
 
 class StartMarketingScope(BaseModel):
-    marketing_type: Literal[MatrixMarketingType.START]
+    marketing_type: Literal[MatrixMarketingType.START] = MatrixMarketingType.START
     status: DonateStatus
 
 
 class GlobalMarketingScope(BaseModel):
-    marketing_type: Literal[MatrixMarketingType.GLOBAL]
+    marketing_type: Literal[MatrixMarketingType.GLOBAL] = MatrixMarketingType.GLOBAL
     status: GlobalMarketingDonateStatus
 
 

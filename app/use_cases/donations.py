@@ -87,7 +87,7 @@ async def send_donations_menu(
 
         users_count = await telegram_user_service.get_count(is_bot=False)
         users_count_with_not_active_status = await telegram_user_service.get_count(
-            status=DonateStatus.NOT_ACTIVE,
+            status=None,
             is_bot=False,
         )
         owners_ids = await telegram_user_service.get_ids(is_bot=False)
@@ -259,7 +259,7 @@ async def send_donations_menu(
             style="danger",
         )
     )
-    if current_user.status != DonateStatus.NOT_ACTIVE:
+    if current_user.status is not None:
         inline_buttons.append(
             InlineKeyboardButton(
                 text="АКТИВНЫЕ ПЛОЩАДКИ",

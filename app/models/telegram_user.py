@@ -88,21 +88,21 @@ statuses_colors_data = {
 
 
 class GlobalMarketingDonateStatus(enum.Enum):
-    SEPTEMBER = (1, "Сентябрь", Decimal("10"))
-    OCTOBER = (2, "Октябрь", Decimal("20"))
-    NOVEMBER = (3, "Ноябрь", Decimal("80"))
-    DECEMBER = (4, "Декабрь", Decimal("320"))
-    JANUARY = (5, "Январь", Decimal("1280"))
-    FEBRUARY = (6, "Февраль", Decimal("5120"))
-    MARCH = (7, "Март", Decimal("20480"))
-    APRIL = (8, "Апрель", Decimal("81920"))
-    MAY = (9, "Май", Decimal("327680"))
-    JUNE = (10, "Июнь", Decimal("1310720"))
-    JULY = (11, "Июль", Decimal("5242880"))
-    AUGUST = (12, "Август", Decimal("20971520"))
+    SEPTEMBER = (0, "Сентябрь", Decimal("10"))
+    OCTOBER = (1, "Октябрь", Decimal("20"))
+    NOVEMBER = (2, "Ноябрь", Decimal("80"))
+    DECEMBER = (3, "Декабрь", Decimal("320"))
+    JANUARY = (4, "Январь", Decimal("1280"))
+    FEBRUARY = (5, "Февраль", Decimal("5120"))
+    MARCH = (6, "Март", Decimal("20480"))
+    APRIL = (7, "Апрель", Decimal("81920"))
+    MAY = (8, "Май", Decimal("327680"))
+    JUNE = (9, "Июнь", Decimal("1310720"))
+    JULY = (10, "Июль", Decimal("5242880"))
+    AUGUST = (11, "Август", Decimal("20971520"))
 
-    def __init__(self, order: int, label: str, amount: Decimal):
-        self.order = order
+    def __init__(self, index: int, label: str, amount: Decimal):
+        self.index = index
         self.label = label
         self.amount = amount
 

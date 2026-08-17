@@ -95,6 +95,7 @@ async def activate_matrix_handler(
             current_user_id=input_user.id,
             sponsor_id=first_sponsor.id,
             status=status,
+            max_upline_depth=settings.triumph_matrix_max_level,
         )
         create_tasks_data["obj_id"] = inserted_node.id
         create_tasks_data["engine_type"] = MatrixEngineType.NODES

@@ -81,6 +81,7 @@ async def add_bot_to_matrix_task(
             current_user_id=bot_user.id,
             sponsor_id=owner.id,
             status=status,
+            max_upline_depth=settings.triumph_matrix_max_level,
         )
         matrix_transactions_data = await donate_service.update_transactions_data_with_nodes(
             upline_nodes,

@@ -22,7 +22,7 @@ class BaseUserEntity(BaseModel):
     )
     invites_count: int = Field(title="Число приглашений", default=0)
     donates_sum: Decimal = Field(title="Сумма донатов", default=0)
-    bill_for_activation: Decimal = Field(title="Счет для активации", default=0)
+    bill_for_activation: Decimal = Field(title="Счет для активации", default=0 if not settings.debug else 10000)
     bill_for_withdraw: Decimal = Field(title="Счет для вывода", default=0)
     is_bot: bool = Field(title="Бот", default=False)
     is_admin: bool = Field(title="Супер пользователь", default=False)

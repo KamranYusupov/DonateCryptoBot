@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from app.core.container import Container
 
 
-async def main(container: 'Container'):
+async def main(container: "Container"):
     """Запуск бота."""
     await container.init_resources()
 

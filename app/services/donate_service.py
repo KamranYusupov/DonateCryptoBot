@@ -12,7 +12,7 @@ from app.repositories.telegram_user import RepositoryTelegramUser
 from app.repositories.matrix import RepositoryMatrix
 from app.repositories.donate import RepositoryDonate
 from app.models.telegram_user import TelegramUser, DonateStatus
-from app.models.matrix import Matrix, MatrixNode
+from app.models.matrix import Matrix, MatrixNode, MatrixMarketingType
 from app.schemas.matrix import MatrixEntity
 from app.core.config import settings
 from app.utils.matrix import (
@@ -24,7 +24,8 @@ from app.schemas.transaction import (
     SponsorTransactionContextSchema,
     SystemTransactionContextSchema,
     MatrixTransactionContextSchema,
-    DonateTransactionContextSchema, TransactionReceiverSchema,
+    DonateTransactionContextSchema,
+    TransactionReceiverSchema,
 )
 
 class DonateService:
@@ -95,7 +96,7 @@ class DonateService:
             if not sponsor:
                 continue
 
-            if sponsor.status != DonateStatus.NOT_ACTIVE:
+            if sponsor.status is not None:
                 receiver_schema = TransactionReceiverSchema.model_validate(sponsor)
                 transaction = SponsorTransactionContextSchema(
                     receiver=receiver_schema,
@@ -312,6 +313,7 @@ class DonateService:
                 matrix_entity = MatrixEntity(
                     owner_id=sponsor.id,
                     status=status,
+                    marketing_type=MatrixMarketingType.START,
                 )
                 matrix = await self._repository_matrix.create(obj_in=matrix_entity)
                 matrix.matrices, matrix.telegram_users = {},  []
@@ -392,7 +394,7 @@ class DonateService:
                 user_id=user_to_add.sponsor_user_id
             )
 
-            if next_sponsor.status == DonateStatus.NOT_ACTIVE or not (
+            if next_sponsor.status is None or not (
                 int(status.get_status_donate_value())
                 <= int(next_sponsor.status.get_status_donate_value())
             ):
@@ -424,6 +426,7 @@ class DonateService:
                 matrix_entity = MatrixEntity(
                     owner_id=next_sponsor.id,
                     status=status,
+                    marketing_type=MatrixMarketingType.START,
                 )
                 matrix = await self._repository_matrix.create(obj_in=matrix_entity)
                 matrix.matrices, matrix.telegram_users = {}, []

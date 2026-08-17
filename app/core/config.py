@@ -170,7 +170,15 @@ class Settings(BaseSettings):
     triumph_matrix_max_level: int = Field(default=13)
     triumph_matrix_max_length: int = Field(
         title="Максимальная длина матрицы триумф",
-        default=16382,
+        default=16383,
+    )
+    # endregion
+
+    # region Настройки Global маркетинга
+    global_marketing_matrix_max_level: int = Field(default=12)
+    global_marketing_matrix_max_length: int = Field(
+        title="Максимальная длина матрицы Global маркетинга",
+        default=8191,
     )
     # endregion
 
