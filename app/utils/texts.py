@@ -59,7 +59,7 @@ def get_user_statuses_statistic_message(
     statuses_data.update({status: 0 for status in status_emoji_list})
 
     for user in users:
-        if user.status == DonateStatus.NOT_ACTIVE:
+        if user.status is None:
             statuses_data["🆓"] += 1
             continue
 
@@ -84,7 +84,7 @@ def get_matrices_statuses_statistic_message(
     statuses_data = {status: 0 for status in status_emoji_list}
 
     for matrix in matrices:
-        if matrix.status == DonateStatus.NOT_ACTIVE:
+        if matrix.status is None:
             continue
 
         statuses_data[status_emoji_data[matrix.status]] += 1
@@ -112,7 +112,7 @@ def get_matrices_length_statistic_message(
         )
 
     for matrix in sorted_matrices[::-1]:
-        if matrix.status in (DonateStatus.NOT_ACTIVE, DonateStatus.BRILLIANT):
+        if matrix.status in (None, DonateStatus.BRILLIANT):
             continue
 
         emoji = statuses_colors_data.get(matrix.status)

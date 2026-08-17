@@ -67,7 +67,7 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
         statement = (
             select(TelegramUser)
             .where(
-                TelegramUser.status != DonateStatus.NOT_ACTIVE,
+                TelegramUser.status != None,
                 TelegramUser.id.in_(ids),
             )
             .filter_by(**kwargs)

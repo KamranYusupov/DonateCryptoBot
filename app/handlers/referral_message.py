@@ -13,12 +13,6 @@ from app.keyboards.inline import get_confirm_inline_keyboard
 from app.services.telegram_user_service import TelegramUserService
 from app.keyboards.donate import get_donate_keyboard
 from app.keyboards.reply import reply_cancel_keyboard
-from app.core.config import settings
-from app.utils.sponsor import get_callback_value
-from app.utils.pagination import Paginator
-from app.utils.matrix import get_matrices_length
-from app.utils.matrix import get_active_matrices, get_archived_matrices
-from app.models.telegram_user import status_list, status_emoji_list
 from app.utils.bot import echo_message_with_media
 from app.keyboards.reply import get_reply_keyboard
 from app.utils.bot import send_assembled_message
@@ -274,11 +268,11 @@ async def confirm_referrals_send_message_handler(
     elif to == "free":
         receivers = await telegram_user_service.get_list(
             is_admin=False,
-            status=DonateStatus.NOT_ACTIVE,
+            status=None,
         )
     elif to == "paid":
         receivers = await telegram_user_service.get_list(
-            TelegramUser.status != DonateStatus.NOT_ACTIVE,
+            TelegramUser.status != None,
             is_admin=False,
         )
     else:

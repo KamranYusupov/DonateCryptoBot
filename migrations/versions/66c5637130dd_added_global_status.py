@@ -81,6 +81,7 @@ def downgrade() -> None:
         'global_marketing_status',
     )
 
-    op.execute("""
-        DROP TYPE IF EXISTS public.globalmarketingdonatestatus;
-    """)
+    global_marketing_status_enum.drop(
+        op.get_bind(),
+        checkfirst=True
+    )

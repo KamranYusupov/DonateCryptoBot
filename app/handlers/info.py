@@ -190,7 +190,7 @@ async def team_inline_handler(
     if not is_archive and archived_matrices:
         buttons["АРХИВ УРОВНЕЙ 🗄"] = f"archive_team_1_{page_number}"
 
-    if current_user.status != DonateStatus.NOT_ACTIVE and not current_user.is_admin:
+    if current_user.status is not None and not current_user.is_admin:
         buttons.update({"Транзакции 💳": f"transactions"})
 
     buttons["🔙 Назад"] = back_button_data

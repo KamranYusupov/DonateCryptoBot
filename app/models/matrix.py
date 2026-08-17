@@ -60,11 +60,8 @@ class Matrix(Base, UUIDMixin, TimestampedMixin, MatrixEngineTypeMixin):
         server_default=text("'START'"),
         index=True,
     )
-    status = Column(Enum(DonateStatus), default=DonateStatus.NOT_ACTIVE)
-    global_marketing_status = Column(
-        Enum(GlobalMarketingDonateStatus),
-        default=GlobalMarketingDonateStatus.NOT_ACTIVE,
-    )
+    status = Column(Enum(DonateStatus), index=True)
+    global_marketing_status = Column(Enum(GlobalMarketingDonateStatus), index=True)
     closed_places_count = Column(
         BigInteger,
         default=0,

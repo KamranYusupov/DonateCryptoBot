@@ -17,8 +17,8 @@ class BaseUserEntity(BaseModel):
     first_name: str | None = Field(title="Имя", default=None)
     last_name: str | None = Field(title="Фамилия", default=None)
     sponsor_user_id: int | None = Field(title="ID спонсора", default=None)
-    status: DonateStatus | str = Field(
-        title="Статус", default=DonateStatus.NOT_ACTIVE
+    status: DonateStatus | None = Field(
+        title="Статус", default=None,
     )
     invites_count: int = Field(title="Число приглашений", default=0)
     donates_sum: Decimal = Field(title="Сумма донатов", default=0)

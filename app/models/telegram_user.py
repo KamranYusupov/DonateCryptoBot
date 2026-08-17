@@ -27,7 +27,6 @@ class BillType(enum.Enum):
 
 
 class DonateStatus(enum.Enum):
-    NOT_ACTIVE = "не активирован"
     TEST = "Тест"
     BASE = "Старт"
     BRONZE = "Бронза"
@@ -89,7 +88,6 @@ statuses_colors_data = {
 
 
 class GlobalMarketingDonateStatus(enum.Enum):
-    NOT_ACTIVE = (0, "не активирован", Decimal("0"))
     SEPTEMBER = (1, "Сентябрь", Decimal("10"))
     OCTOBER = (2, "Октябрь", Decimal("20"))
     NOVEMBER = (3, "Ноябрь", Decimal("80"))
@@ -118,12 +116,10 @@ class TelegramUser(UUIDMixin, TimestampedMixin, AbstractTelegramUser, Base):
 
     status = Column(
         Enum(DonateStatus),
-        default=DonateStatus.NOT_ACTIVE,
         index=True,
     )
     global_marketing_status = Column(
         Enum(GlobalMarketingDonateStatus),
-        default=GlobalMarketingDonateStatus.NOT_ACTIVE,
         index=True,
     )
     sponsor_user_id = Column(
