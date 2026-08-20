@@ -162,6 +162,7 @@ async def team_inline_handler(
                 matrix_id=matrix_node.matrix_id,
                 position=matrix_node.position,
                 level=matrix_node.level,
+                max_level=settings.start_marketing.triumph_matrix_max_level
             )
             get_my_team_message_kwargs["downline_nodes"] = downline_nodes
 
@@ -226,6 +227,7 @@ async def team_inline_handler(
         matrix_id=matrix_node.matrix_id,
         position=matrix_node.position,
         level=matrix_node.level,
+        max_level=settings.start_marketing.triumph_matrix_max_level
     )
     message_text = get_downline_nodes_message(
         matrix_node,

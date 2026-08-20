@@ -250,7 +250,7 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
             matrix_id: uuid.UUID,
             position: int,
             level: int,
-            max_level: int = settings.matrix_max_level
+            max_level: int = settings.start_marketing.triumph_matrix_max_level
     ) -> list[MatrixNode]:
         power_calc = func.power(2, MatrixNode.level - level)
 

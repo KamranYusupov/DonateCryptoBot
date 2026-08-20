@@ -8,8 +8,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict
 
 from app.core.config import settings
-from app.models.telegram_user import DonateStatus
-from models.telegram_user import GlobalMarketingDonateStatus
+from app.models.telegram_user import DonateStatus, GlobalMarketingDonateStatus
 
 
 class BaseUserEntity(BaseModel):

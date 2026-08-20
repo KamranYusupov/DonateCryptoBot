@@ -25,7 +25,7 @@ class TriumphBillService(CrudServiceMixin[RepositoryTelegramUser]):
 
     async def increase_bills_by_percent(
             self,
-            percent: Decimal = settings.triumph_bill_increase_percent
+            percent: Decimal = settings.start_marketing.triumph_bill_increase_percent
     ) -> None:
         return await (
             self._repository_telegram_user

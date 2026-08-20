@@ -42,6 +42,7 @@ class MatrixTransactionContextSchema(BaseTransactionContextSchema):
     type_: Literal[DonateTransactionType.MATRIX] = DonateTransactionType.MATRIX
     status: DonateStatus | GlobalMarketingDonateStatus
     matrix_length: int
+    matrix_max_length: int
     triumph: bool = False
 
 DonateTransactionContextSchema = Annotated[

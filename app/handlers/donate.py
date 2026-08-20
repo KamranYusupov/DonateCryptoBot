@@ -60,6 +60,7 @@ from app.utils.texts import (
     private_channel_invite_message,
 )
 from app.services import GlobalMarketingDonateService
+from app.filters.marketing_type import MarketingTypeFilter
 
 donate_router = Router()
 
@@ -308,7 +309,9 @@ async def export_users_to_excel_callback_handler(
     os.remove(file_name)
 
 
-@donate_router.callback_query(F.data.startswith("send_donate_"))
+@donate_router.callback_query(
+    MarketingTypeFilter("send_donate")
+)
 @inject
 async def confirm_donate(
         callback: CallbackQuery,

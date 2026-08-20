@@ -46,7 +46,7 @@ class StartMarketingConfig(BaseModel):
     """Настройки START маркетинга"""
 
     # region Настройки донатов
-    donates_config = MarketingDonatesConfig()
+    donates_config: MarketingDonatesConfig = MarketingDonatesConfig()
     triumph_matrix_transaction_percent: Decimal = Field(
         title="Процент транзакции от доната для матрицы Триумф",
         default=Decimal("2"),
@@ -61,10 +61,6 @@ class StartMarketingConfig(BaseModel):
     # endregion
 
     # region Настройки длины бинарной матрицы с 4 уровнями глубины
-    level_length: int = Field(title="Длина первого уровня матрицы", default=2)
-    second_level_length: int = Field(title="Длина второго уровня матрицы", default=4)
-    third_level_length: int = Field(title="Длина третьего уровня матрицы", default=8)
-    fourth_level_length: int = Field(title="Длина четвертого уровня матрицы", default=16)
     matrix_max_length: int = Field(title="Максимальная длина матрицы", default=30)
     matrix_max_level: int = Field(title="Максимальный уровень матрицы", default=4)
 
@@ -81,7 +77,7 @@ class GlobalMarketingConfig(BaseModel):
     """Настройки GLOBAL маркетинга"""
 
     # region Настройки донатов
-    donates_config = MarketingDonatesConfig(
+    donates_config: MarketingDonatesConfig = MarketingDonatesConfig(
         first_sponsor_donate_percent=Decimal("20"),
         second_sponsor_donate_percent=Decimal("15"),
         third_sponsor_donate_percent=Decimal("10"),
@@ -203,6 +199,10 @@ class Settings(BaseSettings):
     # region Настройки маркетингов
     start_marketing: StartMarketingConfig = StartMarketingConfig()
     global_marketing: GlobalMarketingConfig = GlobalMarketingConfig()
+    # endregion
+
+    # region Настройки бинарной матрицы
+    level_length: int = Field(title="Длина первого уровня матрицы", default=2)
     # endregion
 
     # region Настройки Telegram server

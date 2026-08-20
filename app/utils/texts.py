@@ -466,7 +466,7 @@ def get_matrix_transaction_message_text(
         status: DonateStatus,
         quantity: Decimal,
         matrix_length: int,
-        matrix_max_length: int = settings.matrix_max_length,
+        matrix_max_length: int,
         triumph: bool = False,
         is_public: bool = False,
 ):
@@ -503,7 +503,7 @@ def get_matrix_transaction_message_text(
 
 
 increase_triumph_bills_message_text = html.bold(
-    f"🏦 СЕЙФ «ТРИУМФ» +{settings.triumph_bill_increase_percent}%\n\n"
+    f"🏦 СЕЙФ «ТРИУМФ» +{settings.start_marketing.triumph_bill_increase_percent}%\n\n"
     "⚡️ Активации площадок = рост сейфа\n\n"
     "🌀 Состояние → Действие → Результат\n\n"
 )
@@ -572,9 +572,9 @@ def get_triumph_bill_increase_statistic_text(
         matrix_activation_count: int,
         registration_count: int,
         increase_activation_interval: int = \
-            settings.triumph_bills_increase_activation_interval,
+            settings.start_marketing.triumph_bills_increase_activation_interval,
         increase_registration_interval: int = \
-                settings.triumph_bills_increase_registration_interval,
+                settings.start_marketing.triumph_bills_increase_registration_interval,
 ) -> str:
     registration_step = (
         registration_count

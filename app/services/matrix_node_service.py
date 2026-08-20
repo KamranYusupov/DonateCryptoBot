@@ -223,7 +223,7 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             matrix_id: UUID,
             position: int,
             level: int,
-            max_level: int = settings.matrix_max_level
+            max_level: int,
     ) -> list[MatrixNode]:
         return await self._repository_matrix_node.get_downline_nodes(
             matrix_id, position, level, max_level,

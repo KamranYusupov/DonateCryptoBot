@@ -44,7 +44,7 @@ class DonateService:
 
 
     @staticmethod
-    def get_sponsor_depth(transaction_quantity: Decimal, donate_quantity: int) -> int | None:
+    def get_sponsor_depth(transaction_quantity: Decimal, donate_quantity: int) -> int | None: #FIXME: add market type
         transaction_percent = int(transaction_quantity * 100 / donate_quantity)
 
         sponsors_percents = [
@@ -145,7 +145,7 @@ class DonateService:
             nodes: list[MatrixNode],
             donate_sum: Decimal,
             marketing_scope: MatrixMarketingScope,
-            transaction_percent: Decimal = settings.triumph_matrix_transaction_percent,
+            transaction_percent: Decimal = settings.start_marketing.triumph_matrix_transaction_percent,
     ) -> list[DonateTransactionContextSchema]:
         transaction_quantity = donate_sum * transaction_percent / 100
 
@@ -175,7 +175,8 @@ class DonateService:
             transactions_data: list[DonateTransactionContextSchema],
             free_place_path: list[uuid.UUID | str],
             parents: list[Matrix],
-            transaction_percent: Decimal = settings.matrix_donate_transaction_percent,
+            transaction_percent: Decimal = \
+                settings.start_marketing.donates_config.matrix_donate_transaction_percent,
     ) -> list[DonateTransactionContextSchema]:
         transaction_quantity = donate_sum * transaction_percent / 100
 

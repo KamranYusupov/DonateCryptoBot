@@ -20,6 +20,7 @@ class MatrixNotifierTaskIQAdapter:
             receiver_str=context.receiver.full_username,
             status=context.status,
             matrix_length=context.matrix_length,
+            matrix_max_length=context.matrix_max_length,
             triumph=context.triumph,
             quantity=context.quantity,
         )

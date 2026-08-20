@@ -234,7 +234,7 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
 
     async def increase_triumph_bills_by_percent(
             self,
-            percent: Decimal = settings.triumph_bill_increase_percent,
+            percent: Decimal = settings.start_marketing.triumph_bill_increase_percent,
     ) -> None:
         multiplier = percent / 100
         new_bill_expr = (
