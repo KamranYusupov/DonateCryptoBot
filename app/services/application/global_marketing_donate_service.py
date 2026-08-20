@@ -57,11 +57,6 @@ class GlobalMarketingDonateService:
             upline_nodes: List[MatrixNode],
             status: GlobalMarketingDonateStatus,
     ):
-        from loguru import logger
-
-        logger.info(f"upline_nodes: {upline_nodes}")
-        logger.info(f"status: {status.index}")
-
         try:
             donate_receiver_node = upline_nodes[status.index]
         except IndexError:

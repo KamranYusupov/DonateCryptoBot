@@ -1,7 +1,7 @@
 import copy
 from datetime import date, timedelta, datetime
 from decimal import Decimal
-from typing import Any, List
+from typing import Any, List, Sequence
 import uuid
 
 import loguru
@@ -9,9 +9,6 @@ from aiogram import html
 
 from app.models.telegram_user import (
     DonateStatus,
-    status_list,
-    status_emoji_list,
-    statuses_colors_data,
 )
 from app.models.telegram_user import TelegramUser
 from app.schemas.triumph_bill_transaction import TriumphBillTransactionMessageSchema
@@ -25,8 +22,8 @@ from app.utils.pagination import Paginator
 from app.core.config import settings
 from app.models.matrix import Matrix, MatrixNode
 from app.models.withdrawal_request import WithdrawalRequest
-from app.models.triumph_bill import TriumphBillTransaction
 from app.utils.datetime import to_main_tz
+from app.models.telegram_user import GlobalMarketingDonateStatus
 
 
 def get_donate_confirm_message(
@@ -50,7 +47,7 @@ def get_donate_confirm_message(
 
 def get_user_statuses_statistic_message(
         users: list[TelegramUser],
-) -> str:
+) -> str: #FIXME: do marketing type split
     status_emoji_data = {
         status_list[i]: status_emoji_list[i]
         for i in range(len(status_list))
@@ -75,7 +72,7 @@ def get_user_statuses_statistic_message(
 
 def get_matrices_statuses_statistic_message(
         matrices: list[Matrix],
-) -> str:
+) -> str: #FIXME: do marketing type split
     message = ""
     status_emoji_data = {
         status_list[i]: status_emoji_list[i]
@@ -96,15 +93,17 @@ def get_matrices_statuses_statistic_message(
 
 def get_matrices_length_statistic_message(
         matrices: list[Matrix],
+        status_list: Sequence[DonateStatus | GlobalMarketingDonateStatus],
         triumph_node_downline_count: int | None = None,
-) -> str:
+) -> str: # FIXME: Split by marketing type
     message = ""
+    return message
     sorted_matrices = get_sorted_matrices(matrices, status_list)
 
 
     if triumph_node_downline_count is not None:
         brilliant_status = DonateStatus.BRILLIANT
-        emoji = statuses_colors_data.get(brilliant_status)
+        emoji = get(brilliant_status)
 
         message += (
             f"<b>{emoji} {brilliant_status.value.upper()}</b>: "
@@ -172,6 +171,7 @@ def get_triumph_bill_transaction_message(
 
 async def get_my_team_message(
         matrices: list[Matrix],
+        status_list: list[DonateStatus | GlobalMarketingDonateStatus],
         page_number: int,
         per_page: int = 1,
         callback_data_prefix: str = "team",
@@ -181,7 +181,10 @@ async def get_my_team_message(
 ):
     downline_nodes = [] if not downline_nodes else downline_nodes
     message = ""
-    sorted_matrices = get_sorted_matrices(matrices, status_list)
+    if matrices:
+        sorted_matrices = get_sorted_matrices(matrices, status_list)
+    else:
+        sorted_matrices = []
 
     if matrix_node:
         sorted_matrices.append(matrix_node)

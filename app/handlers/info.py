@@ -19,7 +19,7 @@ from app.services.matrix_service import MatrixService
 from app.use_cases.file import SendFileFromLoadedFileIDOrSaveUseCase
 from app.utils.pagination import Paginator
 from app.utils.matrix import get_active_matrices, get_archived_matrices
-from app.models.telegram_user import status_list, status_emoji_list, DonateStatus
+from app.models.telegram_user import DonateStatus
 from app.utils.texts import get_my_team_message, get_matrix_info_message, get_downline_nodes_message
 from app.models.telegram_user import TelegramUser
 from app.utils.texts import (
@@ -262,10 +262,6 @@ async def referral_handler(
 
     buttons = {}
     message_text = f"<b>Ваши рефералы (страница {page_number}):</b>\n\n"
-    status_emoji_data = {
-        status_list[i]: status_emoji_list[i]
-        for i in range(len(status_list))
-    }
 
     if paginator.has_previous():
         buttons |= {"◀ Пред.": f"referrals_{page_number - 1}"}
@@ -292,8 +288,8 @@ async def referral_handler(
 
     start_count = per_page * page_number - per_page + 1
     for user in paginator.get_page():
-        user_status_emoji = status_emoji_data.get(user.status, "🆓",)
-        message_text += f"{start_count}. @{user.username}: {user_status_emoji}\n"
+        user_status_order_emoji = user.status.order_emoji if user.status else "🆓"
+        message_text += f"{start_count}. @{user.username}: {user_status_order_emoji}\n"
         start_count += 1
 
     reply_markup = get_donate_keyboard(

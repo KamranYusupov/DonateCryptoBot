@@ -27,6 +27,9 @@ from app.schemas.transaction import (
     DonateTransactionContextSchema,
     TransactionReceiverSchema,
 )
+from app.schemas.marketing import MatrixMarketingScope
+from app.models.matrix import MatrixEngineType
+
 
 class DonateService:
     def __init__(
@@ -76,33 +79,38 @@ class DonateService:
 
 
     @staticmethod
-    async def update_transactions_data_with_sponsors(
+    def update_transactions_data_with_sponsors(
             current_user: TelegramUser,
-            first_sponsor: Optional[TelegramUser],
+            first_sponsor: TelegramUser,
             second_sponsor: Optional[TelegramUser],
             third_sponsor: Optional[TelegramUser],
             donate_sum: Decimal,
-            status: DonateStatus,
+            marketing_scope: MatrixMarketingScope,
+            sponsors_donate_percents: Optional[Tuple[Decimal, Decimal, Decimal]] = None,
     ) -> list[SponsorTransactionContextSchema]:
+        if sponsors_donate_percents is None:
+            sponsors_donate_percents = (
+                marketing_scope.config.donates_config.first_sponsor_donate_percent,
+                marketing_scope.config.donates_config.second_sponsor_donate_percent,
+                marketing_scope.config.donates_config.third_sponsor_donate_percent,
+            )
 
         transactions_data = []
-        sponsor_donate_percents = (
-            (first_sponsor, settings.first_sponsor_donate_percent,),
-            (second_sponsor, settings.second_sponsor_donate_percent,),
-            (third_sponsor, settings.third_sponsor_donate_percent,)
-        )
 
-        for sponsor_depth, (sponsor, percent) in enumerate(sponsor_donate_percents):
-            if not sponsor:
+        sponsors = (first_sponsor, second_sponsor, third_sponsor)
+        sponsor_percents_map = zip(sponsors, sponsors_donate_percents)
+        for sponsor_depth, (sponsor, percent) in enumerate(sponsor_percents_map, start=1):
+            if sponsor is None:
                 continue
 
-            if sponsor.status is not None:
+            sponsor_status = getattr(sponsor, marketing_scope.status_orm_attr)
+            if sponsor_status is not None:
                 receiver_schema = TransactionReceiverSchema.model_validate(sponsor)
                 transaction = SponsorTransactionContextSchema(
                     receiver=receiver_schema,
                     sender_str=current_user.full_username,
-                    sponsor_depth=sponsor_depth + 1,
-                    status=status,
+                    sponsor_depth=sponsor_depth,
+                    status=sponsor_status,
                     quantity=donate_sum * percent / 100,
                 )
                 transactions_data.append(transaction)
@@ -132,12 +140,11 @@ class DonateService:
 
         return transactions_data
 
-
     async def update_transactions_data_with_nodes(
             self,
             nodes: list[MatrixNode],
             donate_sum: Decimal,
-            status: DonateStatus,
+            marketing_scope: MatrixMarketingScope,
             transaction_percent: Decimal = settings.triumph_matrix_transaction_percent,
     ) -> list[DonateTransactionContextSchema]:
         transaction_quantity = donate_sum * transaction_percent / 100
@@ -147,22 +154,20 @@ class DonateService:
             ids=list(owner_ids_node_map.keys()),
         )
 
-        triumph = (status == DonateStatus.BRILLIANT)
-
         transactions_data = [
             MatrixTransactionContextSchema(
                 receiver=TransactionReceiverSchema.model_validate(receiver),
                 quantity=transaction_quantity,
                 matrix_length=owner_ids_node_map[receiver.id].downline_count,
-                status=status,
-                triumph=triumph,
+                status=marketing_scope.status,
+                triumph=marketing_scope.status is DonateStatus.BRILLIANT,
             )
             for receiver in receivers
         ]
 
         return transactions_data
 
-    async def _update_transactions_data_with_matrix_receivers(
+    async def _update_transactions_data_with_json_matrix_receivers(
             self,
             matrix: Matrix,
             donate_sum: Decimal,
@@ -275,16 +280,16 @@ class DonateService:
             sponsor: TelegramUser,
             donate_sum: Decimal,
             transactions_data: list,
-            status: DonateStatus,
+            marketing_scope: MatrixMarketingScope,
             level_length: int = settings.level_length,
             found_matrix: Matrix | None = None
-    ) -> Tuple[Matrix, Optional[Matrix]]:
+    ) -> Tuple[Matrix, Optional[Matrix]] | None:
         if found_matrix:
             await self._handle_insertion_to_free_matrix(
                 found_matrix,
                 current_user,
                 donate_sum,
-                status,
+                marketing_scope.status,
                 transactions_data,
                 level_length,
             )
@@ -292,7 +297,7 @@ class DonateService:
 
         sponsor_matrices = await self._repository_matrix.get_user_matrices(
             owner_id=sponsor.id,
-            status=status,
+            marketing_scope=marketing_scope,
             for_update=True,
         )
 
@@ -303,17 +308,17 @@ class DonateService:
                     matrix,
                     current_user,
                     donate_sum,
-                    status,
+                    marketing_scope.status,
                     transactions_data,
                     level_length,
                 )
                 return matrix, created_matrix
         else:
             if sponsor.is_admin:
-                matrix_entity = MatrixEntity(
+                matrix_entity = MatrixEntity.from_marketing_scope(
                     owner_id=sponsor.id,
-                    status=status,
-                    marketing_type=MatrixMarketingType.START,
+                    engine_type=MatrixEngineType.JSON,
+                    marketing_scope=marketing_scope,
                 )
                 matrix = await self._repository_matrix.create(obj_in=matrix_entity)
                 matrix.matrices, matrix.telegram_users = {},  []
@@ -321,7 +326,7 @@ class DonateService:
                     matrix,
                     current_user,
                     donate_sum,
-                    status,
+                    marketing_scope.status,
                     transactions_data,
                     level_length,
                 )
@@ -330,7 +335,7 @@ class DonateService:
             return await self._find_free_matrix(
                 current_user,
                 donate_sum,
-                status,
+                marketing_scope,
                 transactions_data,
                 level_length=settings.level_length,
             )
@@ -359,7 +364,7 @@ class DonateService:
             count=settings.matrix_max_level - free_place_level
         )
 
-        await self._update_transactions_data_with_matrix_receivers(
+        await self._update_transactions_data_with_json_matrix_receivers(
             free_matrix,
             donate_sum,
             status,
@@ -379,11 +384,11 @@ class DonateService:
             self,
             user_to_add: TelegramUser,
             donate_sum: Decimal,
-            status: DonateStatus,
+            marketing_scope: MatrixMarketingScope,
             transactions_data: list,
             level_length: int,
             max_iterations: int = 10000,
-    ) -> Tuple[Matrix, Optional[Matrix]]:
+    ) -> Tuple[Matrix, Optional[Matrix]] | None:
         current_user = user_to_add
         iter_count = 0
 
@@ -393,17 +398,16 @@ class DonateService:
             next_sponsor = await self._repository_telegram_user.get(
                 user_id=user_to_add.sponsor_user_id
             )
-
-            if next_sponsor.status is None or not (
-                int(status.get_status_donate_value())
-                <= int(next_sponsor.status.get_status_donate_value())
+            next_sponsor_status = getattr(next_sponsor, marketing_scope.status_orm_attr)
+            if next_sponsor_status is None or not (
+                marketing_scope.status.amount <= next_sponsor_status.amount
             ):
                 user_to_add = next_sponsor
                 continue
 
             next_sponsor_matrices = await self._repository_matrix.get_user_matrices(
                 owner_id=next_sponsor.id,
-                status=status,
+                marketing_scope=marketing_scope,
                 for_update=True,
             )
             if not next_sponsor_matrices:
@@ -416,17 +420,17 @@ class DonateService:
                         matrix,
                         current_user,
                         donate_sum,
-                        status,
+                        marketing_scope.status,
                         transactions_data,
                         level_length,
                     )
                     return matrix, created_matrix
 
             if next_sponsor.is_admin:
-                matrix_entity = MatrixEntity(
+                matrix_entity = MatrixEntity.from_marketing_scope(
                     owner_id=next_sponsor.id,
-                    status=status,
-                    marketing_type=MatrixMarketingType.START,
+                    marketing_scope=marketing_scope,
+                    engine_type=MatrixEngineType.JSON,
                 )
                 matrix = await self._repository_matrix.create(obj_in=matrix_entity)
                 matrix.matrices, matrix.telegram_users = {}, []
@@ -434,7 +438,7 @@ class DonateService:
                     matrix,
                     current_user,
                     donate_sum,
-                    status,
+                    marketing_scope.status,
                     transactions_data,
                     level_length,
                 )

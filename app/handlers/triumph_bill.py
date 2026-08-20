@@ -33,7 +33,7 @@ from app.use_cases.file import SendFileFromLoadedFileIDOrSaveUseCase
 from app.utils.bot import delete_message_or_pass
 from app.utils.pagination import Paginator
 from app.utils.matrix import get_active_matrices, get_archived_matrices
-from app.models.telegram_user import status_list, status_emoji_list, DonateStatus
+from app.models.telegram_user import DonateStatus
 from app.utils.texts import get_my_team_message, get_matrix_info_message, get_downline_nodes_message, format_decimal
 from app.models.telegram_user import TelegramUser
 
@@ -61,7 +61,7 @@ async def start_triumph_bill_handler(
         )
         return
 
-    triumph_bill_limit = DonateStatus.BRILLIANT.get_status_donate_value()
+    triumph_bill_limit = DonateStatus.BRILLIANT.amount
     if current_user.triumph_bill is not None and \
             current_user.triumph_bill > triumph_bill_limit:
         await callback.message.edit_text(
@@ -111,7 +111,7 @@ async def process_amount(
     bill_value = getattr(current_user, f"bill_for_{bill_type}")
 
     current_triumph_bill = current_user.triumph_bill if current_user.triumph_bill is not None else 0
-    triumph_bill_limit = DonateStatus.BRILLIANT.get_status_donate_value()
+    triumph_bill_limit = DonateStatus.BRILLIANT.amount
     if current_triumph_bill + amount > triumph_bill_limit:
         await message.answer(
             f"Сейф Триумф достиг лимита({triumph_bill_limit} USDT).",
@@ -187,7 +187,7 @@ async def confirm_triumph_bill_increment_handler(
     bill_value = getattr(current_user, bill_field_name)
 
     current_triumph_bill = current_user.triumph_bill if current_user.triumph_bill is not None else 0
-    triumph_bill_limit = DonateStatus.BRILLIANT.get_status_donate_value()
+    triumph_bill_limit = DonateStatus.BRILLIANT.amount
     if current_triumph_bill + amount > triumph_bill_limit:
         await callback.message.edit_text(
             f"Сейф Триумф достиг лимита({triumph_bill_limit} USDT).",

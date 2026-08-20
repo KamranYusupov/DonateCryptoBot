@@ -216,8 +216,8 @@ async def subscription_checker(
         amount=settings.donate_for_registration
     )
     is_sponsor_status_bronze_or_higher = (
-        DonateStatus.BRONZE.get_status_donate_value()
-        <= sponsor.status.get_status_donate_value()
+        DonateStatus.BRONZE.amount
+        <= sponsor.status.amount
     )
     if is_sponsor_status_bronze_or_higher and (
             sponsor.donates_sum_for_registration
@@ -543,15 +543,13 @@ async def donate_handler(
         )
         #
         # if current_user.status is None or (
-        #     status.get_status_donate_value()
-        #     > current_user.status.get_status_donate_value()
+        #     status.amount
+        #     > current_user.status.amount
         # ):
         #     current_user.status = status
         #
-        # if (
-        #     status.get_status_donate_value() >=
-        #     DonateStatus.GOLD.get_status_donate_value()
-        # ) and not current_user.private_channel_link_sent:
+        # if status.amount >= DonateStatus.GOLD.amount \
+        #    and not current_user.private_channel_link_sent:
         #     current_user.private_channel_link_sent = True
         #     send_private_channel_link = True
 

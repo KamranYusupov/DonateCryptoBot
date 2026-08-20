@@ -36,7 +36,7 @@ class SponsorsContestService(
         self._repository_telegram_user = repository_telegram_user
 
     def get_points_count_by_status(self, status: DonateStatus) -> int:
-        return int(status.get_status_donate_value() / 25)
+        return int(status.amount / 25)
 
     async def create_contest_point(
             self,

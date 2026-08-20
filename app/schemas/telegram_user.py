@@ -3,11 +3,14 @@ import random
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from typing import Optional
 
 from pydantic import BaseModel, Field, ConfigDict
 
 from app.core.config import settings
 from app.models.telegram_user import DonateStatus
+from models.telegram_user import GlobalMarketingDonateStatus
+
 
 class BaseUserEntity(BaseModel):
     """Модель пользователя"""
@@ -19,6 +22,9 @@ class BaseUserEntity(BaseModel):
     sponsor_user_id: int | None = Field(title="ID спонсора", default=None)
     status: DonateStatus | None = Field(
         title="Статус", default=None,
+    )
+    global_marketing_status: Optional[GlobalMarketingDonateStatus] = Field(
+        title="Статус маркетинга Global", default=None,
     )
     invites_count: int = Field(title="Число приглашений", default=0)
     donates_sum: Decimal = Field(title="Сумма донатов", default=0)

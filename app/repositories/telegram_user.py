@@ -241,7 +241,7 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
             TelegramUser.triumph_bill +
             TelegramUser.triumph_bill * multiplier
         )
-        triumph_amount = Decimal(DonateStatus.BRILLIANT.get_status_donate_value())
+        triumph_amount = Decimal(DonateStatus.BRILLIANT.amount)
         statement = (
             update(TelegramUser)
             .where(

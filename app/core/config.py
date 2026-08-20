@@ -17,14 +17,85 @@ class LogLevel(str, Enum):
     CRITICAL = "critical"
 
 
-def field_validator(param, mode):
-    pass
-
-
 class IntervalConfig(BaseModel):
     min_minutes: int
     max_minutes: int
 
+
+class MarketingDonatesConfig(BaseModel):
+    """Настройки донатов маркетинга"""
+
+    first_sponsor_donate_percent: Decimal | int = Field(
+        title="Процент доната первому спонсору",
+        default=Decimal("20"))
+    second_sponsor_donate_percent: Decimal | int = Field(
+        title="Процент доната второму спонсору",
+        default=Decimal("10")
+    )
+    third_sponsor_donate_percent: Decimal | int = Field(
+        title="Процент доната третьему спонсору",
+        default=Decimal("5"),
+    )
+    matrix_donate_transaction_percent: Decimal | int = Field(
+        title="Процент транзакции от доната для матрицы",
+        default=Decimal("10"),
+    )
+
+
+class StartMarketingConfig(BaseModel):
+    """Настройки START маркетинга"""
+
+    # region Настройки донатов
+    donates_config = MarketingDonatesConfig()
+    triumph_matrix_transaction_percent: Decimal = Field(
+        title="Процент транзакции от доната для матрицы Триумф",
+        default=Decimal("2"),
+    )
+    triumph_max_donates_sum_from_matrix: int = 327640
+    # endregion
+
+    # Настройки сейфов Триумф
+    triumph_bill_increase_percent: Decimal = Field(default=Decimal("1"))
+    triumph_bills_increase_activation_interval: int = Field(default=10)
+    triumph_bills_increase_registration_interval: int = Field(default=100)
+    # endregion
+
+    # region Настройки длины бинарной матрицы с 4 уровнями глубины
+    level_length: int = Field(title="Длина первого уровня матрицы", default=2)
+    second_level_length: int = Field(title="Длина второго уровня матрицы", default=4)
+    third_level_length: int = Field(title="Длина третьего уровня матрицы", default=8)
+    fourth_level_length: int = Field(title="Длина четвертого уровня матрицы", default=16)
+    matrix_max_length: int = Field(title="Максимальная длина матрицы", default=30)
+    matrix_max_level: int = Field(title="Максимальный уровень матрицы", default=4)
+
+    # region Настройки длины бинарной матрицы с 13 уровнями глубины
+    triumph_matrix_max_level: int = Field(default=13)
+    triumph_matrix_max_length: int = Field(
+        title="Максимальная длина матрицы триумф",
+        default=16383,
+    )
+    # endregion
+
+
+class GlobalMarketingConfig(BaseModel):
+    """Настройки GLOBAL маркетинга"""
+
+    # region Настройки донатов
+    donates_config = MarketingDonatesConfig(
+        first_sponsor_donate_percent=Decimal("20"),
+        second_sponsor_donate_percent=Decimal("15"),
+        third_sponsor_donate_percent=Decimal("10"),
+        matrix_donate_transaction_percent=Decimal("50"),
+    )
+    # endregion
+
+    # region Настройки основной матрицы
+    matrix_max_level: int = Field(default=12)
+    matrix_max_length: int = Field(
+        title="Максимальная длина матрицы Global маркетинга",
+        default=8191,
+    )
+    # endregion
 
 class Settings(BaseSettings):
     """Настройки проекта"""
@@ -129,57 +200,9 @@ class Settings(BaseSettings):
     )
     # endregion
 
-    # region Настройки донатов
-    first_sponsor_donate_percent: Decimal = Field(
-        title="Процент доната первому спонсору",
-        default=Decimal("20"))
-    second_sponsor_donate_percent: Decimal = Field(
-        title="Процент доната второму спонсору",
-        default=Decimal("10")
-    )
-    third_sponsor_donate_percent: Decimal = Field(
-        title="Процент доната третьему спонсору",
-        default=Decimal("5"),
-    )
-    matrix_donate_transaction_percent: Decimal = Field(
-        title="Процент транзакции от доната для матрицы",
-        default=Decimal("10"),
-    )
-    triumph_matrix_transaction_percent: Decimal = Field(
-        title="Процент транзакции от доната для матрицы Триумф",
-        default=Decimal("2"),
-    )
-    triumph_max_donates_sum_from_matrix: int = 327640
-    # endregion
-
-    # Настройки сейфов Триумф
-    triumph_bill_increase_percent: Decimal = Field(default=Decimal("1"))
-    triumph_bills_increase_activation_interval: int = Field(default=10)
-    triumph_bills_increase_registration_interval: int = Field(default=100)
-    # endregion
-
-    # region Настройки длины бинарной матрицы с 4 уровнями глубины
-    level_length: int = Field(title="Длина первого уровня матрицы", default=2)
-    second_level_length: int = Field(title="Длина второго уровня матрицы", default=4)
-    third_level_length: int = Field(title="Длина третьего уровня матрицы", default=8)
-    fourth_level_length: int = Field(title="Длина четвертого уровня матрицы", default=16)
-    matrix_max_length: int = Field(title="Максимальная длина матрицы", default=30)
-    matrix_max_level: int = Field(title="Максимальный уровень матрицы", default=4)
-
-    # region Настройки длины бинарной матрицы с 13 уровнями глубины
-    triumph_matrix_max_level: int = Field(default=13)
-    triumph_matrix_max_length: int = Field(
-        title="Максимальная длина матрицы триумф",
-        default=16383,
-    )
-    # endregion
-
-    # region Настройки Global маркетинга
-    global_marketing_matrix_max_level: int = Field(default=12)
-    global_marketing_matrix_max_length: int = Field(
-        title="Максимальная длина матрицы Global маркетинга",
-        default=8191,
-    )
+    # region Настройки маркетингов
+    start_marketing: StartMarketingConfig = StartMarketingConfig()
+    global_marketing: GlobalMarketingConfig = GlobalMarketingConfig()
     # endregion
 
     # region Настройки Telegram server

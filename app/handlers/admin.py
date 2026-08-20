@@ -6,7 +6,7 @@ from dependency_injector.wiring import inject, Provide
 from app.core.config import settings
 from app.core.container import Container
 from app.models.matrix import MatrixEngineType
-from app.models.telegram_user import TelegramUser, status_list, DonateStatus
+from app.models.telegram_user import DonateStatus
 from app.services.donate_service import DonateService
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.telegram_user_service import TelegramUserService
@@ -33,11 +33,11 @@ async def activate_matrix_handler(
         ],
         donate_service: DonateService = Provide[Container.donate_service],
 ):
-    user_str, status_index = command.args.split(" ")
-    status_index = int(status_index)
+    user_str, status_number = command.args.split(" ")
+    status_index = int(status_number) - 1
 
     try:
-        status = status_list[status_index - 1]
+        status = list(DonateStatus)[status_index]
     except IndexError:
         await message.answer("Некорректный номер статуса")
         return
@@ -57,10 +57,9 @@ async def activate_matrix_handler(
         await message.answer("Пользователь не найден")
         return
 
-    donate_sum = DonateStatus.get_status_donate_value(status)
     is_triumph = (status in (DonateStatus.BRILLIANT,))
     create_tasks_data = {
-        "donate_sum": donate_sum,
+        "donate_sum": status.amount,
         "create_donates": False,
         "first_task_minutes_delay": 0,
         "second_task_minutes_delay": 0,
@@ -74,7 +73,7 @@ async def activate_matrix_handler(
         result = await donate_service.handle_matrix_activation(
             input_user,
             first_sponsor,
-            donate_sum,
+            status.amount,
             transactions_data=[],
             status=status,
         )
@@ -100,10 +99,7 @@ async def activate_matrix_handler(
         create_tasks_data["obj_id"] = inserted_node.id
         create_tasks_data["engine_type"] = MatrixEngineType.NODES
 
-    if (
-        donate_sum >
-        DonateStatus.get_status_donate_value(input_user.status)
-    ):
+    if status.amount > input_user.status.amount:
         input_user.status = status
 
     await apply_bot_matrix_tasks(**create_tasks_data)

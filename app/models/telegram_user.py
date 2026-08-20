@@ -27,64 +27,19 @@ class BillType(enum.Enum):
 
 
 class DonateStatus(enum.Enum):
-    TEST = "Тест"
-    BASE = "Старт"
-    BRONZE = "Бронза"
-    SILVER = "Серебро"
-    GOLD = "Золото"
-    PLATINUM = "Платина"
-    BRILLIANT = "Триумф"
+    TEST = ("Тест", Decimal("10"), "1️⃣" , "🔘")
+    BASE = ("Старт", Decimal("25"), "2️⃣" , "🟢")
+    BRONZE = ("Бронза", Decimal("50"), "3️⃣" , "🟠")
+    SILVER = ("Серебро", Decimal("100"), "4️⃣" , "⚪")
+    GOLD = ("Золото", Decimal("250"), "5️⃣" , "🟡")
+    PLATINUM = ("Платина", Decimal("500"), "6️⃣" , "⚫")
+    BRILLIANT = ("Триумф", Decimal("1000"),  "7️⃣" , "🏆")
 
-    @classmethod
-    def get_donations_data(cls):
-        return {
-            cls.TEST: Decimal("10"),
-            cls.BASE: Decimal("25"),
-            cls.BRONZE: Decimal("50"),
-            cls.SILVER: Decimal("100"),
-            cls.GOLD: Decimal("250"),
-            cls.PLATINUM: Decimal("500"),
-            cls.BRILLIANT: Decimal("1000"),
-        }
-
-    def get_status_donate_value(
-            self,
-    ) -> Decimal:
-        """Получение суммы доната"""
-        return self.get_donations_data().get(self, Decimal("0"))
-
-    @classmethod
-    def get_status_list(cls) -> list:
-        return [
-            cls.TEST,
-            cls.BASE,
-            cls.BRONZE,
-            cls.SILVER,
-            cls.GOLD,
-            cls.PLATINUM,
-            cls.BRILLIANT,
-        ]
-
-
-status_list = DonateStatus.get_status_list()
-status_emoji_list = [
-    "1️⃣" ,
-    "2️⃣" ,
-    "3️⃣" ,
-    "4️⃣" ,
-    "5️⃣" ,
-    "6️⃣" ,
-    "7️⃣" ,
-]
-statuses_colors_data = {
-    DonateStatus.TEST: "🔘",
-    DonateStatus.BASE: "🟢",
-    DonateStatus.BRONZE : "🟠",
-    DonateStatus.SILVER: "⚪",
-    DonateStatus.GOLD: "🟡",
-    DonateStatus.PLATINUM: "⚫",
-    DonateStatus.BRILLIANT: "🏆",
-}
+    def __init__(self, label: str, amount: Decimal, order_emoji: str, label_emoji: str):
+        self.label = label
+        self.amount = amount
+        self.order_emoji = order_emoji
+        self.label_emoji = label_emoji
 
 
 class GlobalMarketingDonateStatus(enum.Enum):

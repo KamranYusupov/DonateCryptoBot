@@ -19,12 +19,8 @@ from aiogram.types import (
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.loader import bot
-from app.core.config import settings
-from app.models.donate import DonateTransactionType
-from app.models.telegram_user import DonateStatus, status_emoji_list, statuses_colors_data
 from app.schemas.telegram_user import TelegramUserEntity
 from app.keyboards.inline import links_buttons
-from app.keyboards.donate import get_donate_keyboard
 
 
 async def echo_message_with_media(

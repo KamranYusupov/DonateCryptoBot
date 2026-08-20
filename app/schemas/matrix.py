@@ -60,7 +60,7 @@ class MatrixEntity(BaseModel):
             marketing_scope: MatrixMarketingScope,
             engine_type: MatrixEngineType,
             root_node_id: uuid.UUID | None = None,
-    ) -> "MatrixEntity":
+    ) -> Optional["MatrixEntity"]:
         if marketing_scope.marketing_type is MatrixMarketingType.START:
             return cls(
                 owner_id=owner_id,
@@ -70,15 +70,18 @@ class MatrixEntity(BaseModel):
                 engine_type=engine_type,
                 root_node_id=root_node_id,
             )
+        elif marketing_scope.marketing_type is MatrixMarketingType.GLOBAL:
+            return cls(
+                owner_id=owner_id,
+                marketing_type=marketing_scope.marketing_type,
+                status=None,
+                global_marketing_status=marketing_scope.status,
+                engine_type=engine_type,
+                root_node_id=root_node_id,
+            )
 
-        return cls(
-            owner_id=owner_id,
-            marketing_type=marketing_scope.marketing_type,
-            status=None,
-            global_marketing_status=marketing_scope.status,
-            engine_type=engine_type,
-            root_node_id=root_node_id,
-        )
+        return None
+
 
 
 class MatrixNodeSchema(BaseModel):

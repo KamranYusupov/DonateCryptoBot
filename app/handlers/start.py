@@ -10,7 +10,7 @@ from app.keyboards.inline import get_confirm_inline_keyboard
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.telegram_user_service import TelegramUserService
 from app.schemas.matrix import MatrixEntity
-from app.models.telegram_user import status_list, TelegramUser
+from app.models.telegram_user import TelegramUser
 from app.services.matrix_service import MatrixService
 from app.models.telegram_user import DonateStatus
 from app.keyboards.reply import get_reply_keyboard
@@ -155,14 +155,15 @@ async def admin(
 
     user_schema = get_schema_from_user(
         message.from_user,
-        status=DonateStatus.get_status_list()[-1],
+        status=list(DonateStatus)[-1],
+        global_marketing_status=list(GlobalMarketingDonateStatus)[-1],
         depth_level=0,
         is_admin=True,
     )
     admin_user = await telegram_user_service.create_telegram_user(user=user_schema)
 
-    for status in status_list:
-        if status == DonateStatus.BRILLIANT:
+    for status in list(DonateStatus):
+        if status is DonateStatus.BRILLIANT:
             await matrix_node_service.create_matrix_with_root_node(
                 owner_id=admin_user.id,
                 marketing_scope=StartMarketingScope(

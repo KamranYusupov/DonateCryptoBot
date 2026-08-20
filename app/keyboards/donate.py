@@ -3,9 +3,7 @@ from typing import Sequence
 import loguru
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 
-from app.models.telegram_user import DonateStatus, TelegramUser
-from app.models.telegram_user import status_list, statuses_colors_data
-from app.utils.sort import get_reversed_dict
+from app.models.telegram_user import DonateStatus
 
 
 def get_donate_keyboard(*, buttons: dict[str, str], sizes: tuple = (1, 1)):
@@ -18,19 +16,20 @@ def get_donate_keyboard(*, buttons: dict[str, str], sizes: tuple = (1, 1)):
 
 def get_donations_buttons(user_statuses: Sequence[DonateStatus]) -> list[InlineKeyboardButton]:
     buttons = []
-    for status in status_list[::-1]:
-        donate_sum = status.get_status_donate_value()
+    for status in list(DonateStatus)[::-1]:
         style = None
 
         if status in user_statuses:
             style = "success"
 
-        status_color_emoji = statuses_colors_data.get(status)
-        button_text = f"{status_color_emoji} {status.value} - ${donate_sum} {status_color_emoji}"
+        button_text = (
+            f"{status.label_emoji} {status.value} - "
+            f"${status.amount} {status.label_emoji}"
+        )
 
         button = InlineKeyboardButton(
             text=button_text.upper(),
-            callback_data=f"confirm_donate_🟢_{donate_sum}",
+            callback_data=f"confirm_donate_🟢_{status.amount}",
             style=style,
         )
         buttons.append(button)
