@@ -263,7 +263,7 @@ class SendDonationsMenuUseCase:
     ) -> List[InlineKeyboardButton]:
          return [
             InlineKeyboardButton(
-                text=marketing_type.label.upper(),
+                text=marketing_type.title.upper(),
                 callback_data=f"{marketing_type.label}_{callback_suffix}",
             )
             for marketing_type in list(MatrixMarketingType)
