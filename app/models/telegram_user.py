@@ -18,7 +18,12 @@ from sqlalchemy.orm import relationship, InstrumentedAttribute
 from sqlalchemy.sql import text
 
 from app.db.base import Base
-from app.models.mixins import TimestampedMixin, UUIDMixin, AbstractTelegramUser
+from app.models.mixins import (
+    TimestampedMixin,
+    UUIDMixin,
+    AbstractTelegramUser,
+    AbstractStatusEnum,
+)
 
 class BillType(enum.Enum):
     ACTIVATION = "activation"
@@ -26,43 +31,30 @@ class BillType(enum.Enum):
     TRIUMPH = "triumph"
 
 
-class DonateStatus(enum.Enum):
-    TEST = ("Тест", Decimal("10"), "1️⃣" , "🔘")
-    BASE = ("Старт", Decimal("25"), "2️⃣" , "🟢")
-    BRONZE = ("Бронза", Decimal("50"), "3️⃣" , "🟠")
-    SILVER = ("Серебро", Decimal("100"), "4️⃣" , "⚪")
-    GOLD = ("Золото", Decimal("250"), "5️⃣" , "🟡")
-    PLATINUM = ("Платина", Decimal("500"), "6️⃣" , "⚫")
-    BRILLIANT = ("Триумф", Decimal("1000"),  "7️⃣" , "🏆")
-
-    def __init__(self, label: str, amount: Decimal, order_emoji: str, label_emoji: str):
-        self.label = label
-        self.amount = amount
-        self.order_emoji = order_emoji
-        self.label_emoji = label_emoji
+class DonateStatus(AbstractStatusEnum):
+    TEST = ("Тест", Decimal("10"), "🔘")
+    BASE = ("Старт", Decimal("25"), "🟢")
+    BRONZE = ("Бронза", Decimal("50"), "🟠")
+    SILVER = ("Серебро", Decimal("100"), "⚪")
+    GOLD = ("Золото", Decimal("250"), "🟡")
+    PLATINUM = ("Платина", Decimal("500"), "⚫")
+    BRILLIANT = ("Триумф", Decimal("1000"), "🏆")
 
 
-class GlobalMarketingDonateStatus(enum.Enum):
-    SEPTEMBER = (0, "Сентябрь", Decimal("10"))
-    OCTOBER = (1, "Октябрь", Decimal("20"))
-    NOVEMBER = (2, "Ноябрь", Decimal("80"))
-    DECEMBER = (3, "Декабрь", Decimal("320"))
-    JANUARY = (4, "Январь", Decimal("1280"))
-    FEBRUARY = (5, "Февраль", Decimal("5120"))
-    MARCH = (6, "Март", Decimal("20480"))
-    APRIL = (7, "Апрель", Decimal("81920"))
-    MAY = (8, "Май", Decimal("327680"))
-    JUNE = (9, "Июнь", Decimal("1310720"))
-    JULY = (10, "Июль", Decimal("5242880"))
-    AUGUST = (11, "Август", Decimal("20971520"))
+class GlobalMarketingDonateStatus(AbstractStatusEnum):
+    SEPTEMBER = ("Сентябрь", Decimal("10"), "🍂")
+    OCTOBER = ("Октябрь", Decimal("20"), "🍁")
+    NOVEMBER = ("Ноябрь", Decimal("80"), "🌧️")
+    DECEMBER = ("Декабрь", Decimal("320"), "❄️")
+    JANUARY = ("Январь", Decimal("1280"), "⛄")
+    FEBRUARY = ("Февраль", Decimal("5120"), "💙")
+    MARCH = ("Март", Decimal("20480"), "🌱")
+    APRIL = ("Апрель", Decimal("81920"), "🌷")
+    MAY = ("Май", Decimal("327680"), "🌸")
+    JUNE = ("Июнь", Decimal("1310720"), "☀️")
+    JULY = ("Июль", Decimal("5242880"), "🌻")
+    AUGUST = ("Август", Decimal("20971520"), "🔥")
 
-    def __init__(self, index: int, label: str, amount: Decimal):
-        self.index = index
-        self.label = label
-        self.amount = amount
-
-    def __str__(self) -> str:
-        return self.label
 
 class TelegramUser(UUIDMixin, TimestampedMixin, AbstractTelegramUser, Base):
     """Модель телеграм пользователя"""
@@ -88,6 +80,12 @@ class TelegramUser(UUIDMixin, TimestampedMixin, AbstractTelegramUser, Base):
     bill_for_activation = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"))
     bill_for_withdraw = Column(Numeric(18, 6, asdecimal=True), default=Decimal("0.0"))
     triumph_bill = Column(
+        Numeric(18, 6, asdecimal=True),
+        default=Decimal("0.0"),
+        server_default=text("0.0"),
+        nullable=False
+    )
+    global_safe = Column(
         Numeric(18, 6, asdecimal=True),
         default=Decimal("0.0"),
         server_default=text("0.0"),
