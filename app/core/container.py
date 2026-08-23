@@ -75,6 +75,8 @@ from app.use_cases import (
     SponsorsContestUseCase,
 )
 from app.core.redis import init_redis_pool
+from use_cases.donations import SendDonationsMenuUseCase
+
 
 class Container(containers.DeclarativeContainer):
     settings = providers.Factory(Settings)
@@ -192,6 +194,7 @@ class Container(containers.DeclarativeContainer):
     matrix_service = providers.Factory(
         MatrixService,
         repository_matrix=repository_matrix,
+        repository_matrix_node=repository_matrix_node,
         repository_telegram_user=repository_telegram_user,
     )
     matrix_node_service = providers.Factory(
@@ -294,6 +297,14 @@ class Container(containers.DeclarativeContainer):
         title="🏆 Топ‑10 пригласителей",
         prefix=settings.provided.registration_contest_callback_prefix,
         service=registration_contests_service,
+    )
+    send_donations_menu_use_case = providers.Factory(
+        SendDonationsMenuUseCase,
+        telegram_user_service=telegram_user_service,
+        matrix_service=matrix_service,
+        matrix_node_service=matrix_node_service,
+        sponsors_contests_service=sponsors_contests_service,
+        statistic_service=statistic_service,
     )
     # endregion
 

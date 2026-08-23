@@ -15,27 +15,19 @@ from app.core.container import Container
 from app.keyboards.inline import get_confirm_inline_keyboard
 from app.keyboards.reply import reply_cancel_keyboard, get_reply_keyboard
 from app.loader import bot
-from app.models import Matrix, TriumphBillTransactionType
+from app.models import TriumphBillTransactionType
 from app.schemas.triumph_bill_transaction import CreateTriumphBillTransactionSchema
 from app.services import (
     TriumphBillService,
     TriumphBillTransactionService,
-    StatisticService,
-    SponsorsContestService,
 )
-from app.services.matrix_node_service import MatrixNodeService
 from app.services.telegram_user_service import TelegramUserService
 from app.keyboards.donate import get_donate_keyboard
-from app.core.config import settings
-from app.services.matrix_service import MatrixService
-from app.use_cases.donations import send_donations_menu
-from app.use_cases.file import SendFileFromLoadedFileIDOrSaveUseCase
+from app.use_cases.donations import SendDonationsMenuUseCase
 from app.utils.bot import delete_message_or_pass
-from app.utils.pagination import Paginator
-from app.utils.matrix import get_active_matrices, get_archived_matrices
 from app.models.telegram_user import DonateStatus
-from app.utils.texts import get_my_team_message, get_matrix_info_message, get_downline_nodes_message, format_decimal
 from app.models.telegram_user import TelegramUser
+from app.models.matrix import MatrixMarketingType
 
 triumph_bill_router = Router()
 
@@ -162,22 +154,15 @@ async def confirm_triumph_bill_increment_handler(
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
-        matrix_service: MatrixService = Provide[Container.matrix_service],
-        matrix_node_service: MatrixNodeService = Provide[
-            Container.matrix_node_service
-        ],
-        sponsors_contests_service: SponsorsContestService = Provide[
-            Container.sponsors_contests_service
-        ],
-        statistic_service: StatisticService = Provide[
-            Container.statistic_service
-        ],
         triumph_bill_service: TriumphBillService = Provide[
             Container.triumph_bill_service
         ],
         triumph_bill_transaction_service: TriumphBillTransactionService = Provide[
             Container.triumph_bill_transaction_service
         ],
+        send_donations_menu_use_case: SendDonationsMenuUseCase = Provide[
+            Container.send_donations_menu_use_case
+        ]
 ) -> None:
     state_data = await state.get_data()
     bill_type = state_data["bill_type"]
@@ -233,15 +218,12 @@ async def confirm_triumph_bill_increment_handler(
     await callback.message.answer(
         html.bold(f"🏦 Сейф Триумф успешно пополнен на {amount} USDT ✅")
     )
-    await send_donations_menu(
+    await send_donations_menu_use_case.execute(
+        marketing_type=MatrixMarketingType.START,
         from_user_id=callback.from_user.id,
         current_user_id=current_user.id,
         telegram_method=bot.send_message,
-        telegram_user_service=telegram_user_service,
-        matrix_service=matrix_service,
-        matrix_node_service=matrix_node_service,
-        sponsors_contests_service=sponsors_contests_service,
-        statistic_service=statistic_service,
+        callback_suffix=callback.data
     )
 
     await state.clear()

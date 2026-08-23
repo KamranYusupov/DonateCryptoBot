@@ -1,6 +1,7 @@
 import uuid
 import enum
 from decimal import Decimal
+from typing import Type
 
 from sqlalchemy import (
     Column,
@@ -32,8 +33,22 @@ class MatrixEngineType(enum.Enum):
     NODES = "nodes"
 
 class MatrixMarketingType(enum.Enum):
-    START = "start"
-    GLOBAL = "global"
+    START = ("start", "Триумф", DonateStatus)
+    GLOBAL = ("global", "Прайм-Тайм", GlobalMarketingDonateStatus)
+
+    def __init__(
+            self,
+            label: str,
+            title: str,
+            status_enum: Type[
+                DonateStatus |
+                GlobalMarketingDonateStatus
+            ],
+    ):
+        self.label = label
+        self.title = title
+        self.status_enum = status_enum
+
 
 class MatrixEngineTypeMixin:
     engine_type = Column(

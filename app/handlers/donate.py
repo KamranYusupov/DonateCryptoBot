@@ -52,7 +52,6 @@ from app.utils.bot import get_schema_from_user
 from app.services.statistic_service import StatisticService
 from app.keyboards.inline import get_subscriptions_keyboard, get_confirm_inline_keyboard
 from app.utils.bot import send_subscription_menu
-from app.use_cases.donations import send_donations_menu
 from app.utils.texts import (
     format_decimal,
     increase_triumph_bills_message_text,
@@ -61,6 +60,8 @@ from app.utils.texts import (
 )
 from app.services import GlobalMarketingDonateService
 from app.filters.marketing_type import MarketingTypeFilter
+from app.models.matrix import MatrixMarketingType
+from app.use_cases.donations import SendDonationsMenuUseCase
 
 donate_router = Router()
 
@@ -254,39 +255,33 @@ async def subscription_checker(
             )
         )
 
-@donate_router.callback_query(F.data.startswith("donations"))
+@donate_router.callback_query(
+    MarketingTypeFilter("donations")
+)
 @donate_router.message(F.text.lower() == "⚡️ активация")
 @inject
 async def donations_menu_handler(
-        aiogram_type: Message | CallbackQuery,
+        event: Message | CallbackQuery,
         current_user: TelegramUser,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
-        matrix_service: MatrixService = Provide[Container.matrix_service],
-        matrix_node_service: MatrixNodeService = Provide[
-            Container.matrix_node_service
-        ],
-        sponsors_contests_service: SponsorsContestService = Provide[
-            Container.sponsors_contests_service
-        ],
-        statistic_service: StatisticService = Provide[
-            Container.statistic_service
-        ],
+        marketing_type: MatrixMarketingType | None = None,
+        send_donations_menu_use_case: SendDonationsMenuUseCase = Provide[
+            Container.send_donations_menu_use_case
+        ]
 ) -> None:
-    telegram_method = bot.send_message if isinstance(aiogram_type, Message) \
-        else aiogram_type.message.edit_text
+    if isinstance(event, Message):
+        telegram_method = bot.send_message
+        marketing_type = MatrixMarketingType.GLOBAL
+    elif isinstance(event, CallbackQuery):
+        telegram_method = event.message.edit_text
+    else:
+        return
 
-
-    await send_donations_menu(
-        from_user_id=aiogram_type.from_user.id,
+    await send_donations_menu_use_case.execute(
+        marketing_type=marketing_type,
+        from_user_id=event.from_user.id,
         current_user_id=current_user.id,
         telegram_method=telegram_method,
-        telegram_user_service=telegram_user_service,
-        matrix_service=matrix_service,
-        matrix_node_service=matrix_node_service,
-        sponsors_contests_service=sponsors_contests_service,
-        statistic_service=statistic_service,
+        callback_suffix="donations",
     )
 
 
@@ -597,7 +592,7 @@ async def donate_handler(
 
     # is_increase_triumph_bills_step = (
     #     matrix_activations_count
-    #     % settings.triumph_bills_increase_activation_interval == 0
+    #     % settings.start_marketing.triumph_bills_increase_activation_interval == 0
     # )
     # await send_donations_menu_task.kiq(
     #     callback.from_user.id,
@@ -716,7 +711,7 @@ async def get_transactions_list_to_me(
                 message += f"<b>От партнера {sponsor_depth} линии @{sender.username}.</b>\n\n"
             elif transaction.type_ == DonateTransactionType.MATRIX:
                 status = donate_confirm_service.get_donate_status(donate.quantity)
-                message += f"<b>Площадка {status.value}.</b>\n\n"
+                message += f"<b>Площадка {status.label}.</b>\n\n"
 
             else:
                 continue

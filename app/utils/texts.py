@@ -1,4 +1,5 @@
 import copy
+from collections import defaultdict
 from datetime import date, timedelta, datetime
 from decimal import Decimal
 from typing import Any, List, Sequence
@@ -24,6 +25,8 @@ from app.models.matrix import Matrix, MatrixNode
 from app.models.withdrawal_request import WithdrawalRequest
 from app.utils.datetime import to_main_tz
 from app.models.telegram_user import GlobalMarketingDonateStatus
+from app.models.matrix import MatrixMarketingType
+from app.schemas.marketing import MatrixMarketingScope
 
 
 def get_donate_confirm_message(
@@ -33,7 +36,7 @@ def get_donate_confirm_message(
     if donate_status not in list(statuses_colors_data.keys()):
         return
     status = (
-        f"{statuses_colors_data.get(donate_status)} - {donate_status.value.split()[0]}"
+        f"{statuses_colors_data.get(donate_status)} - {donate_status.label.split()[0]}"
     )
 
     message_text = (
@@ -72,28 +75,30 @@ def get_user_statuses_statistic_message(
 
 def get_matrices_statuses_statistic_message(
         matrices: list[Matrix],
-) -> str: #FIXME: do marketing type split
-    message = ""
-    status_emoji_data = {
-        status_list[i]: status_emoji_list[i]
-        for i in range(len(status_list))
+        marketing_scope: MatrixMarketingScope
+) -> str:
+    message_text = ""
+    statuses_data = {
+        status: 0
+        for status in marketing_scope.marketing_type.status_enum
     }
-    statuses_data = {status: 0 for status in status_emoji_list}
 
     for matrix in matrices:
-        if matrix.status is None:
+        matrix_status = getattr(matrix, marketing_scope.status_orm_attr)
+        if matrix_status is None:
             continue
 
-        statuses_data[status_emoji_data[matrix.status]] += 1
+        statuses_data[matrix_status] += 1
 
-    for status, count in list(statuses_data.items())[::-1]:
-        message += f"{status}: {count}\n"
+    for status, count in reversed(
+            list(statuses_data.items())
+    ):
+        message_text += f"{status.index}️⃣: {count}\n"
 
-    return message
+    return message_text
 
 def get_matrices_length_statistic_message(
         matrices: list[Matrix],
-        status_list: Sequence[DonateStatus | GlobalMarketingDonateStatus],
         triumph_node_downline_count: int | None = None,
 ) -> str: # FIXME: Split by marketing type
     message = ""
@@ -106,7 +111,7 @@ def get_matrices_length_statistic_message(
         emoji = get(brilliant_status)
 
         message += (
-            f"<b>{emoji} {brilliant_status.value.upper()}</b>: "
+            f"<b>{emoji} {brilliant_status.label.upper()}</b>: "
             f"{triumph_node_downline_count}/{settings.triumph_matrix_max_length}\n"
         )
 
@@ -116,7 +121,7 @@ def get_matrices_length_statistic_message(
 
         emoji = statuses_colors_data.get(matrix.status)
         message += (
-            f"<b>{emoji} {matrix.status.value.upper()}</b>: "
+            f"<b>{emoji} {matrix.status.label.upper()}</b>: "
             f"{len(matrix.telegram_users)}/{settings.matrix_max_length}\n"
         )
 
@@ -241,7 +246,7 @@ def get_downline_nodes_message(
     """
 
     color = statuses_colors_data.get(status)
-    lines = [f"<b>{color} {status.value}: {matrix_node.id.hex[0:5]}</b>"]
+    lines = [f"<b>{color} {status.label}: {matrix_node.id.hex[0:5]}</b>"]
 
     if not downline_nodes:
         lines.append(f"\nМест занято: <b>{0} из {matrix_max_length}\n</b>")
@@ -286,7 +291,7 @@ def get_matrix_info_message(
     Выводит бинарное дерево матрицы.
     """
     color = statuses_colors_data.get(matrix.status)
-    lines = [f"<b>{color} {matrix.status.value}: {matrix.id.hex[0:5]}</b>"]
+    lines = [f"<b>{color} {matrix.status.label}: {matrix.id.hex[0:5]}</b>"]
     if not matrix.matrices:
         lines.append(f"\nМест занято: <b>{len(matrix.telegram_users)} из {settings.matrix_max_length}\n</b>")
 
@@ -439,7 +444,7 @@ def get_sponsor_transaction_message_text(
         "🔥 На Шаг ближе к Триумфу!"
     )
     status_color = statuses_colors_data.get(status)
-    status_name = status.value.upper()
+    status_name = status.label.upper()
 
     return template.format(
         sender_str=display_name,
@@ -481,7 +486,7 @@ def get_matrix_transaction_message_text(
 
     receiver_str = "" if is_public else receiver_str
     status_color = statuses_colors_data.get(status, "")
-    status_name = status.value.upper()
+    status_name = status.label.upper()
     status_str = f"{status_color} {status_name}"
 
     if triumph:
@@ -568,6 +573,53 @@ triumph_bill_increase_statistic_text = (
     "и <b>{registration_step_str}</b> регистраций."
 )
 
+admin_statistic_message_text_template = (
+    "Регистраций в KOD💵DENEG: <b>{users_count}</b>\n\n"
+    "{matrix_statuses_statistic_message}"
+    "🆓: {users_count_with_not_active_status}\n\n"
+    "Всего подарили: <b>${total_donates_sum}</b>\n"
+    "Системный баланс: <b>${system_bill}</b>\n"
+    "Системный баланс Триумф: <b>${triumph_system_bill}</b>\n"
+    "$ за регистрацию: <b>${donates_sum_for_registration}</b>\n"
+    "Общий баланс для активации: <b>${bills_for_activation_sum}</b>\n"
+    "Общий баланс для вывода: <b>${bills_for_withdraw_sum}</b>\n"
+    "Общий баланс для вывода +10$: <b>${bills_for_withdraw_gte_10_sum}</b>\n"
+    "Общий сейф Триумф: <b>${triumph_bills_sum}</b>\n\n"
+    "С балансом для вывода +10: <b>{users_count_with_bill_for_withdraw_gte_10}</b>\n\n"
+    "{triumph_bill_increase_statistic_text}\n\n"
+    "{base_message_text}"
+)
+
+start_base_message_text_template = (
+    "Место в конкурсе: <b>{current_user_place}</b>\n"
+    "Лично приглашенных: <b>{invites_count}</b>\n"
+    "Баланс для активации: <b>${bill_for_activation}</b>\n"
+    "Баланс для вывода: <b>${bill_for_withdraw}</b>\n"
+    "Всего заработано: <b>${donates_sum}</b>\n"
+)
+
+global_base_message_text_template = (
+    "Лично приглашенных: <b>{invites_count}</b>\n"
+    "Баланс для активации: <b>${bill_for_activation}</b>\n"
+    "Баланс для вывода: <b>${bill_for_withdraw}</b>\n"
+    "Всего заработано: <b>${donates_sum}</b>\n"
+)
+
+start_main_message_text_template = (
+    "Активные площадки: {matrices_length_statistic_message}\n"
+    "{triumph_info}"
+    "Мой куратор: {sponsor_username}\n"
+    "Дата регистрации: <b>{created_at_date_str}</b>\n\n"
+    "{base_message_text}"
+)
+
+global_main_message_text_template = (
+    "Активные глобальные площадки: {matrices_length_statistic_message}\n"
+    "Мой куратор: {sponsor_username}\n"
+    "Дата регистрации: <b>{created_at_date_str}</b>\n\n"
+    "{base_message_text}"
+)
+
 def get_triumph_bill_increase_statistic_text(
         matrix_activation_count: int,
         registration_count: int,
@@ -578,11 +630,11 @@ def get_triumph_bill_increase_statistic_text(
 ) -> str:
     registration_step = (
         registration_count
-        % settings.triumph_bills_increase_registration_interval
+        % settings.start_marketing.triumph_bills_increase_registration_interval
     )
     matrix_activation_step = (
         matrix_activation_count
-        % settings.triumph_bills_increase_activation_interval
+        % settings.start_marketing.triumph_bills_increase_activation_interval
     )
     registration_step_str = (
         f"{registration_step}/"

@@ -1,3 +1,4 @@
+import enum
 import typing
 import uuid
 from decimal import Decimal
@@ -135,3 +136,23 @@ class AbstractContestPoint(Generic[ContestModelType]):
             cls.__contest_model__.__name__,
             backref="points"
         )
+
+
+class AbstractStatusEnum(enum.Enum):
+
+    def __init__(
+            self,
+            label: str,
+            amount: Decimal,
+            emoji: str
+    ):
+        self.label = label
+        self.amount = amount
+        self.emoji = emoji
+
+    def __str__(self) -> str:
+        return self.label
+
+    @property
+    def index(self) -> int:
+        return list(type(self)).index(self)

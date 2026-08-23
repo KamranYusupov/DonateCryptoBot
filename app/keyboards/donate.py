@@ -1,9 +1,10 @@
-from typing import Sequence
+from typing import Sequence, List
 
 import loguru
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 
-from app.models.telegram_user import DonateStatus
+from app.models.telegram_user import DonateStatus, GlobalMarketingDonateStatus
+from app.models.matrix import MatrixMarketingType
 
 
 def get_donate_keyboard(*, buttons: dict[str, str], sizes: tuple = (1, 1)):
@@ -14,7 +15,9 @@ def get_donate_keyboard(*, buttons: dict[str, str], sizes: tuple = (1, 1)):
 
     return keyboard.adjust(*sizes).as_markup()
 
-def get_donations_buttons(user_statuses: Sequence[DonateStatus]) -> list[InlineKeyboardButton]:
+def get_start_marketing_donations_buttons(
+        user_statuses: Sequence[DonateStatus]
+) -> list[InlineKeyboardButton]:
     buttons = []
     for status in list(DonateStatus)[::-1]:
         style = None
@@ -23,19 +26,55 @@ def get_donations_buttons(user_statuses: Sequence[DonateStatus]) -> list[InlineK
             style = "success"
 
         button_text = (
-            f"{status.label_emoji} {status.value} - "
-            f"${status.amount} {status.label_emoji}"
+            f"{status.emoji} {status.label} - "
+            f"${status.amount} {status.emoji}"
         )
 
         button = InlineKeyboardButton(
             text=button_text.upper(),
-            callback_data=f"confirm_donate_🟢_{status.amount}",
+            callback_data=f"{MatrixMarketingType.START.label}_confirm_donate_🟢_{status.amount}",
             style=style,
         )
         buttons.append(button)
 
 
     return buttons
+
+def get_global_marketing_donations_buttons(
+        user_statuses: Sequence[GlobalMarketingDonateStatus]
+) -> list[InlineKeyboardButton]:
+    buttons = []
+    for status in list(GlobalMarketingDonateStatus)[::-1]:
+
+        if status in user_statuses:
+            continue
+
+        button_text = (
+            f"{status.emoji} {status.label} - "
+            f"${status.amount} {status.emoji}"
+        )
+
+        button = InlineKeyboardButton(
+            text=button_text.upper(),
+            callback_data=f"{MatrixMarketingType.GLOBAL.label}_confirm_donate_🟢_{status.amount}",
+        )
+        buttons.append(button)
+
+
+    return buttons
+
+
+def get_donations_buttons(
+        user_statuses: Sequence[DonateStatus | GlobalMarketingDonateStatus],
+        marketing_type: MatrixMarketingType
+) -> List[InlineKeyboardButton]:
+    match marketing_type:
+        case MatrixMarketingType.START:
+            return get_start_marketing_donations_buttons(user_statuses)
+        case MatrixMarketingType.GLOBAL:
+            return get_global_marketing_donations_buttons(user_statuses)
+        case _:
+            raise ValueError("Marketing type not supported.")
 
 
 def get_start_inline_keyboard():

@@ -1,8 +1,13 @@
+from uuid import UUID
+
+from aiogram.filters import callback_data
+
 from app.core.taskiq import broker
 from app.db.commit_decorator import commit_and_close_session
 from app.loader import bot
 from app.tasks.taskiq.dependencies.container import ContainerDependency
-from app.use_cases.donations import send_donations_menu
+from app.models.matrix import MatrixMarketingType
+from app.use_cases.donations import SendDonationsMenuUseCase
 
 
 @broker.task
@@ -10,16 +15,18 @@ from app.use_cases.donations import send_donations_menu
 async def send_donations_menu_task(
         chat_id: int,
         current_user_id: str,
+        marketing_type: MatrixMarketingType,
+        callback_suffix: str = "donations",
         *,
         container: ContainerDependency,
 ) -> None:
-    await send_donations_menu(
+    send_donations_menu_use_case: SendDonationsMenuUseCase = container.send_donations_menu_use_case()
+
+    current_user_id = UUID(current_user_id)
+    await send_donations_menu_use_case.execute(
+        marketing_type=marketing_type,
         from_user_id=chat_id,
         current_user_id=current_user_id,
         telegram_method=bot.send_message,
-        telegram_user_service=await container.telegram_user_service(),
-        matrix_service=await container.matrix_service(),
-        matrix_node_service=await container.matrix_node_service(),
-        sponsors_contests_service=await container.sponsors_contests_service(),
-        statistic_service=await container.statistic_service(),
+        callback_suffix=callback_suffix,
     )

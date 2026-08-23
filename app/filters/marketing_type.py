@@ -19,7 +19,7 @@ class MarketingTypeFilter(Filter):
             else list(MatrixMarketingType)
         )
         self.prefixes = tuple(
-            f"{marketing_type.value}_{callback_data_startswith}_"
+            f"{marketing_type.label}_{callback_data_startswith}"
             for marketing_type in marketing_types
         )
 

@@ -5,16 +5,15 @@ import loguru
 
 from app.core.config import settings
 from app.handlers.routing import get_all_routers
-from app.middlewares.throttling import (
+from app.middlewares import (
     private_chat_only_middleware,
     rate_limit_middleware,
-)
-from app.middlewares.ban_user import (
     ban_user_middleware,
+    MarketingTypeMiddleware,
+    CurrentUserMiddleware,
+    subscription_checker_middleware,
+    SQLAlchemySessionMiddleware,
 )
-from app.middlewares.session_middleware import SQLAlchemySessionMiddleware
-from app.middlewares.current_user import CurrentUserMiddleware
-from app.middlewares.subscriptions import subscription_checker_middleware
 
 from loader import dp, bot
 
@@ -34,14 +33,18 @@ async def main(container: "Container"):
             SQLAlchemySessionMiddleware(db_manager)
         )
 
-        dp.message.outer_middleware(CurrentUserMiddleware())
-        dp.callback_query.outer_middleware(CurrentUserMiddleware())
+        current_user_middleware = CurrentUserMiddleware()
+
+        dp.message.outer_middleware(current_user_middleware)
+        dp.callback_query.outer_middleware(current_user_middleware)
 
         dp.message.middleware(private_chat_only_middleware)
         dp.message.outer_middleware(rate_limit_middleware)
         dp.message.middleware(subscription_checker_middleware)
         dp.message.middleware(ban_user_middleware)
+
         dp.callback_query.middleware(ban_user_middleware)
+        dp.callback_query.middleware(MarketingTypeMiddleware())
 
         await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot)

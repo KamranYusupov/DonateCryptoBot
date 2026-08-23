@@ -289,8 +289,8 @@ async def referral_handler(
 
 
     start_count = per_page * page_number - per_page + 1
-    for user in paginator.get_page():
-        user_status_order_emoji = user.status.order_emoji if user.status else "🆓"
+    for order, user in enumerate(paginator.get_page(), start=1):
+        user_status_order_emoji = f"{order}️⃣"  if user.status else "🆓"
         message_text += f"{start_count}. @{user.username}: {user_status_order_emoji}\n"
         start_count += 1
 
@@ -306,17 +306,17 @@ async def referral_handler(
 @info_router.callback_query(F.data.startswith("referrals_"))
 @inject
 async def send_referral_message_handler(
-        aiogram_type: Message | CallbackQuery,
+        event: Message | CallbackQuery,
         current_user: TelegramUser,
 ) -> None:
     if not current_user:
         return
 
-    if isinstance(aiogram_type, Message):
-        telegram_method = aiogram_type.answer
+    if isinstance(event, Message):
+        telegram_method = event.answer
         page_number = 1
     else:
-        callback = aiogram_type
+        callback = event
         page_number = int(callback.data.split("_")[-1])
         telegram_method = callback.message.edit_text
 

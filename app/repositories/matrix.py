@@ -10,7 +10,7 @@ from sqlalchemy import (
     BigInteger,
     ARRAY,
 )
-from app.models.telegram_user import DonateStatus
+from app.models.telegram_user import DonateStatus, GlobalMarketingDonateStatus
 from app.schemas.marketing import MatrixMarketingScope
 from .base import RepositoryBase
 from app.models.matrix import Matrix, MatrixNode, MatrixMarketingType
@@ -116,10 +116,15 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
 
         return [mapping[str(i)] for i in matrices_ids]
 
-    async def get_unique_statuses_by_owner_id(self, owner_id: uuid.UUID) -> Sequence[DonateStatus]:
+    async def get_unique_statuses_by_owner_id(
+            self,
+            owner_id: uuid.UUID,
+            marketing_scope: MatrixMarketingScope,
+    ) -> List[DonateStatus | GlobalMarketingDonateStatus]:
+        status_attr = getattr(Matrix, marketing_scope.status_orm_attr)
         statement = (
-            select(Matrix.status)
-            .filter_by(owner_id=owner_id)
+            select(status_attr)
+            .where(Matrix.owner_id == owner_id)
             .distinct()
         )
 
@@ -310,3 +315,22 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
         )
         result = await self._session.execute(statement)
         return result.one()
+
+    async def get_unique_statuses_by_owner_id(
+            self,
+            owner_id: uuid.UUID,
+            marketing_scope: MatrixMarketingScope,
+    ) -> List[DonateStatus | GlobalMarketingDonateStatus]:
+        status_attr = getattr(Matrix, marketing_scope.status_orm_attr)
+        statement = (
+            select(status_attr)
+            .join(
+                MatrixNode,
+                onclause=MatrixNode.matrix_id == Matrix.id,
+            )
+            .where(MatrixNode.owner_id == owner_id)
+            .distinct()
+        )
+
+        result = await self._session.execute(statement)
+        return result.scalars().all()

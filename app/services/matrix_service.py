@@ -1,25 +1,29 @@
 import datetime
 import uuid
-from typing import Tuple, Any, Optional
+from typing import Tuple, Any, Optional, Sequence, List
 
 import loguru
 
-from app.models.telegram_user import DonateStatus
-from app.repositories.matrix import RepositoryMatrix
+from app.models.telegram_user import DonateStatus, GlobalMarketingDonateStatus
+from app.repositories.matrix import RepositoryMatrix, RepositoryMatrixNode
 from app.models import Matrix
 from app.schemas.matrix import MatrixEntity
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.services.base.crud_service import CrudServiceMixin
+from app.models.matrix import MatrixMarketingType
+from app.schemas.marketing import MatrixMarketingScope
 
 
 class MatrixService(CrudServiceMixin[RepositoryMatrix]):
     def __init__(
             self,
             repository_matrix: RepositoryMatrix,
+            repository_matrix_node: RepositoryMatrixNode,
             repository_telegram_user: RepositoryTelegramUser,
     ) -> None:
         super().__init__(repository=repository_matrix)
         self._repository_matrix = repository_matrix
+        self._repository_matrix_node = repository_matrix_node
         self._repository_telegram_user = repository_telegram_user
 
     async def get_list(self, *args, order_by_create_at: bool = False,**kwargs) -> list[Matrix]:
@@ -69,8 +73,23 @@ class MatrixService(CrudServiceMixin[RepositoryMatrix]):
     async def delete(self, obj_id: uuid.UUID):
         await self._repository_matrix.delete(obj_id=obj_id)
 
-    async def get_unique_statuses_by_owner_id(self, owner_id: uuid.UUID):
-        return await self._repository_matrix.get_unique_statuses_by_owner_id(
-            owner_id=owner_id
-        )
+    async def get_unique_statuses_by_owner_id(
+            self,
+            owner_id: uuid.UUID,
+            marketing_scope: MatrixMarketingScope,
+    ) -> List[DonateStatus | GlobalMarketingDonateStatus]:
+        match marketing_scope.marketing_type:
+            case MatrixMarketingType.START:
+                return await self._repository_matrix.get_unique_statuses_by_owner_id(
+                    owner_id=owner_id,
+                    marketing_scope=marketing_scope,
+                )
+            case MatrixMarketingType.GLOBAL:
+                return await self._repository_matrix_node.get_unique_statuses_by_owner_id(
+                    owner_id=owner_id,
+                    marketing_scope=marketing_scope,
+                )
+            case _:
+                raise ValueError("Not supported marketing type")
+
 
