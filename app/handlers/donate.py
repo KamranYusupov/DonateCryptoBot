@@ -62,6 +62,7 @@ from app.services import GlobalMarketingDonateService
 from app.filters.marketing_type import MarketingTypeFilter
 from app.models.matrix import MatrixMarketingType
 from app.use_cases.donations import SendDonationsMenuUseCase
+from app.schemas.marketing import MatrixMarketingScope, create_marketing_scope
 
 donate_router = Router()
 
@@ -263,21 +264,24 @@ async def subscription_checker(
 async def donations_menu_handler(
         event: Message | CallbackQuery,
         current_user: TelegramUser,
-        marketing_type: MatrixMarketingType | None = None,
+        marketing_scope: MatrixMarketingScope | None = None,
         send_donations_menu_use_case: SendDonationsMenuUseCase = Provide[
             Container.send_donations_menu_use_case
         ]
 ) -> None:
     if isinstance(event, Message):
         telegram_method = bot.send_message
-        marketing_type = MatrixMarketingType.GLOBAL
+        marketing_scope = create_marketing_scope(
+            MatrixMarketingType.GLOBAL,
+            current_user,
+        )
     elif isinstance(event, CallbackQuery):
         telegram_method = event.message.edit_text
     else:
         return
 
     await send_donations_menu_use_case.execute(
-        marketing_type=marketing_type,
+        marketing_scope=marketing_scope,
         from_user_id=event.from_user.id,
         current_user_id=current_user.id,
         telegram_method=telegram_method,

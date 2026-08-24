@@ -5,7 +5,7 @@ from aiogram.types import TelegramObject, CallbackQuery
 from app.models.matrix import MatrixMarketingType
 
 
-class MarketingTypeMiddleware(BaseMiddleware):
+class MarketingTypeCallbackMiddleware(BaseMiddleware):
 
     async def __call__(
             self,

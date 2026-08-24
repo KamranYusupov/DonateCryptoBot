@@ -57,7 +57,7 @@ class SendDonationsMenuUseCase:
 
     async def execute(
             self,
-            marketing_type: MatrixMarketingType,
+            marketing_scope: MatrixMarketingScope,
             from_user_id: int,
             current_user_id: uuid.UUID,
             telegram_method,
@@ -77,17 +77,18 @@ class SendDonationsMenuUseCase:
             "callback_suffix": callback_suffix,
         }
 
-        match marketing_type:
+        match marketing_scope.marketing_type:
             case MatrixMarketingType.START:
                 return await self._execute_start(**execute_kwargs)
             case MatrixMarketingType.GLOBAL:
                 return await self._execute_global(**execute_kwargs)
             case _:
-                raise ValueError(f"\"{marketing_type}\" is not supported")
+                raise ValueError(f"\"{marketing_scope.marketing_type}\" is not supported")
 
 
     async def _execute_start(
             self,
+            marketing_scope: MatrixMarketingScope,
             from_user_id: int,
             current_user: TelegramUser,
             telegram_method,
@@ -100,11 +101,6 @@ class SendDonationsMenuUseCase:
             bill_for_activation=format_decimal(current_user.bill_for_activation),
             bill_for_withdraw=format_decimal(current_user.bill_for_withdraw),
             donates_sum=format_decimal(current_user.donates_sum),
-        )
-
-        marketing_scope = create_marketing_scope(
-            marketing_type=MatrixMarketingType.START,
-            marketing_orm_obj=current_user
         )
 
         if current_user.is_admin:
@@ -146,6 +142,7 @@ class SendDonationsMenuUseCase:
 
     async def _execute_global(
             self,
+            marketing_scope: MatrixMarketingScope,
             from_user_id: int,
             current_user: TelegramUser,
             telegram_method,
@@ -156,10 +153,6 @@ class SendDonationsMenuUseCase:
             bill_for_activation=format_decimal(current_user.bill_for_activation),
             bill_for_withdraw=format_decimal(current_user.bill_for_withdraw),
             donates_sum=format_decimal(current_user.donates_sum),
-        )
-        marketing_scope = create_marketing_scope(
-            marketing_type=MatrixMarketingType.GLOBAL,
-            marketing_orm_obj=current_user
         )
 
         if current_user.is_admin:

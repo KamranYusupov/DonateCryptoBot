@@ -9,7 +9,8 @@ from app.middlewares import (
     private_chat_only_middleware,
     rate_limit_middleware,
     ban_user_middleware,
-    MarketingTypeMiddleware,
+    MarketingTypeCallbackMiddleware,
+    MatrixMarketingScopeCallbackMiddleware,
     CurrentUserMiddleware,
     subscription_checker_middleware,
     SQLAlchemySessionMiddleware,
@@ -33,6 +34,8 @@ async def main(container: "Container"):
             SQLAlchemySessionMiddleware(db_manager)
         )
 
+        await bot.delete_webhook(drop_pending_updates=True)
+
         current_user_middleware = CurrentUserMiddleware()
 
         dp.message.outer_middleware(current_user_middleware)
@@ -44,9 +47,9 @@ async def main(container: "Container"):
         dp.message.middleware(ban_user_middleware)
 
         dp.callback_query.middleware(ban_user_middleware)
-        dp.callback_query.middleware(MarketingTypeMiddleware())
+        dp.callback_query.middleware(MarketingTypeCallbackMiddleware())
+        dp.callback_query.middleware(MatrixMarketingScopeCallbackMiddleware())
 
-        await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot)
     finally:
         await bot.session.close()

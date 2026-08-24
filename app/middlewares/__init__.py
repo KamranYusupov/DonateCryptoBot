@@ -6,7 +6,10 @@ from app.middlewares.ban_user import (
     ban_user_middleware,
 )
 from app.middlewares.marketing_type import (
-    MarketingTypeMiddleware,
+    MarketingTypeCallbackMiddleware,
+)
+from app.middlewares.marketing_scope import (
+    MatrixMarketingScopeCallbackMiddleware,
 )
 from app.middlewares.current_user import (
     CurrentUserMiddleware,
@@ -25,5 +28,6 @@ __all__ = (
     "subscription_checker_middleware",
     "CurrentUserMiddleware",
     "SQLAlchemySessionMiddleware",
-    "MarketingTypeMiddleware",
+    "MarketingTypeCallbackMiddleware",
+    "MatrixMarketingScopeCallbackMiddleware",
 )
