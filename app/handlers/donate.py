@@ -50,7 +50,7 @@ from app.models.telegram_user import DonateStatus
 from app.utils.bot import send_message_or_pass, delete_message_or_pass
 from app.utils.bot import get_schema_from_user
 from app.services.statistic_service import StatisticService
-from app.keyboards.inline import get_subscriptions_keyboard, get_confirm_inline_keyboard
+from app.keyboards.inline import get_subscriptions_keyboard, get_confirm_inline_keyboard, get_bill_type_choice_buttons
 from app.utils.bot import send_subscription_menu
 from app.utils.texts import (
     format_decimal,
@@ -63,6 +63,7 @@ from app.filters.marketing_type import MarketingTypeFilter
 from app.models.matrix import MatrixMarketingType
 from app.use_cases.donations import SendDonationsMenuUseCase
 from app.schemas.marketing import MatrixMarketingScope, create_marketing_scope
+from utils.status import check_is_status_higher
 
 donate_router = Router()
 
@@ -308,23 +309,88 @@ async def export_users_to_excel_callback_handler(
     os.remove(file_name)
 
 
+
+@donate_router.callback_query(
+    MarketingTypeFilter("confirm_donate"),
+)
+@inject
+async def confirm_donate_handler(
+        callback: CallbackQuery,
+        current_user: TelegramUser,
+        marketing_scope: MatrixMarketingScope
+) -> None:
+    triumph_bill = None
+
+    callback_prefix = callback.data.replace("confirm", "send")
+    callback_data = callback.data.split("_")
+    status_name = callback_data[-1]
+    try:
+        status = marketing_scope.marketing_type.status_enum[status_name]
+    except KeyError:
+        loguru.logger.warning(f"Unknown status {status_name}")
+        await callback.message.delete()
+        return
+
+    if marketing_scope.marketing_type is MatrixMarketingType.START:
+        supported_statuses_for_triumph_bill = (
+            DonateStatus.SILVER,
+            DonateStatus.GOLD,
+            DonateStatus.PLATINUM,
+            DonateStatus.BRILLIANT
+        )
+
+        if status in supported_statuses_for_triumph_bill:
+            triumph_bill = current_user.triumph_bill
+    elif marketing_scope.marketing_type is MatrixMarketingType.GLOBAL:
+        current_user_status = getattr(current_user, marketing_scope.status_orm_attr)
+        if (
+            current_user_status is not None
+            and status.index <= current_user_status.index
+            and status.__class__ is current_user_status.__class__
+        ):
+            await callback.message.edit_text(
+                f"Пакет <b>\"{status.presentation_str}\"</b> уже активирован."
+            )
+            return
+
+    buttons = get_bill_type_choice_buttons(
+        bill_for_withdraw=current_user.bill_for_withdraw,
+        bill_for_activation=current_user.bill_for_activation,
+        callback_prefix=callback_prefix,
+        triumph_bill=triumph_bill,
+    )
+    buttons["🔙 Назад"] = f"{marketing_scope.marketing_type.label}_donations"
+
+    await callback.message.edit_text(
+        "Выберите баланс:",
+        reply_markup=get_donate_keyboard(
+            buttons=buttons,
+            sizes=(1, 1, 1),
+        )
+    )
+
+
 @donate_router.callback_query(
     MarketingTypeFilter("send_donate")
 )
 @inject
-async def confirm_donate(
+async def send_donate_handler(
         callback: CallbackQuery,
         current_user: TelegramUser,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
+        marketing_scope: MatrixMarketingScope,
 ) -> None:
+    callback_data = callback.data.split("_")
+    status_name, bill_type_value = callback_data[-2:]
+    try:
+        status = marketing_scope.marketing_type.status_enum[status_name]
+    except KeyError:
+        loguru.logger.warning(f"Unknown status {status_name}")
+        await callback.message.delete()
+        return
 
-    callback_donate_data = "_".join(callback.data.split("_")[1:])
-    donate_sum = Decimal(callback_donate_data.split("_")[-2])
-    bill_type = BillType(callback_donate_data.split("_")[-1])
+    bill_type = BillType(bill_type_value)
     bill = current_user.get_bill_by_type(bill_type)
-    need_to_buy_tokens = bill - donate_sum
+    need_to_buy_tokens = bill - status.amount
 
     if need_to_buy_tokens < 0:
         need_to_buy_tokens = int(abs(need_to_buy_tokens))
@@ -341,8 +407,10 @@ async def confirm_donate(
 
         return
 
+    yes_button_data = callback.data.replace("send_", "")
+    loguru.logger.debug(yes_button_data)
     reply_markup = get_confirm_inline_keyboard(
-        yes_button_data=callback_donate_data,
+        yes_button_data=yes_button_data,
         no_button_data="donations",
         sizes=(2, 1),
     )
@@ -351,7 +419,8 @@ async def confirm_donate(
     await callback.message.edit_text(
         text=(
             f"Продолжая, вы соглашаетесь с {manifest_str}.\n\n"
-            f"Для активации площадки с вашего баланса будет списано {int(donate_sum)} USDT.\n\n"
+            f"Для активации площадки с вашего баланса будет списано "
+            f"{format_decimal(status.amount)} USDT.\n\n"
             "Продолжить?"
         ),
         disable_web_page_preview=True,
@@ -360,11 +429,14 @@ async def confirm_donate(
 
 
 
-@donate_router.callback_query(F.data.startswith("donate_"))
+@donate_router.callback_query(
+    MarketingTypeFilter("donate_")
+)
 @inject
 async def donate_handler(
         callback: CallbackQuery,
         current_user: TelegramUser,
+        marketing_scope: MatrixMarketingScope,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -389,13 +461,18 @@ async def donate_handler(
         ],
         session: AsyncSession = Provide[Container.session],
 ) -> None:
-    bill_type = BillType(callback.data.split("_")[-1])
-    donate_sum = Decimal(callback.data.split("_")[-2])
-    sponsors = await telegram_user_service.get_sponsors(
-        sponsor_user_id=current_user.sponsor_user_id,
-    )
+    callback_data = callback.data.split("_")
+    status_name, bill_type_value = callback_data[-2:]
+    try:
+        status = marketing_scope.marketing_type.status_enum[status_name]
+    except KeyError:
+        loguru.logger.warning(f"Unknown status {status_name}")
+        await callback.message.delete()
+        return
+
+    bill_type = BillType(bill_type_value)
     bill = current_user.get_bill_by_type(bill_type)
-    updated_bill = bill - donate_sum
+    updated_bill = bill - status.amount
 
     if updated_bill < 0:
         need_to_buy_tokens = int(abs(updated_bill))
@@ -409,24 +486,41 @@ async def donate_handler(
                 sizes=(1, 1),
             ),
         )
+        return
+
+    if not status:
+        return
+
+    if not callback.from_user.username:
+        await callback.message.edit_text(
+            "Перед отправкой подарка, "
+            "добавьте пожалуйста <em>username</em> в свой телеграм аккаунт"
+        )
+        return
+
+    send_private_channel_link = False
+
+    sponsors = await telegram_user_service.get_sponsors(
+        sponsor_user_id=current_user.sponsor_user_id,
+    )
 
         # transactions_data = await donate_service.update_transactions_data_with_sponsors(
         #     current_user,
         #     *sponsors,
-        #     donate_sum=donate_sum,
+        #     donate_sum=status.amount,
         #     status=status,
         # )
         #
         # if is_triumph:
         #     inserted_node, upline_nodes = await matrix_node_service.activate_matrix_node(
         #         current_user_id=current_user.id,
-        #         sponsor_id=first_sponsor.id,
+        #         sponsor_id=first_sponsor.id,u
         #         status=status,
         #         max_upline_depth=settings.triumph_matrix_max_level,
         #     )
         #     matrix_transactions_data = await donate_service.update_transactions_data_with_nodes(
         #         upline_nodes,
-        #         donate_sum=donate_sum,
+        #         donate_sum=status.amount,
         #         status=status,
         #         transaction_percent=settings.triumph_matrix_transaction_percent,
         #     )
@@ -466,28 +560,17 @@ async def donate_handler(
         #     donate_sum=donate_sum,
         # )
 
-        return
+        # return
+    donate_sum = status.amount
+    current_user_status = getattr(current_user, marketing_scope.status_orm_attr)
 
-    status = donate_confirm_service.get_donate_status(donate_sum)
-    if not status:
-        return
-
-    if not callback.from_user.username:
-        await callback.message.edit_text(
-            "Перед отправкой подарка, "
-            "добавьте пожалуйста <em>username</em> в свой телеграм аккаунт"
-        )
-        return
-
-    send_private_channel_link = False
     try:
 
         first_sponsor = sponsors[0]
         is_triumph = (status in (DonateStatus.BRILLIANT,))
-        create_tasks_data = {"donate_sum": donate_sum}
+        create_tasks_data = {"donate_sum": status.amount}
 
         status = GlobalMarketingDonateStatus.OCTOBER
-        donate_sum = status.amount
 
         loguru.logger.info(first_sponsor.username)
 
@@ -502,7 +585,7 @@ async def donate_handler(
             telegram_user_id=current_user.id,
             transactions=transactions_data,
             matrix_id=matrix_id,
-            quantity=donate_sum,
+            quantity=status.amount,
         )
 
         # if status != DonateStatus.TEST:
@@ -538,22 +621,22 @@ async def donate_handler(
         await telegram_user_service.increment_bill(
             telegram_user_id=current_user.id,
             bill_type=bill_type,
-            amount=-donate_sum,
+            amount=-status.amount,
         )
         await donate_confirm_service.update_bills_by_donate_id(
             donate_id=donate.id,
         )
-        #
-        # if current_user.status is None or (
-        #     status.amount
-        #     > current_user.status.amount
-        # ):
-        #     current_user.status = status
-        #
-        # if status.amount >= DonateStatus.GOLD.amount \
-        #    and not current_user.private_channel_link_sent:
-        #     current_user.private_channel_link_sent = True
-        #     send_private_channel_link = True
+
+        if check_is_status_higher(
+            current_user_status,
+            status,
+        ):
+            setattr(current_user, marketing_scope.status_orm_attr, status)
+
+        if status.amount >= DonateStatus.GOLD.amount \
+           and not current_user.private_channel_link_sent:
+            current_user.private_channel_link_sent = True
+            send_private_channel_link = True
 
         matrix_activations_count = await statistic_service.increment_matrix_activations_count()
         await session.commit()

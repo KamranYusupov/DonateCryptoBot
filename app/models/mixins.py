@@ -156,3 +156,7 @@ class AbstractStatusEnum(enum.Enum):
     @property
     def index(self) -> int:
         return list(type(self)).index(self)
+
+    @property
+    def presentation_str(self) -> str:
+        return f"{self.emoji} {self.label} - ${self.amount} {self.emoji}"

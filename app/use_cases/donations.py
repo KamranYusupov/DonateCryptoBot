@@ -71,6 +71,7 @@ class SendDonationsMenuUseCase:
             return None
 
         execute_kwargs = {
+            "marketing_scope": marketing_scope,
             "from_user_id": from_user_id,
             "current_user": current_user,
             "telegram_method": telegram_method,

@@ -16,43 +16,27 @@ from app.services import (
 )
 from app.utils.texts import format_decimal, get_triumph_bill_increase_statistic_text
 from app.models.telegram_user import TelegramUser
+from app.filters.marketing_type import MarketingTypeFilter
 
 bill_type_router = Router()
 
-@bill_type_router.callback_query(F.data.startswith("confirm_donate_"))
+@bill_type_router.callback_query(
+    MarketingTypeFilter("confirm_donate")
+)
 @bill_type_router.callback_query(F.data == "start_transfer")
 @bill_type_router.callback_query(F.data == "increment_trumph_bill")
 @inject
 async def bill_type_handler(
         callback: CallbackQuery,
         current_user: TelegramUser,
-        donate_confirm_service: DonateConfirmService = Provide[
-            Container.donate_confirm_service
-        ],
         statistic_service: StatisticService = Provide[
             Container.statistic_service
         ],
 ) -> None:
-    callback_data = callback.data.split("_")
-    triumph_bill = None
 
     message_text = ''
     callback_prefix = None
-    if callback.data.startswith("confirm_donate_"):
-        callback_prefix = "send_" + "_".join(callback_data[1:])
-        donate_sum = Decimal(callback.data.split("_")[-1])
-        status = donate_confirm_service.get_donate_status(donate_sum)
-        supported_statuses_for_triumph_bill = (
-            DonateStatus.SILVER,
-            DonateStatus.GOLD,
-            DonateStatus.PLATINUM,
-            DonateStatus.BRILLIANT
-        )
-
-        if status in supported_statuses_for_triumph_bill:
-            triumph_bill = current_user.triumph_bill
-
-    elif callback.data == "start_transfer":
+    if callback.data == "start_transfer":
         callback_prefix = "transfer"
 
     elif callback.data == "increment_trumph_bill":
@@ -77,7 +61,6 @@ async def bill_type_handler(
         bill_for_withdraw=current_user.bill_for_withdraw,
         bill_for_activation=current_user.bill_for_activation,
         callback_prefix=callback_prefix,
-        triumph_bill=triumph_bill,
     )
     buttons["🔙 Назад"] = "donations"
     await callback.message.edit_text(
@@ -87,5 +70,6 @@ async def bill_type_handler(
             sizes=(1, 1, 1),
         )
     )
+
 
 

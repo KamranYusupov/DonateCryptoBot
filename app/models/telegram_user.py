@@ -43,17 +43,17 @@ class DonateStatus(AbstractStatusEnum):
 
 class GlobalMarketingDonateStatus(AbstractStatusEnum):
     SEPTEMBER = ("Сентябрь", Decimal("10"), "🍂")
-    OCTOBER = ("Октябрь", Decimal("20"), "🍁")
-    NOVEMBER = ("Ноябрь", Decimal("80"), "🌧️")
-    DECEMBER = ("Декабрь", Decimal("320"), "❄️")
-    JANUARY = ("Январь", Decimal("1280"), "⛄")
-    FEBRUARY = ("Февраль", Decimal("5120"), "💙")
-    MARCH = ("Март", Decimal("20480"), "🌱")
-    APRIL = ("Апрель", Decimal("81920"), "🌷")
-    MAY = ("Май", Decimal("327680"), "🌸")
-    JUNE = ("Июнь", Decimal("1310720"), "☀️")
-    JULY = ("Июль", Decimal("5242880"), "🌻")
-    AUGUST = ("Август", Decimal("20971520"), "🔥")
+    OCTOBER = ("Октябрь", Decimal("10"), "🍁")
+    NOVEMBER = ("Ноябрь", Decimal("20"), "🌧️")
+    DECEMBER = ("Декабрь", Decimal("40"), "❄️")
+    JANUARY = ("Январь", Decimal("80"), "⛄")
+    FEBRUARY = ("Февраль", Decimal("160"), "💙")
+    MARCH = ("Март", Decimal("320"), "🌱")
+    APRIL = ("Апрель", Decimal("640"), "🌷")
+    MAY = ("Май", Decimal("1280"), "🌸")
+    JUNE = ("Июнь", Decimal("2560"), "☀️")
+    JULY = ("Июль", Decimal("5120"), "🌻")
+    AUGUST = ("Август", Decimal("10240"), "🔥")
 
 
 class TelegramUser(UUIDMixin, TimestampedMixin, AbstractTelegramUser, Base):

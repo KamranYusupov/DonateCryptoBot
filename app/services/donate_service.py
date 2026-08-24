@@ -400,8 +400,8 @@ class DonateService:
                 user_id=user_to_add.sponsor_user_id
             )
             next_sponsor_status = getattr(next_sponsor, marketing_scope.status_orm_attr)
-            if next_sponsor_status is None or not (
-                marketing_scope.status.amount <= next_sponsor_status.amount
+            if next_sponsor_status is None or (
+                 next_sponsor_status.index < marketing_scope.status.index
             ):
                 user_to_add = next_sponsor
                 continue

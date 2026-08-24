@@ -19,6 +19,9 @@ def get_start_marketing_donations_buttons(
         user_statuses: Sequence[DonateStatus]
 ) -> list[InlineKeyboardButton]:
     buttons = []
+    callback_data_template = \
+        "{marketing_type_label}_confirm_donate_🟢_{status_name}"
+
     for status in list(DonateStatus)[::-1]:
         style = None
 
@@ -32,7 +35,10 @@ def get_start_marketing_donations_buttons(
 
         button = InlineKeyboardButton(
             text=button_text.upper(),
-            callback_data=f"{MatrixMarketingType.START.label}_confirm_donate_🟢_{status.amount}",
+            callback_data=callback_data_template.format(
+                marketing_type_label=MatrixMarketingType.START.label,
+                status_name=status.name,
+            ),
             style=style,
         )
         buttons.append(button)
@@ -44,6 +50,8 @@ def get_global_marketing_donations_buttons(
         user_statuses: Sequence[GlobalMarketingDonateStatus]
 ) -> list[InlineKeyboardButton]:
     buttons = []
+    callback_data_template = "{marketing_type_label}_confirm_donate_🟢_{status_name}"
+
     for status in list(GlobalMarketingDonateStatus)[::-1]:
 
         if status in user_statuses:
@@ -56,7 +64,10 @@ def get_global_marketing_donations_buttons(
 
         button = InlineKeyboardButton(
             text=button_text.upper(),
-            callback_data=f"{MatrixMarketingType.GLOBAL.label}_confirm_donate_🟢_{status.amount}",
+            callback_data=callback_data_template.format(
+                marketing_type_label=MatrixMarketingType.GLOBAL.label,
+                status_name=status.name,
+            )
         )
         buttons.append(button)
 
