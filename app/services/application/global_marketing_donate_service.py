@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 from typing import List, Tuple
 
 from app.services import (
@@ -35,18 +36,20 @@ class GlobalMarketingDonateService:
             current_user_id: uuid.UUID,
             first_sponsor_id: uuid.UUID,
             status: GlobalMarketingDonateStatus,
+            max_upline_depth: int = settings.global_marketing.matrix_max_level,
     ) -> Tuple[MatrixNode, List[DonateTransactionContextSchema]]:
         marketing_scope = GlobalMarketingScope(status=status)
         inserted_node, upline_nodes = await self._matrix_node_service.activate_matrix_node(
             current_user_id=current_user_id,
             sponsor_id=first_sponsor_id,
             marketing_scope=marketing_scope,
-            max_upline_depth=settings.global_marketing_matrix_max_level,
+            max_upline_depth=max_upline_depth,
         )
         transactions_data = []
         matrix_transaction = await self._get_transaction_for_matrix(
             upline_nodes=upline_nodes,
             status=status,
+            max_upline_depth=max_upline_depth,
         )
         transactions_data.append(matrix_transaction)
 
@@ -56,6 +59,9 @@ class GlobalMarketingDonateService:
             self,
             upline_nodes: List[MatrixNode],
             status: GlobalMarketingDonateStatus,
+            max_upline_depth: int = settings.global_marketing.matrix_max_level,
+            transaction_percent: int | Decimal = \
+                    settings.global_marketing.donates_config.matrix_donate_transaction_percent,
     ):
         try:
             donate_receiver_node = upline_nodes[status.index]
@@ -67,11 +73,13 @@ class GlobalMarketingDonateService:
             id=donate_receiver_node.owner_id
         )
         receiver_schema = TransactionReceiverSchema.model_validate(receiver)
+        transaction_quantity = (status.amount * transaction_percent / 100)
         transaction = MatrixTransactionContextSchema(
             receiver=receiver_schema,
-            quantity=status.amount,
+            quantity=transaction_quantity,
             status=status,
-            matrix_length=settings.global_marketing_matrix_max_length,
+            matrix_length=donate_receiver_node.downline_count,
+            matrix_max_length=max_upline_depth,
         )
 
         return transaction

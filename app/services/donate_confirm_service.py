@@ -19,7 +19,6 @@ from app.models.donate import DonateTransactionType
 from app.models.telegram_user import BillType
 from app.schemas.transaction import DonateTransactionContextSchema
 from app.services.base.crud_service import CrudServiceMixin
-from app.utils.status import get_is_status_triumph
 
 
 class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
@@ -42,6 +41,7 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
     def get_donate_status(
             donate_sum: int | Decimal,
     ) -> DonateStatus | None:
+        return DonateStatus.TEST # FIXME
         if donate_sum == 10:
             return DonateStatus.TEST
         elif donate_sum == 25:
@@ -167,13 +167,13 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
     async def update_bills_by_donate_id(
             self,
             donate_id: uuid.UUID,
+            is_triumph: bool = False,
             is_bot: bool = False
     ):
         donate_quantity = await self._repository_donate.get_quantity_by_id(donate_id)
         if donate_quantity is None:
             raise DonateNotFoundError(f"Donate with id: {donate_id} not found.")
 
-        status = self.get_donate_status(int(donate_quantity))
         transactions = await self._repository_donate_transaction.list(
             donate_id=donate_id,
         )
@@ -199,7 +199,6 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
             )
             return
 
-        is_triumph = get_is_status_triumph(status)
         await self._repository_admin_statistic.increment_system_bill_and_total_donates_sum(
             system_bill_amount=system_bill_donate,
             total_donates_sum_amount=donate_quantity,

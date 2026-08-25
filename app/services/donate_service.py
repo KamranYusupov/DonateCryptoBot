@@ -11,7 +11,7 @@ from dependency_injector.wiring import inject
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.repositories.matrix import RepositoryMatrix
 from app.repositories.donate import RepositoryDonate
-from app.models.telegram_user import TelegramUser, DonateStatus
+from app.models.telegram_user import TelegramUser, DonateStatus, GlobalMarketingDonateStatus
 from app.models.matrix import Matrix, MatrixNode, MatrixMarketingType
 from app.schemas.matrix import MatrixEntity
 from app.core.config import settings
@@ -98,7 +98,7 @@ class DonateService:
         transactions_data = []
 
         sponsors = (first_sponsor, second_sponsor, third_sponsor)
-        sponsor_percents_map = zip(sponsors, sponsors_donate_percents)
+        sponsor_percents_map = list(zip(sponsors, sponsors_donate_percents))
         for sponsor_depth, (sponsor, percent) in enumerate(sponsor_percents_map, start=1):
             if sponsor is None:
                 continue
@@ -144,8 +144,11 @@ class DonateService:
             self,
             nodes: list[MatrixNode],
             donate_sum: Decimal,
-            marketing_scope: MatrixMarketingScope,
-            transaction_percent: Decimal = settings.start_marketing.triumph_matrix_transaction_percent,
+            status: DonateStatus | GlobalMarketingDonateStatus,
+            matrix_max_length: int,
+            triumph: bool = False,
+            transaction_percent: Decimal = \
+                settings.start_marketing.triumph_matrix_transaction_percent,
     ) -> list[DonateTransactionContextSchema]:
         transaction_quantity = donate_sum * transaction_percent / 100
 
@@ -159,8 +162,9 @@ class DonateService:
                 receiver=TransactionReceiverSchema.model_validate(receiver),
                 quantity=transaction_quantity,
                 matrix_length=owner_ids_node_map[receiver.id].downline_count,
-                status=marketing_scope.status,
-                triumph=marketing_scope.status is DonateStatus.BRILLIANT,
+                matrix_max_length=matrix_max_length,
+                status=status,
+                triumph=triumph,
             )
             for receiver in receivers
         ]
@@ -170,15 +174,15 @@ class DonateService:
     async def _update_transactions_data_with_json_matrix_receivers(
             self,
             matrix: Matrix,
-            donate_sum: Decimal,
             status: DonateStatus,
             transactions_data: list[DonateTransactionContextSchema],
             free_place_path: list[uuid.UUID | str],
             parents: list[Matrix],
+            matrix_max_length: int,
             transaction_percent: Decimal = \
                 settings.start_marketing.donates_config.matrix_donate_transaction_percent,
     ) -> list[DonateTransactionContextSchema]:
-        transaction_quantity = donate_sum * transaction_percent / 100
+        transaction_quantity = status.amount * transaction_percent / 100
 
         path_matrices = list(
             await self._repository_matrix.get_matrices_by_ids_list(
@@ -206,6 +210,7 @@ class DonateService:
                 quantity=transaction_quantity,
                 matrix_length=len(path_matrices_ids_map[receiver.id].telegram_users) + 1,
                 status=status,
+                matrix_max_length=matrix_max_length,
             )
             for receiver in donate_receivers
         ])
@@ -279,9 +284,9 @@ class DonateService:
             self,
             current_user: TelegramUser,
             sponsor: TelegramUser,
-            donate_sum: Decimal,
             transactions_data: list,
             marketing_scope: MatrixMarketingScope,
+            max_matrix_length: int,
             level_length: int = settings.level_length,
             found_matrix: Matrix | None = None
     ) -> Tuple[Matrix, Optional[Matrix]] | None:
@@ -289,7 +294,6 @@ class DonateService:
             await self._handle_insertion_to_free_matrix(
                 found_matrix,
                 current_user,
-                donate_sum,
                 marketing_scope.status,
                 transactions_data,
                 level_length,
@@ -308,10 +312,10 @@ class DonateService:
                 created_matrix = await self._handle_insertion_to_free_matrix(
                     matrix,
                     current_user,
-                    donate_sum,
                     marketing_scope.status,
                     transactions_data,
                     level_length,
+                    max_matrix_length,
                 )
                 return matrix, created_matrix
         else:
@@ -326,16 +330,15 @@ class DonateService:
                 created_matrix = await self._handle_insertion_to_free_matrix(
                     matrix,
                     current_user,
-                    donate_sum,
                     marketing_scope.status,
                     transactions_data,
                     level_length,
+                    max_matrix_length,
                 )
                 return matrix, created_matrix
 
             return await self._find_free_matrix(
                 current_user,
-                donate_sum,
                 marketing_scope,
                 transactions_data,
                 level_length=settings.level_length,
@@ -346,9 +349,9 @@ class DonateService:
             self,
             free_matrix: Matrix,
             current_user: TelegramUser,
-            donate_sum: Decimal,
             status: DonateStatus,
             transactions_data: list,
+            matrix_max_length: int,
             level_length: int = settings.level_length,
     ):
         matrix_ids = collect_matrix_ids(free_matrix.matrices)
@@ -367,11 +370,11 @@ class DonateService:
 
         await self._update_transactions_data_with_json_matrix_receivers(
             free_matrix,
-            donate_sum,
             status,
             transactions_data,
             free_place_path,
             parents,
+            matrix_max_length,
         )
         return await self.add_to_matrix(
             free_matrix,

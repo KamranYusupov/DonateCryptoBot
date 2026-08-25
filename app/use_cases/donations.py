@@ -32,8 +32,7 @@ from app.utils.texts import (
 )
 from app.utils.texts import get_triumph_bill_increase_statistic_text
 from app.models.matrix import MatrixMarketingType, MatrixNode
-from app.schemas.marketing import MatrixMarketingScope, create_marketing_scope
-from schemas.marketing import StartMarketingScope
+from app.schemas.marketing import MatrixMarketingScope, StartMarketingScope
 
 
 class SendDonationsMenuUseCase:
