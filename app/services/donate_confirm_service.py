@@ -19,6 +19,7 @@ from app.models.donate import DonateTransactionType
 from app.models.telegram_user import BillType
 from app.schemas.transaction import DonateTransactionContextSchema
 from app.services.base.crud_service import CrudServiceMixin
+from app.models.matrix import MatrixMarketingType
 
 
 class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
@@ -123,10 +124,15 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
         """Получить транзакцию по id"""
         return await self._repository_donate_transaction.get(id=donate_transaction_id)
 
-    async def get_donate_transaction_by_sponsor_id(self, sponsor_id: uuid.UUID):
+    async def get_donate_transaction_by_sponsor_id(
+            self,
+            sponsor_id: uuid.UUID,
+            marketing_type: MatrixMarketingType | None = None,
+    ):
         """Получить список транзакций по id спонсора (кому должны перечислить)."""
         return await self._repository_donate_transaction.get_donate_transaction_by_sponsor_id(
-            sponsor_id
+            sponsor_id=sponsor_id,
+            marketing_type=marketing_type,
         )
 
     async def get_all_my_donates_and_transactions(

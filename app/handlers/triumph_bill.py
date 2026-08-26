@@ -59,7 +59,7 @@ async def start_triumph_bill_handler(
         await callback.message.edit_text(
             f"Сейф Триумф достиг лимита({triumph_bill_limit} USDT).",
             reply_markup=get_donate_keyboard(
-                buttons={"🔙 Назад": "donations"}
+                buttons={"🔙 Назад": f"donations"}
             )
         )
         return

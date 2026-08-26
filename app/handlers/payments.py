@@ -15,8 +15,8 @@ from app.core.container import Container
 from app.keyboards.inline import get_confirm_inline_keyboard
 from app.services.infra.crypto_bot_api_service import CryptoBotAPIService
 from app.keyboards.reply import reply_cancel_keyboard, get_reply_keyboard
-
 from app.models.telegram_user import TelegramUser
+from app.models.matrix import MatrixMarketingType
 
 payment_router = Router()
 
@@ -60,7 +60,7 @@ async def process_tokens_count(
 
     reply_markup = get_confirm_inline_keyboard(
         yes_button_data=f"buy_tokens_{message.message_id}_{tokens_count}",
-        no_button_data="donations",
+        no_button_data=f"{MatrixMarketingType.GLOBAL.label}_donations",
     )
     await message.answer(
         "<b>Продолжить ?</b>",

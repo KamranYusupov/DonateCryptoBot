@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import loguru
 from aiogram import Router, F, html
-from aiogram.filters import Command
+from aiogram.filters import Command, or_f
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
 from dependency_injector.wiring import Provide, inject
 
@@ -17,18 +17,21 @@ from app.services import (
 from app.utils.texts import format_decimal, get_triumph_bill_increase_statistic_text
 from app.models.telegram_user import TelegramUser
 from app.filters.marketing_type import MarketingTypeFilter
+from app.models.matrix import MatrixMarketingType
 
 bill_type_router = Router()
 
 @bill_type_router.callback_query(
-    MarketingTypeFilter("confirm_donate")
+    or_f(
+        MarketingTypeFilter("start_transfer"),
+        MarketingTypeFilter("increment_trumph_bill"),
+    )
 )
-@bill_type_router.callback_query(F.data == "start_transfer")
-@bill_type_router.callback_query(F.data == "increment_trumph_bill")
 @inject
 async def bill_type_handler(
         callback: CallbackQuery,
         current_user: TelegramUser,
+        marketing_type: MatrixMarketingType,
         statistic_service: StatisticService = Provide[
             Container.statistic_service
         ],
@@ -62,7 +65,7 @@ async def bill_type_handler(
         bill_for_activation=current_user.bill_for_activation,
         callback_prefix=callback_prefix,
     )
-    buttons["🔙 Назад"] = "donations"
+    buttons["🔙 Назад"] = f"{marketing_type.label}_donations"
     await callback.message.edit_text(
         message_text + "Выберите баланс:",
         reply_markup=get_donate_keyboard(

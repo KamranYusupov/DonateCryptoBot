@@ -44,16 +44,23 @@ class DonateService:
 
 
     @staticmethod
-    def get_sponsor_depth(transaction_quantity: Decimal, donate_quantity: int) -> int | None: #FIXME: add market type
+    def get_sponsor_depth(
+            transaction_quantity: Decimal,
+            donate_quantity: Decimal,
+            marketing_scope: MatrixMarketingScope,
+            sponsors_donate_percents: Optional[Tuple[Decimal, Decimal, Decimal]] = None,
+    ) -> int | None:
+        if sponsors_donate_percents is None:
+            sponsors_donate_percents = (
+                marketing_scope.config.donates_config.first_sponsor_donate_percent,
+                marketing_scope.config.donates_config.second_sponsor_donate_percent,
+                marketing_scope.config.donates_config.third_sponsor_donate_percent,
+            )
+
         transaction_percent = int(transaction_quantity * 100 / donate_quantity)
 
-        sponsors_percents = [
-            settings.first_sponsor_donate_percent,
-            settings.second_sponsor_donate_percent,
-            settings.third_sponsor_donate_percent,
-        ]
-        if transaction_percent in sponsors_percents:
-            return sponsors_percents.index(transaction_percent) +  1
+        if transaction_percent in sponsors_donate_percents:
+            return sponsors_donate_percents.index(transaction_percent) +  1
 
         return None
 
@@ -338,9 +345,9 @@ class DonateService:
                 return matrix, created_matrix
 
             return await self._find_free_matrix(
-                current_user,
-                marketing_scope,
-                transactions_data,
+                user_to_add=current_user,
+                marketing_scope=marketing_scope,
+                transactions_data=transactions_data,
                 level_length=settings.level_length,
             )
 

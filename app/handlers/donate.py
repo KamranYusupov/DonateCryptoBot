@@ -270,6 +270,9 @@ async def donations_menu_handler(
             Container.send_donations_menu_use_case
         ]
 ) -> None:
+    if not current_user:
+        return
+
     if isinstance(event, Message):
         telegram_method = bot.send_message
         marketing_scope = create_marketing_scope(
@@ -377,12 +380,12 @@ async def confirm_donate_handler(
 async def send_donate_handler(
         callback: CallbackQuery,
         current_user: TelegramUser,
-        marketing_scope: MatrixMarketingScope,
+        marketing_type: MatrixMarketingType,
 ) -> None:
     callback_data = callback.data.split("_")
     status_name, bill_type_value = callback_data[-2:]
     try:
-        status = marketing_scope.marketing_type.status_enum[status_name]
+        status = marketing_type.status_enum[status_name]
     except KeyError:
         loguru.logger.warning(f"Unknown status {status_name}")
         await callback.message.delete()
@@ -399,7 +402,7 @@ async def send_donate_handler(
             reply_markup=get_donate_keyboard(
                 buttons={
                     "Преобрести 💳": f"buy_tokens_{need_to_buy_tokens}",
-                    "🔙 Назад": f"donations",
+                    "🔙 Назад": f"{marketing_type.label}_donations",
                 },
                 sizes=(1, 1),
             ),
@@ -408,10 +411,9 @@ async def send_donate_handler(
         return
 
     yes_button_data = callback.data.replace("send_", "")
-    loguru.logger.debug(yes_button_data)
     reply_markup = get_confirm_inline_keyboard(
         yes_button_data=yes_button_data,
-        no_button_data="donations",
+        no_button_data=f"{marketing_type}_donations",
         sizes=(2, 1),
     )
 
@@ -743,26 +745,26 @@ async def donate_handler(
     ])
 
 
-@donate_router.callback_query(F.data == "transactions")
+@donate_router.callback_query(
+    MarketingTypeFilter("transactions")
+)
 @inject
 async def get_transactions_menu(
         callback: CallbackQuery,
         current_user: TelegramUser,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
+        marketing_type: MatrixMarketingType,
 ) -> None:
     buttons = {
-        "Транзакции мне 📈": f"transactions_to_me_1",
-        "Транзакции от меня 📉": f"transactions_from_me_1",
+        "Транзакции мне 📈": f"{marketing_type.label}_transactions_to_me_1",
+        "Транзакции от меня 📉": f"{marketing_type.label}_transactions_from_me_1",
     }
     if current_user.is_admin:
         buttons.update({
-            "Все транзакции 📊": f"all_transactions_1",
+            "Все транзакции 📊": f"{marketing_type.label}_all_transactions_1",
             "Транзакции в Сейф Триумф": "triumph_bill_transactions_1",
         })
 
-    buttons["🔙 Назад"] = f"donations"
+    buttons["🔙 Назад"] = f"{marketing_type.label}_donations"
 
     await callback.message.edit_text(
         "В этом разделе вы можете посмотреть информацию о подтверждении транзакций по подаркам.\n"
@@ -771,11 +773,12 @@ async def get_transactions_menu(
     )
 
 
-@donate_router.callback_query(F.data.startswith("transactions_to_me_"))
+@donate_router.callback_query(MarketingTypeFilter("transactions_to_me"))
 @inject
 async def get_transactions_list_to_me(
         callback: CallbackQuery,
         current_user: TelegramUser,
+        marketing_scope: MatrixMarketingScope,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -828,7 +831,8 @@ async def get_transactions_list_to_me(
                 )
                 sponsor_depth = donate_service.get_sponsor_depth(
                     transaction.quantity,
-                    donate.quantity
+                    donate.quantity,
+                    marketing_scope=marketing_scope,
                 )
                 message += f"<b>От партнера {sponsor_depth} линии @{sender.username}.</b>\n\n"
             elif transaction.type_ == DonateTransactionType.MATRIX:

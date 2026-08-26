@@ -17,6 +17,7 @@ from app.keyboards.reply import reply_cancel_keyboard
 from app.utils.bot import send_message_or_pass
 from app.keyboards.inline import get_confirm_inline_keyboard
 from app.models.telegram_user import TelegramUser
+from app.models.matrix import MatrixMarketingType
 
 ban_user_router = Router()
 
@@ -51,7 +52,7 @@ async def process_name(
     )
     error_buttons = {
         "Попробовать ещё раз 🔄": "ban_user",
-        "🔙 Назад": "donations",
+        "🔙 Назад": f"{MatrixMarketingType.GLOBAL.label}_donations",
     }
     async def send_error_message(error_message: str):
         await message.answer(
@@ -84,7 +85,7 @@ async def process_name(
 
     reply_markup = get_confirm_inline_keyboard(
         yes_button_data=f"confirm_ban_{telegram_user.user_id}",
-        no_button_data="donations",
+        no_button_data=f"{MatrixMarketingType.GLOBAL.label}_donations",
     )
 
     await message.answer(
@@ -129,7 +130,7 @@ async def banned_users_handler(
         ],
 ) -> None:
     page_number = int(callback.data.split("_")[-1])
-    back_button = {"🔙 Назад": "donations"}
+    back_button = {"🔙 Назад": f"{MatrixMarketingType.GLOBAL.label}_donations"}
 
     banned_users = await telegram_user_service.get_list(
         is_banned=True
@@ -186,14 +187,14 @@ async def unban_user_callback_handler(
         await callback.message.edit_text(
             f"Пользователь @{telegram_user.username} уже разблокирован.",
             reply_markup=get_donate_keyboard(
-                button={"🔙 Назад": "donations"},
+                button={"🔙 Назад": f"{MatrixMarketingType.GLOBAL.label}_donations"},
             )
         )
         return
 
     reply_markup = get_confirm_inline_keyboard(
         yes_button_data=f"confirm_unban_{telegram_user.user_id}",
-        no_button_data="donations",
+        no_button_data=f"{MatrixMarketingType.GLOBAL.label}_donations",
     )
 
     await callback.message.edit_text(

@@ -5,7 +5,6 @@ from uuid import UUID
 
 import loguru
 
-from app.core.config import settings
 from app.models.matrix import MatrixEngineType, Matrix, MatrixNode
 from app.models.telegram_user import DonateStatus
 from app.repositories.matrix import RepositoryMatrix, RepositoryMatrixNode
@@ -96,7 +95,7 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
                 matrix_id=target_node.matrix_id,
                 level=target_node.level,
                 position=target_node.position,
-                max_level=settings.triumph_matrix_max_level,
+                max_level=marketing_scope.config.matrix_max_level,
             )
 
             if available_node:

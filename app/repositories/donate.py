@@ -6,9 +6,10 @@ from sqlalchemy import select, delete, update, func
 from sqlalchemy.orm import selectinload
 
 from app.models.telegram_user import TelegramUser, DonateStatus
+from app.schemas.marketing import MatrixMarketingScope
 from .base import RepositoryBase
 from app.models.donate import Donate, DonateTransaction, DonateTransactionType
-from app.models.matrix import Matrix, MatrixEngineType
+from app.models.matrix import Matrix, MatrixEngineType, MatrixMarketingType
 
 
 class RepositoryDonate(RepositoryBase[Donate]):
@@ -142,10 +143,31 @@ class RepositoryDonateTransaction(RepositoryBase[DonateTransaction]):
         result = await self._session.execute(statement)
         return result.scalars().all()
 
-    async def get_donate_transaction_by_sponsor_id(self, sponsor_id: uuid.UUID):
+    async def get_donate_transaction_by_sponsor_id(
+            self,
+            sponsor_id: uuid.UUID,
+            marketing_scope: MatrixMarketingScope | None = None,
+    ):
+        statement = select(DonateTransaction)
+
+
+        if marketing_scope is not None:
+            status_attr = getattr(Matrix, marketing_scope.status_orm_attr)
+
+            statement = (
+                select(
+                    DonateTransaction.quantity,
+                    DonateTransaction.type_,
+                    status_attr,
+                )
+                .join(DonateTransaction.donate)
+                .join(Donate.matrix)
+                .where(Matrix.marketing_type == marketing_scope.marketing_type)
+            )
+
         statement = (
-            select(DonateTransaction)
-            .filter_by(sponsor_id=sponsor_id)
+            statement
+            .where(DonateTransaction.sponsor_id == sponsor_id)
             .order_by(DonateTransaction.created_at.desc())
         )
 

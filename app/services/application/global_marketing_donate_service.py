@@ -38,6 +38,7 @@ class GlobalMarketingDonateService:
             current_user_id: uuid.UUID,
             first_sponsor_id: uuid.UUID,
             status: GlobalMarketingDonateStatus,
+            matrix_max_length: int = settings.global_marketing.matrix_max_length,
             max_upline_depth: int = settings.global_marketing.matrix_max_level,
     ) -> Tuple[MatrixNode, List[DonateTransactionContextSchema]]:
         marketing_scope = GlobalMarketingScope(status=status)
@@ -51,7 +52,7 @@ class GlobalMarketingDonateService:
         matrix_transaction = await self._get_transaction_for_matrix(
             upline_nodes=upline_nodes,
             status=status,
-            max_upline_depth=max_upline_depth,
+            matrix_max_length=matrix_max_length,
         )
         transactions_data.append(matrix_transaction)
 
@@ -61,7 +62,7 @@ class GlobalMarketingDonateService:
             self,
             upline_nodes: List[MatrixNode],
             status: GlobalMarketingDonateStatus,
-            max_upline_depth: int = settings.global_marketing.matrix_max_level,
+            matrix_max_length: int = settings.global_marketing.matrix_max_length,
             transaction_percent: int | Decimal = \
                     settings.global_marketing.donates_config.matrix_donate_transaction_percent,
     ):
@@ -81,7 +82,7 @@ class GlobalMarketingDonateService:
             quantity=transaction_quantity,
             status=status,
             matrix_length=donate_receiver_node.downline_count,
-            matrix_max_length=max_upline_depth,
+            matrix_max_length=matrix_max_length,
         )
 
         return transaction
