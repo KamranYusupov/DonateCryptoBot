@@ -2,6 +2,8 @@ import uuid
 from decimal import Decimal
 from typing import List, Tuple
 
+import loguru
+
 from app.services import (
     DonateService,
     MatrixNodeService,

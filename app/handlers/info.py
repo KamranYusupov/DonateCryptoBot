@@ -26,6 +26,7 @@ from app.utils.texts import (
     kod_deneg_movie_caption,
     kod_mood_movie_caption,
 )
+from app.schemas.marketing import MatrixMarketingScope
 
 info_router = Router()
 
@@ -122,6 +123,7 @@ async def kod_mood_movie_handler(
 async def team_inline_handler(
         callback: CallbackQuery,
         current_user: TelegramUser,
+        marketing_scope: MatrixMarketingScope,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -178,6 +180,7 @@ async def team_inline_handler(
     get_my_team_message_kwargs.update(dict(
         matrices=matrices,
         page_number=page_number,
+        status_orm_attr=marketing_scope.status_orm_attr,
         previous_page_number=previous_page_number,
         callback_data_prefix=callback_data_prefix,
     ))
@@ -201,42 +204,6 @@ async def team_inline_handler(
         reply_markup=get_donate_keyboard(buttons=buttons, sizes=sizes),
         parse_mode="HTML",
     )
-
-
-@info_router.callback_query(F.data.startswith("detail_matrix_"))
-@inject
-async def team_inline_handler(
-        callback: CallbackQuery,
-        matrix_service: MatrixService = Provide[Container.matrix_service],
-        matrix_node_service: MatrixNodeService = Provide[
-            Container.matrix_node_service
-        ],
-) -> None:
-    obj_id = callback.data.split("_")[-1]
-    matrix = await matrix_service.get_matrix(
-        id=obj_id
-    )
-    if matrix:
-        message_text = get_matrix_info_message(matrix)
-        await callback.message.edit_text(text=message_text)
-        return
-
-
-    matrix_node = await matrix_node_service.get(id=obj_id)
-    downline_nodes = await matrix_node_service.get_downline_nodes(
-        matrix_id=matrix_node.matrix_id,
-        position=matrix_node.position,
-        level=matrix_node.level,
-        max_level=settings.start_marketing.triumph_matrix_max_level
-    )
-    message_text = get_downline_nodes_message(
-        matrix_node,
-        status=DonateStatus.BRILLIANT,
-        downline_nodes=downline_nodes,
-        matrix_max_length=settings.matrix_max_length,
-    )
-    await callback.message.edit_text(text=message_text)
-    return
 
 
 @inject

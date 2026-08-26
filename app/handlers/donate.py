@@ -197,7 +197,7 @@ async def subscription_checker(
     registration_count = await statistic_service.increment_registrations_count()
     is_increase_triumph_bills_step = (
         registration_count
-        % settings.triumph_bills_increase_registration_interval == 0
+        % settings.start_marketing.triumph_bills_increase_registration_interval == 0
     )
     if registration_count != 0 and is_increase_triumph_bills_step:
         await increase_triumph_bills_task.kiq()
@@ -521,7 +521,6 @@ async def donate_handler(
         first_sponsor = sponsors[0]
         is_triumph = is_status_triumph(status)
 
-        loguru.logger.info(first_sponsor.username)
         transactions_data = []
         sponsors_transactions_data = donate_service.update_transactions_data_with_sponsors(
             current_user,
@@ -653,7 +652,6 @@ async def donate_handler(
             transactions_data,
             donate_sum=status.amount,
         )
-        loguru.logger.info(str(transactions_data))
 
         donate = await donate_confirm_service.create_donate(
             telegram_user_id=current_user.id,
@@ -693,6 +691,8 @@ async def donate_handler(
     )
     await send_donations_menu_task.kiq(
         callback.from_user.id,
+        marketing_type_name=marketing_type.name,
+        status_name=status.name,
         current_user_id=current_user.id,
     )
 
@@ -714,12 +714,6 @@ async def donate_handler(
             reply_markup=inline_keyboard.as_markup(),
             delay=0.2,
         )
-
-
-    await send_donations_menu_task.kiq(
-        callback.from_user.id,
-        current_user_id=current_user.id,
-    )
 
     if marketing_type is MatrixMarketingType.START:
         is_increase_triumph_bills_step = (

@@ -29,50 +29,6 @@ from app.models.matrix import MatrixMarketingType
 from app.schemas.marketing import MatrixMarketingScope
 
 
-def get_donate_confirm_message(
-        donate_sum: int,
-        donate_status: DonateStatus,
-) -> str | None:
-    if donate_status not in list(statuses_colors_data.keys()):
-        return
-    status = (
-        f"{statuses_colors_data.get(donate_status)} - {donate_status.label.split()[0]}"
-    )
-
-    message_text = (
-        f"💌 Участник получил 🎁 ${donate_sum}\n\n"
-        f"🛗 Уровень: {status}\n\n"
-        "🤝 Будем «НА СВЯЗИ»"
-    )
-
-    return message_text
-
-
-def get_user_statuses_statistic_message(
-        users: list[TelegramUser],
-) -> str: #FIXME: do marketing type split
-    status_emoji_data = {
-        status_list[i]: status_emoji_list[i]
-        for i in range(len(status_list))
-    }
-    statuses_data = {"🆓": 0}
-    statuses_data.update({status: 0 for status in status_emoji_list})
-
-    for user in users:
-        if user.status is None:
-            statuses_data["🆓"] += 1
-            continue
-
-        statuses_data[status_emoji_data[user.status]] += 1
-
-    message = ""
-
-    for status, count in list(statuses_data.items())[::-1]:
-        message += f"{status}: {count}\n"
-
-    return message
-
-
 def get_matrices_statuses_statistic_message(
         matrices: list[Matrix],
         marketing_scope: MatrixMarketingScope
@@ -177,6 +133,7 @@ def get_triumph_bill_transaction_message(
 async def get_my_team_message(
         matrices: list[Matrix],
         status_list: list[DonateStatus | GlobalMarketingDonateStatus],
+        status_orm_attr: str,
         page_number: int,
         per_page: int = 1,
         callback_data_prefix: str = "team",
@@ -205,7 +162,10 @@ async def get_my_team_message(
     if paginator.get_page():
         matrix = paginator.get_page()[0]
         if isinstance(matrix, Matrix):
-            message += get_matrix_info_message(matrix)
+            message += get_matrix_info_message(
+                matrix=matrix,
+                status_orm_attr=status_orm_attr,
+            )
         elif isinstance(matrix, MatrixNode):
             matrix_node = matrix
             message += get_downline_nodes_message(
@@ -236,7 +196,7 @@ async def get_my_team_message(
 
 def get_downline_nodes_message(
         matrix_node: MatrixNode,
-        status: DonateStatus,
+        status: DonateStatus | GlobalMarketingDonateStatus,
         downline_nodes: List[MatrixNode],
         matrix_max_length: int,
         matrix_max_level: int = 4
@@ -245,8 +205,7 @@ def get_downline_nodes_message(
     Выводит бинарное дерево матрицы по нижестоящим nodes.
     """
 
-    color = statuses_colors_data.get(status)
-    lines = [f"<b>{color} {status.label}: {matrix_node.id.hex[0:5]}</b>"]
+    lines = [f"<b>{status.emoji} {status.label}: {matrix_node.id.hex[0:5]}</b>"]
 
     if not downline_nodes:
         lines.append(f"\nМест занято: <b>{0} из {matrix_max_length}\n</b>")
@@ -284,14 +243,15 @@ def get_downline_nodes_message(
 
 def get_matrix_info_message(
         matrix: Matrix,
+        status_orm_attr: str,
         order_map: dict[str, int] | None = None,
         level_length: int = settings.level_length,
 ):
     """
     Выводит бинарное дерево матрицы.
     """
-    color = statuses_colors_data.get(matrix.status)
-    lines = [f"<b>{color} {matrix.status.label}: {matrix.id.hex[0:5]}</b>"]
+    matrix_status = getattr(matrix, status_orm_attr)
+    lines = [f"<b>{matrix_status.emoji} {matrix_status.label}: {matrix.id.hex[0:5]}</b>"]
     if not matrix.matrices:
         lines.append(f"\nМест занято: <b>{len(matrix.telegram_users)} из {settings.matrix_max_length}\n</b>")
 
@@ -410,8 +370,7 @@ def get_sponsor_activation_text(
         username: str,
         status: DonateStatus,
 ) -> str:
-    status_color_emoji = statuses_colors_data.get(status)
-    status_str = f"{status_color_emoji} {status.label.upper()}"
+    status_str = f"{status.emoji} {status.label.upper()}"
 
     return sponsor_activation_text_template.format(
         username=username,
@@ -438,17 +397,16 @@ def get_sponsor_transaction_message_text(
     display_name = "ПАРТНЁР" if is_public else sender_str
     template = (
         "<b>👥 {sender_str} АКТИВИРОВАЛ \n"
-        "<b>{status_color} {status_name}</b>\n"
+        "<b>{status_emoji} {status_name}</b>\n"
         "🎁 Бонус от {sponsor_depth} линии: +{quantity_str}$\n</b>"
         "🤝 Команда растёт\n\n"
         "🔥 На Шаг ближе к Триумфу!"
     )
-    status_color = statuses_colors_data.get(status)
     status_name = status.label.upper()
 
     return template.format(
         sender_str=display_name,
-        status_color=status_color,
+        status_emoji=status.emoji,
         status_name=status_name,
         sponsor_depth=sponsor_depth,
         quantity_str=format_decimal(quantity),
@@ -468,7 +426,8 @@ def get_matrix_transaction_message_text(
         *,
         receiver_str: str,
         receiver_donates_sum: Decimal,
-        status: DonateStatus,
+        status_label: str,
+        status_emoji: str,
         quantity: Decimal,
         matrix_length: int,
         matrix_max_length: int,
@@ -485,9 +444,7 @@ def get_matrix_transaction_message_text(
     )
 
     receiver_str = "" if is_public else receiver_str
-    status_color = statuses_colors_data.get(status, "")
-    status_name = status.label.upper()
-    status_str = f"{status_color} {status_name}"
+    status_str = f"{status_emoji} {status_label.upper()}"
 
     if triumph:
         current_sum_str = format_decimal(quantity * matrix_length)

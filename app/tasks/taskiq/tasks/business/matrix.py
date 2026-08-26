@@ -9,7 +9,6 @@ from app.core.config import settings
 from app.core.taskiq import broker, redis_source
 from app.models.matrix import Matrix, MatrixEngineType, MatrixNode
 from app.db.commit_decorator import commit_and_close_session, set_scope_session
-from app.models.telegram_user import DonateStatus
 from app.repositories import RepositoryTelegramUser
 from app.services import TelegramBotService
 from app.tasks.taskiq.dependencies.container import ContainerDependency
@@ -182,7 +181,8 @@ async def send_matrix_transaction_message_task(
         receiver_id: str,
         chat_id: int,
         receiver_str: str,
-        status: DonateStatus,
+        status_label: str,
+        status_emoji: str,
         matrix_length: int,
         matrix_max_length: int,
         triumph: bool,
@@ -213,7 +213,8 @@ async def send_matrix_transaction_message_task(
 
     message_text = get_matrix_transaction_message_text(
         receiver_str=receiver_str,
-        status=status,
+        status_label=status_label,
+        status_emoji=status_emoji,
         matrix_length=matrix_length,
         matrix_max_length=matrix_max_length,
         triumph=triumph,

@@ -75,7 +75,7 @@ from app.use_cases import (
     SponsorsContestUseCase,
 )
 from app.core.redis import init_redis_pool
-from use_cases.donations import SendDonationsMenuUseCase
+from app.use_cases.donations import SendDonationsMenuUseCase
 
 
 class Container(containers.DeclarativeContainer):
