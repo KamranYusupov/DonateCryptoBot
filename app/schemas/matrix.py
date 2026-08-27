@@ -5,7 +5,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.models.matrix import MatrixEngineType, MatrixMarketingType
+from app.models.matrix import MatrixEngineType, MatrixMarketingType, MatrixNode
 from app.models.telegram_user import (
     DonateStatus,
     GlobalMarketingDonateStatus,
@@ -99,3 +99,11 @@ class AddBotToMatrixTaskSchema(BaseModel):
     engine_type: MatrixEngineType = MatrixEngineType.JSON
     obj_id: uuid.UUID # Matrix.id or MatrixNode.id
     create_donates: bool = True
+
+
+class MatrixNodeTeamSchema(BaseModel):
+    matrix_id: uuid.UUID
+    owner_id: uuid.UUID
+    level: int
+    position: int
+    downline_nodes: list[MatrixNode] = []

@@ -65,11 +65,34 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
 
         return matrix_node
 
+    async def _find_target_node(
+            self,
+            sponsor_user_id: int,
+            marketing_scope: MatrixMarketingScope,
+            max_iterations: int = 200,
+    ) -> Optional[tuple[MatrixNode, int]]:
+        for _ in range(max_iterations):
+            sponsor = (
+                await self._repository_telegram_user
+                .get_sponsor_data_by_user_id(user_id=sponsor_user_id)
+            )
+            target_node = await self._repository_matrix_node.get(
+                owner_id=sponsor.id,
+                marketing_scope=marketing_scope,
+                for_update=True,
+            )
+            if target_node:
+                return target_node, sponsor.sponsor_user_id
+
+            sponsor_user_id = sponsor.sponsor_user_id
+
+        return None
+
     async def _find_available_node(
             self,
             sponsor_id: UUID,
             marketing_scope: MatrixMarketingScope,
-    ) -> MatrixNode:
+    ) -> Optional[MatrixNode]:
         sponsor = await self._repository_telegram_user.get(id=sponsor_id)
         sponsor_node = await self._repository_matrix_node.get(
             owner_id=sponsor.id,
@@ -81,15 +104,19 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
 
         target_node = sponsor_node
         available_node = None
+        sponsor_user_id = sponsor.sponsor_user_id
 
         while not available_node:
             if not target_node:
-                sponsor = await self._repository_telegram_user.get(user_id=sponsor.sponsor_user_id)
-                target_node = await self._repository_matrix_node.get(
-                    owner_id=sponsor.id,
+                target_node_result = await self._find_target_node(
+                    sponsor_user_id=sponsor_user_id,
                     marketing_scope=marketing_scope,
-                    for_update=True,
                 )
+
+                if not target_node_result:
+                    return None
+
+                target_node, sponsor_user_id = target_node_result
 
             available_node = await self._repository_matrix_node.get_available_node(
                 matrix_id=target_node.matrix_id,
@@ -99,7 +126,7 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             )
 
             if available_node:
-                break
+                return available_node
 
             if sponsor.is_admin:
                 available_node = await self.create_matrix_with_root_node(

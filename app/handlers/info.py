@@ -3,7 +3,7 @@ import os
 import loguru
 from aiogram import Router, F, html
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import Command
+from aiogram.filters import Command, or_f
 from aiogram.types import Message, CallbackQuery, FSInputFile, InlineKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 from dependency_injector.wiring import inject, Provide
@@ -27,6 +27,7 @@ from app.utils.texts import (
     kod_mood_movie_caption,
 )
 from app.schemas.marketing import MatrixMarketingScope
+from app.filters.marketing_type import MarketingTypeFilter
 
 info_router = Router()
 
@@ -117,8 +118,12 @@ async def kod_mood_movie_handler(
     )
 
 
-@info_router.callback_query(F.data.startswith("team_"))
-@info_router.callback_query(F.data.startswith("archive_team_"))
+@info_router.callback_query(
+    or_f(
+        MarketingTypeFilter("team"),
+        MarketingTypeFilter("archive_team")
+    )
+)
 @inject
 async def team_inline_handler(
         callback: CallbackQuery,
@@ -164,7 +169,7 @@ async def team_inline_handler(
                 matrix_id=matrix_node.matrix_id,
                 position=matrix_node.position,
                 level=matrix_node.level,
-                max_level=settings.start_marketing.triumph_matrix_max_level
+                max_level=4
             )
             get_my_team_message_kwargs["downline_nodes"] = downline_nodes
 

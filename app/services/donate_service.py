@@ -27,7 +27,7 @@ from app.schemas.transaction import (
     DonateTransactionContextSchema,
     TransactionReceiverSchema,
 )
-from app.schemas.marketing import MatrixMarketingScope
+from app.schemas.marketing import MatrixMarketingScope, GlobalMarketingScope
 from app.models.matrix import MatrixEngineType
 
 
@@ -91,7 +91,7 @@ class DonateService:
             first_sponsor: TelegramUser,
             second_sponsor: Optional[TelegramUser],
             third_sponsor: Optional[TelegramUser],
-            donate_sum: Decimal,
+            status: DonateStatus | GlobalMarketingDonateStatus,
             marketing_scope: MatrixMarketingScope,
             sponsors_donate_percents: Optional[Tuple[Decimal, Decimal, Decimal]] = None,
     ) -> list[SponsorTransactionContextSchema]:
@@ -117,8 +117,8 @@ class DonateService:
                     receiver=receiver_schema,
                     sender_str=current_user.full_username,
                     sponsor_depth=sponsor_depth,
-                    status=sponsor_status,
-                    quantity=donate_sum * percent / 100,
+                    status=status,
+                    quantity=status.amount * percent / 100,
                 )
                 transactions_data.append(transaction)
 

@@ -7,11 +7,12 @@ import loguru
 from app.models.telegram_user import DonateStatus, GlobalMarketingDonateStatus
 from app.repositories.matrix import RepositoryMatrix, RepositoryMatrixNode
 from app.models import Matrix
-from app.schemas.matrix import MatrixEntity
+from app.schemas.matrix import MatrixEntity, MatrixNodeTeamSchema
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.services.base.crud_service import CrudServiceMixin
-from app.models.matrix import MatrixMarketingType
+from app.models.matrix import MatrixMarketingType, MatrixEngineType
 from app.schemas.marketing import MatrixMarketingScope
+from schemas.marketing import create_marketing_scope
 
 
 class MatrixService(CrudServiceMixin[RepositoryMatrix]):
@@ -32,6 +33,17 @@ class MatrixService(CrudServiceMixin[RepositoryMatrix]):
             order_by_create_at=order_by_create_at,
             **kwargs
         )
+
+    async def get_count(
+            self,
+            owner_id: uuid.UUID,
+            engine_type: MatrixEngineType,
+    ) -> int:
+        return await self._repository_matrix.get_count(
+            owner_id=owner_id,
+            engine_type=engine_type,
+        )
+
 
     async def get_matrix(self, **kwargs) -> Matrix | None:
         return await self._repository_matrix.get(**kwargs)
@@ -89,6 +101,65 @@ class MatrixService(CrudServiceMixin[RepositoryMatrix]):
                     owner_id=owner_id,
                     marketing_scope=marketing_scope,
                 )
+            case _:
+                raise ValueError("Not supported marketing type")
+
+    async def get_team_matrix_obj_with_count_by_marketing_scope(
+            self,
+            owner_id: uuid.UUID,
+            marketing_scope: MatrixMarketingScope,
+            is_archived: bool = False,
+            offset: int | None = None,
+            max_downline_nodes_level: int = 4,
+    ):
+        match marketing_scope.marketing_type:
+            case MatrixMarketingType.START:
+                matrices_count = await self._repository_matrix.get_count(
+                    owner_id=owner_id,
+                    engine_type=MatrixEngineType.JSON,
+                )
+                if offset > matrices_count:
+                    triumph_node = await self._repository_matrix_node.get(
+                        owner_id=owner_id,
+                        marketing_scope=create_marketing_scope(
+                            marketing_type=MatrixMarketingType.START,
+                            status=DonateStatus.BRILLIANT,
+                        ),
+                    )
+                    return triumph_node, matrices_count
+
+                json_matrix = await self._repository_matrix.get_team_matrix(
+                    owner_id=owner_id,
+                    offset=offset,
+                )
+                return json_matrix, matrices_count
+
+
+            case MatrixMarketingType.GLOBAL:
+                matrix_nodes_count = await self._repository_matrix_node.get_count(
+                    owner_id=owner_id,
+                    marketing_type=marketing_scope.marketing_type,
+                )
+                matrix_node = await self._repository_matrix_node.get_team_matrix_node(
+                    owner_id=owner_id,
+                    marketing_type=marketing_scope.marketing_type,
+                    offset=offset,
+                )
+                if not matrix_node:
+                    return None, matrix_nodes_count
+
+                matrix_node_team_schema = MatrixNodeTeamSchema.model_validate(matrix_node)
+                if matrix_node:
+                    downline_nodes = await self._repository_matrix_node.get_downline_nodes(
+                        matrix_id=matrix_node.matrix_id,
+                        position=matrix_node.position,
+                        level=matrix_node.level,
+                        max_level=max_downline_nodes_level,
+                    )
+                    matrix_node_team_schema.downline_nodes = downline_nodes
+
+                return matrix_node_team_schema
+
             case _:
                 raise ValueError("Not supported marketing type")
 

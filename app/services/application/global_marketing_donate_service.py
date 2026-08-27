@@ -20,6 +20,7 @@ from app.schemas.transaction import (
 from app.repositories import RepositoryTelegramUser
 from app.core.config import settings
 from app.schemas.marketing import GlobalMarketingScope
+from app.utils.status import is_status_higher
 
 
 class GlobalMarketingDonateService:
@@ -58,6 +59,10 @@ class GlobalMarketingDonateService:
 
         return inserted_node, transactions_data
 
+    async def _find_donate_node(
+            self,
+    ): ...
+
     async def _get_transaction_for_matrix(
             self,
             upline_nodes: List[MatrixNode],
@@ -65,18 +70,34 @@ class GlobalMarketingDonateService:
             matrix_max_length: int = settings.global_marketing.matrix_max_length,
             transaction_percent: int | Decimal = \
                     settings.global_marketing.donates_config.matrix_donate_transaction_percent,
-    ):
+    ): #FIXME: add _find_donate_node realization
+        send_to_system = False
         try:
             donate_receiver_node = upline_nodes[status.index]
         except IndexError:
             if upline_nodes[-1].position == 1:
                 donate_receiver_node = upline_nodes[-1]
+                send_to_system = True
 
         receiver = await self._repository_telegram_user.get(
             id=donate_receiver_node.owner_id
         )
+        # if not is_status_higher(
+        #     status,
+        #     receiver.status,
+        #     or_equal=True,
+        # ):
+
         receiver_schema = TransactionReceiverSchema.model_validate(receiver)
         transaction_quantity = (status.amount * transaction_percent / 100)
+
+        if send_to_system:
+            transaction = SystemTransactionContextSchema(
+                receiver=receiver_schema,
+                quantity=transaction_quantity,
+            )
+            return transaction
+
         transaction = MatrixTransactionContextSchema(
             receiver=receiver_schema,
             quantity=transaction_quantity,

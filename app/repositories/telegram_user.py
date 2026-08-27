@@ -3,7 +3,7 @@ from decimal import Decimal
 from uuid import UUID
 from typing import Optional, Sequence
 
-from sqlalchemy import select, func, update
+from sqlalchemy import select, func, update, Row
 from sqlalchemy.orm import joinedload, aliased
 
 from .base import RepositoryBase
@@ -53,6 +53,27 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
 
         result = await self._session.execute(statement)
         return result.scalar_one_or_none()
+
+    async def get_sponsor_user_id_by_user_id(self, user_id: int) -> int | None:
+        statement = (
+            select(TelegramUser.sponsor_user_id)
+            .where(TelegramUser.user_id == user_id)
+        )
+        result = await self._session.execute(statement)
+        return result.scalar_one_or_none()
+
+    async def get_sponsor_data_by_user_id(self, user_id: int) -> Row:
+        statement = (
+            select(
+                TelegramUser.id,
+                TelegramUser.sponsor_user_id,
+                TelegramUser.is_admin,
+            )
+            .where(TelegramUser.user_id == user_id)
+        )
+        result = await self._session.execute(statement)
+
+        return result.one_or_none()
 
     async def get_user_ids(self, *args, **kwargs) -> list[int]:
         statement = (

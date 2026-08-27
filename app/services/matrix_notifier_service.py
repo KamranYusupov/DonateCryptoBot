@@ -2,6 +2,8 @@ import asyncio
 from decimal import Decimal
 from typing import List
 
+import loguru
+
 from app.core.config import settings
 from app.keyboards.donate import get_donate_keyboard
 from app.models.telegram_user import DonateStatus
@@ -72,6 +74,7 @@ class MatrixActivationNotifierService:
             self,
             context: SponsorTransactionContextSchema,
     ) -> None:
+        loguru.logger.info(context.status.label)
         private_message_text = get_sponsor_transaction_message_text(
             sender_str=context.sender_str,
             status=context.status,

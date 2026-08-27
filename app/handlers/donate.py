@@ -220,6 +220,7 @@ async def subscription_checker(
         amount=settings.donate_for_registration
     )
     is_sponsor_status_bronze_or_higher = (
+        sponsor.status is not None and
         DonateStatus.BRONZE.amount
         <= sponsor.status.amount
     )
@@ -527,7 +528,7 @@ async def donate_handler(
         sponsors_transactions_data = donate_service.update_transactions_data_with_sponsors(
             current_user,
             *sponsors,
-            donate_sum=status.amount,
+            status=status,
             marketing_scope=marketing_scope,
         )
         transactions_data.extend(sponsors_transactions_data)

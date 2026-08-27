@@ -19,7 +19,7 @@ from app.utils.matrix import (
     get_sorted_matrices,
     insert_into_matrices,
 )
-from app.utils.pagination import Paginator
+from app.utils.pagination import Paginator, OuterPaginator
 from app.core.config import settings
 from app.models.matrix import Matrix, MatrixNode
 from app.models.withdrawal_request import WithdrawalRequest
@@ -27,6 +27,7 @@ from app.utils.datetime import to_main_tz
 from app.models.telegram_user import GlobalMarketingDonateStatus
 from app.models.matrix import MatrixMarketingType
 from app.schemas.marketing import MatrixMarketingScope
+from utils.pagination import get_pagination_buttons
 
 
 def get_matrices_statuses_statistic_message(
@@ -131,45 +132,36 @@ def get_triumph_bill_transaction_message(
     )
 
 async def get_my_team_message(
-        matrices: list[Matrix],
-        status_list: list[DonateStatus | GlobalMarketingDonateStatus],
+        matrix_obj: Matrix | MatrixNode,
+        total_matrix_objects_count: int,
         status_orm_attr: str,
         page_number: int,
         per_page: int = 1,
         callback_data_prefix: str = "team",
         previous_page_number: int | None = None,
-        matrix_node: MatrixNode | None = None,
         downline_nodes: list[MatrixNode] | None = None,
 ):
     downline_nodes = [] if not downline_nodes else downline_nodes
     message = ""
-    if matrices:
-        sorted_matrices = get_sorted_matrices(matrices, status_list)
-    else:
-        sorted_matrices = []
 
-    if matrix_node:
-        sorted_matrices.append(matrix_node)
-
-    paginator = Paginator(
-        sorted_matrices,
-        page_number=page_number,
-        per_page=per_page
-    )
     buttons = {}
     sizes = (1, 1)
 
-    if paginator.get_page():
-        matrix = paginator.get_page()[0]
-        if isinstance(matrix, Matrix):
+    paginator = OuterPaginator(
+        objects_count=total_matrix_objects_count,
+        per_page=per_page,
+        page_number=page_number,
+    )
+
+    if matrix_obj:
+        if isinstance(matrix_obj, Matrix):
             message += get_matrix_info_message(
-                matrix=matrix,
+                matrix=matrix_obj,
                 status_orm_attr=status_orm_attr,
             )
-        elif isinstance(matrix, MatrixNode):
-            matrix_node = matrix
+        elif isinstance(matrix_obj, MatrixNode):
             message += get_downline_nodes_message(
-                matrix_node,
+                matrix_obj,
                 status=DonateStatus.BRILLIANT,
                 downline_nodes=downline_nodes,
                 matrix_max_length=settings.triumph_matrix_max_length,

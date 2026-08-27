@@ -10,16 +10,13 @@ from sqlalchemy import (
     BigInteger,
     ARRAY,
 )
+from sqlalchemy.sql.functions import count
+
 from app.models.telegram_user import DonateStatus, GlobalMarketingDonateStatus
 from app.schemas.marketing import MatrixMarketingScope
 from .base import RepositoryBase
-from app.models.matrix import Matrix, MatrixNode, MatrixMarketingType
+from app.models.matrix import Matrix, MatrixNode, MatrixMarketingType, MatrixEngineType
 from app.core.config import settings
-
-_MARKETING_STATUS_COLUMNS_MAPPING = {
-    MatrixMarketingType.START: Matrix.status,
-    MatrixMarketingType.GLOBAL: Matrix.global_marketing_status,
-}
 
 
 class RepositoryMatrix(RepositoryBase[Matrix]):
@@ -34,6 +31,28 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
         result = await self._session.execute(statement)
         return result.scalars().all()
 
+    async def get_team_matrix(
+            self,
+            owner_id: uuid.UUID,
+            offset: int | None = None,
+    ) -> List[Matrix]:
+        statement = (
+            select(Matrix)
+            .where(
+                Matrix.owner_id == owner_id,
+                Matrix.engine_type is MatrixEngineType.JSON,
+            )
+            .order_by(
+                Matrix.status,
+                Matrix.created_at,
+            )
+            .offset(offset)
+            .limit(1)
+        )
+
+        result = await self._session.execute(statement)
+        return result.scalars().all()
+
     async def get_parent_matrix(
             self,
             matrix_id: uuid.UUID,
@@ -41,7 +60,7 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
             return_all: bool = False,
             for_update: bool = False,
     ) -> Matrix | list[Matrix]:
-        status_column = _MARKETING_STATUS_COLUMNS_MAPPING[marketing_scope.marketing_type]
+        status_column = getattr(Matrix, marketing_scope.status_orm_attr)
         statement = (
             select(Matrix)
             .where(
@@ -67,7 +86,7 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
         statement_where_args = (Matrix.owner_id == owner_id, )
 
         if marketing_scope:
-            status_column = _MARKETING_STATUS_COLUMNS_MAPPING[marketing_scope.marketing_type]
+            status_column = getattr(Matrix, marketing_scope.status_orm_attr)
             statement_where_args += (status_column == marketing_scope.status)
 
         statement = (
@@ -144,6 +163,23 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
             for index, matrix_id in enumerate(result.scalars().all())
         }
 
+    async def get_count(
+            self,
+            owner_id: uuid.UUID,
+            engine_type: MatrixEngineType,
+    ) -> int:
+        statement = (
+            select(count(Matrix))
+            .where(
+                Matrix.owner_id == owner_id,
+                Matrix.engine_type == engine_type,
+            )
+        )
+
+        result = await self._session.execute(statement)
+
+        return result.scalar()
+
 
 class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
     def _base_node_select(
@@ -164,11 +200,11 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
 
         if marketing_scope is not None:
             status_column = \
-                _MARKETING_STATUS_COLUMNS_MAPPING[marketing_scope.marketing_type]
+                getattr(Matrix, marketing_scope.status_orm_attr)
 
             statement = (
                 statement
-                .join(Matrix, onclause=MatrixNode.matrix)
+                .join(MatrixNode.matrix)
                 .where(status_column == marketing_scope.status)
             )
 
@@ -225,7 +261,7 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
             max_level: int,
     ):
         absolute_max_level = level + max_level
-        power_calc = func.power(2, MatrixNode.level - level)
+        power_calc = cast(func.power(2, MatrixNode.level - level), BigInteger)
 
         statement = (
             select(MatrixNode)
@@ -257,7 +293,7 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
             level: int,
             max_level: int = settings.start_marketing.triumph_matrix_max_level
     ) -> list[MatrixNode]:
-        power_calc = func.power(2, MatrixNode.level - level)
+        power_calc = cast(func.power(2, MatrixNode.level - level), BigInteger)
 
         statement = (
             select(MatrixNode)
@@ -334,3 +370,41 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
 
         result = await self._session.execute(statement)
         return result.scalars().all()
+
+    async def get_count(
+            self,
+            owner_id: uuid.UUID,
+            marketing_type: MatrixMarketingType,
+    ) -> int:
+        statement = (
+            select(count(MatrixNode.id))
+            .join(MatrixNode.matrix)
+            .where(
+                Matrix.marketing_type is marketing_type,
+                MatrixNode.owner_id == owner_id,
+            )
+        )
+
+        result = await self._session.execute(statement)
+
+        return result.scalar()
+
+    async def get_team_matrix_node(
+            self,
+            owner_id: uuid.UUID,
+            marketing_type: MatrixMarketingType,
+            offset: int | None = None,
+    ) -> MatrixNode | None:
+        statement = (
+            select(MatrixNode)
+            .join(MatrixNode.matrix)
+            .where(
+                Matrix.marketing_type is marketing_type,
+                MatrixNode.owner_id == owner_id,
+            )
+            .offset(offset)
+            .limit(1)
+        )
+
+        result = await self._session.execute(statement)
+        return result.scalars().first()
