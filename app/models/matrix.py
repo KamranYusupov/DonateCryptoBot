@@ -15,7 +15,7 @@ from sqlalchemy import (
     Index,
     UniqueConstraint,
     func,
-    Numeric, CheckConstraint,
+    Numeric, CheckConstraint, ForeignKeyConstraint,
 )
 from sqlalchemy.sql import text
 from sqlalchemy.dialects.postgresql import JSONB
@@ -72,11 +72,9 @@ class Matrix(Base, UUIDMixin, TimestampedMixin, MatrixEngineTypeMixin):
         Enum(MatrixMarketingType),
         nullable=False,
         default=MatrixMarketingType.START,
-        server_default=text("'START'"),
         index=True,
     )
     status = Column(Enum(DonateStatus), index=True)
-    global_marketing_status = Column(Enum(GlobalMarketingDonateStatus), index=True)
     closed_places_count = Column(
         BigInteger,
         default=0,
@@ -112,15 +110,12 @@ class Matrix(Base, UUIDMixin, TimestampedMixin, MatrixEngineTypeMixin):
     )
 
     __table_args__ = (
+        UniqueConstraint("id", "marketing_type", name="uq_matrix_id_marketing_type"),
+
         Index(
             "ix_matrices_marketing_type_status",
             marketing_type,
             status,
-        ),
-        Index(
-            "ix_matrices_marketing_type_global_marketing_status",
-            marketing_type,
-            global_marketing_status,
         ),
 
         CheckConstraint(
@@ -128,35 +123,46 @@ class Matrix(Base, UUIDMixin, TimestampedMixin, MatrixEngineTypeMixin):
             (
                 marketing_type = 'START'
                 AND engine_type IN ('JSON', 'NODES')
-                AND status IS NOT NULL
-                AND global_marketing_status IS NULL
-            )
+                AND status IS NOT NULL            )
             OR
             (
                 marketing_type = 'GLOBAL'
                 AND engine_type = 'NODES'
                 AND status IS NULL
-                AND global_marketing_status IS NOT NULL
             )
             """,
             name="ck_matrix_marketing_engine",
         ),
-        {"extend_existing": True},
     )
 
 
 class MatrixNode(UUIDMixin, TimestampedMixin, Base):
     __tablename__ = "matrix_nodes"
 
-    matrix_id = Column(
-        UUID(as_uuid=True),
-        ForeignKey("matrices.id", ondelete="CASCADE"),
-        nullable=False,
-    )
+
     owner_id = Column(
         UUID(as_uuid=True),
         ForeignKey("telegram_users.id"),
         nullable=False,
+    )
+
+    matrix_id = Column(
+        UUID(as_uuid=True),
+        nullable=False,
+    )
+    marketing_type = Column(
+        Enum(MatrixMarketingType),
+        nullable=False,
+        default=MatrixMarketingType.START,
+        server_default=text("'START'"),
+        index=True,
+    )
+
+    global_marketing_status = Column(
+        Enum(GlobalMarketingDonateStatus),
+        index=True,
+        default=None,
+        server_default=text("null"),
     )
 
     level = Column(
@@ -193,7 +199,20 @@ class MatrixNode(UUIDMixin, TimestampedMixin, Base):
     )
 
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["matrix_id", "marketing_type"],
+            ["matrices.id", "matrices.marketing_type"],
+            ondelete="CASCADE",
+        ),
         Index("idx_matrix_free", matrix_id, children_count, level, position),
         Index("idx_user_matrix", owner_id, matrix_id),
         UniqueConstraint("matrix_id", "position",),
+        CheckConstraint(
+            """
+            (marketing_type = 'GLOBAL' AND global_marketing_status IS NOT NULL)
+            OR
+            (marketing_type = 'START' AND global_marketing_status IS NULL)
+            """,
+            name="ck_matrix_node_global_status_logic"
+        ),
     )
