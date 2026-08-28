@@ -540,7 +540,8 @@ async def donate_handler(
                 inserted_node, upline_nodes = await matrix_node_service.activate_matrix_node(
                     current_user_id=current_user.id,
                     sponsor_id=first_sponsor.id,
-                    marketing_scope=marketing_scope,
+                    matrix_status=status,
+                    marketing_type=MatrixMarketingType.START,
                     max_upline_depth=marketing_scope.config.triumph_matrix_max_level
                 )
 
@@ -564,8 +565,8 @@ async def donate_handler(
                     current_user=current_user,
                     sponsor=first_sponsor,
                     transactions_data=transactions_data,
-                    marketing_scope=marketing_scope,
-                    max_matrix_length=marketing_scope.config.matrix_max_length,
+                    status=status,
+                    matrix_max_length=marketing_scope.config.matrix_max_length,
                 )
                 if not result:
                     await callback.message.delete()

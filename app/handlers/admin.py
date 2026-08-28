@@ -5,7 +5,7 @@ from dependency_injector.wiring import inject, Provide
 
 from app.core.config import settings
 from app.core.container import Container
-from app.models.matrix import MatrixEngineType
+from app.models.matrix import MatrixEngineType, MatrixMarketingType
 from app.models.telegram_user import DonateStatus
 from app.services.donate_service import DonateService
 from app.services.matrix_node_service import MatrixNodeService
@@ -76,6 +76,7 @@ async def activate_matrix_handler(
             status.amount,
             transactions_data=[],
             status=status,
+            matrix_max_length=settings.start_marketing.matrix_max_length,
         )
         if not result:
             await message.answer(
@@ -93,7 +94,8 @@ async def activate_matrix_handler(
         inserted_node, upline_nodes = await matrix_node_service.activate_matrix_node(
             current_user_id=input_user.id,
             sponsor_id=first_sponsor.id,
-            status=status,
+            matrix_status=status,
+            marketing_type=MatrixMarketingType.START,
             max_upline_depth=settings.triumph_matrix_max_level,
         )
         create_tasks_data["obj_id"] = inserted_node.id

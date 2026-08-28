@@ -5,13 +5,12 @@ from uuid import UUID
 
 import loguru
 
-from app.models.matrix import MatrixEngineType, Matrix, MatrixNode
-from app.models.telegram_user import DonateStatus
+from app.models.matrix import MatrixEngineType, Matrix, MatrixNode, MatrixMarketingType
+from app.models.telegram_user import DonateStatus, GlobalMarketingDonateStatus
 from app.repositories.matrix import RepositoryMatrix, RepositoryMatrixNode
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.schemas.matrix import MatrixEntity, MatrixNodeSchema
 from app.services.base.crud_service import CrudServiceMixin
-from app.schemas.marketing import MatrixMarketingScope
 
 
 class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
@@ -29,24 +28,29 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
     async def get_node(
             self,
             *args,
-            marketing_scope: Optional[MatrixMarketingScope] = None,
+            marketing_type: MatrixMarketingType,
+            matrix_status: Optional[DonateStatus] = None,
             **kwargs
     ):
         return await self._repository_matrix_node.get(
             *args,
-            marketing_scope=marketing_scope,
+            marketing_type=marketing_type,
+            matrix_status=matrix_status,
             **kwargs,
         )
 
     async def create_matrix_with_root_node(
             self,
             owner_id: UUID,
-            marketing_scope: MatrixMarketingScope,
+            marketing_type: MatrixMarketingType,
+            global_marketing_status: Optional[GlobalMarketingDonateStatus] = None,
+            matrix_status: Optional[DonateStatus] = None,
     ) -> MatrixNode:
-        matrix_entity = MatrixEntity.from_marketing_scope(
+        matrix_entity = MatrixEntity(
             owner_id=owner_id,
-            marketing_scope=marketing_scope,
-            engine_type=MatrixEngineType.NODES
+            status=matrix_status,
+            engine_type=MatrixEngineType.NODES,
+            marketing_type=marketing_type
         )
         matrix = await self._repository_matrix.create(
             obj_in=matrix_entity.model_dump()
@@ -57,6 +61,8 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             owner_id=owner_id,
             level=0,
             position=1,
+            marketing_type=marketing_type,
+            global_marketing_status=global_marketing_status,
         )
         matrix_node = await self._repository_matrix_node.create(
             obj_in=matrix_node_schema.model_dump()
@@ -68,8 +74,9 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
     async def _find_target_node(
             self,
             sponsor_user_id: int,
-            marketing_scope: MatrixMarketingScope,
-            max_iterations: int = 200,
+            marketing_type: MatrixMarketingType,
+            matrix_status: Optional[DonateStatus] = None,
+        max_iterations: int = 200,
     ) -> Optional[tuple[MatrixNode, int]]:
         for _ in range(max_iterations):
             if not sponsor_user_id:
@@ -85,7 +92,8 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
 
             target_node = await self._repository_matrix_node.get(
                 owner_id=sponsor.id,
-                marketing_scope=marketing_scope,
+                marketing_type=marketing_type,
+                matrix_status=matrix_status,
                 for_update=True,
             )
             if target_node:
@@ -98,12 +106,15 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
     async def _find_available_node(
             self,
             sponsor_id: UUID,
-            marketing_scope: MatrixMarketingScope,
+            marketing_type: MatrixMarketingType,
+            matrix_status: Optional[DonateStatus] = None,
+            max_search_level: Optional[int] = None
     ) -> Optional[MatrixNode]:
         sponsor = await self._repository_telegram_user.get(id=sponsor_id)
         sponsor_node = await self._repository_matrix_node.get(
             owner_id=sponsor.id,
-            marketing_scope=marketing_scope,
+            marketing_type=marketing_type,
+            matrix_status=matrix_status,
             for_update=True
         )
         if sponsor_node and sponsor_node.children_count < 2:
@@ -112,51 +123,45 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
         target_node = sponsor_node
         sponsor_user_id = sponsor.sponsor_user_id
 
-        while True:
-            if not target_node:
-                target_node_result = await self._find_target_node(
-                    sponsor_user_id=sponsor_user_id,
-                    marketing_scope=marketing_scope,
-                )
-
-                if not target_node_result:
-                    return None
-
-                target_node, sponsor_user_id = target_node_result
-
-                if target_node.children_count < 2:
-                    return target_node
-
-            available_node = await self._repository_matrix_node.get_available_node(
-                matrix_id=target_node.matrix_id,
-                level=target_node.level,
-                position=target_node.position,
-                max_level=marketing_scope.config.matrix_max_level,
+        if not target_node:
+            target_node_result = await self._find_target_node(
+                sponsor_user_id=sponsor_user_id,
+                marketing_type=marketing_type,
+                matrix_status=matrix_status,
             )
 
-            if available_node:
-                return available_node
+            if not target_node_result:
+                return None
 
-            target_owner = await self._repository_telegram_user.get(id=target_node.owner_id)
-            if target_owner and target_owner.is_admin:
-                return await self.create_matrix_with_root_node(
-                    owner_id=target_owner.id,
-                    marketing_scope=marketing_scope,
-                )
+            target_node, sponsor_user_id = target_node_result
 
-            target_node = None
+            if target_node.children_count < 2:
+                return target_node
+
+        available_node = await self._repository_matrix_node.get_available_node(
+            matrix_id=target_node.matrix_id,
+            level=target_node.level,
+            position=target_node.position,
+            max_search_level=max_search_level,
+        )
+
+        return available_node
 
     async def activate_matrix_node(
             self,
             current_user_id: UUID,
             sponsor_id: UUID,
-            marketing_scope: MatrixMarketingScope,
+            marketing_type: MatrixMarketingType,
             max_upline_depth: int,
+            matrix_status: Optional[DonateStatus] = None,
+            max_search_level: Optional[int] = None
     ) -> Tuple[MatrixNode, List[MatrixNode]]:
         inserted_node, is_created = await self._get_or_create_node(
             current_user_id=current_user_id,
             sponsor_id=sponsor_id,
-            marketing_scope=marketing_scope,
+            marketing_type=marketing_type,
+            matrix_status=matrix_status,
+            max_search_level=max_search_level,
         )
         upline_positions = self.get_upline_node_positions(
             position=inserted_node.position,
@@ -170,9 +175,11 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
         active_upline_nodes = await self._repository_matrix_node.get_nodes_by_positions(
             MatrixNode.last_activation >= (
                     datetime.now() - timedelta(days=365)
-            ),
+            ), # FIXME
             matrix_id=inserted_node.matrix_id,
             positions=upline_positions,
+            marketing_type=marketing_type,
+            matrix_status=matrix_status,
         )
 
         return inserted_node, active_upline_nodes
@@ -181,20 +188,27 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             self,
             current_user_id: UUID,
             sponsor_id: UUID,
-            marketing_scope: MatrixMarketingScope,
+            marketing_type: MatrixMarketingType,
+            matrix_status: Optional[DonateStatus] = None,
+            global_marketing_status: Optional[GlobalMarketingDonateStatus] = None,
+            max_search_level: Optional[int] = None
     ) -> tuple[MatrixNode, bool]:
         current_user_node = await self._repository_matrix_node.get(
             owner_id=current_user_id,
-            marketing_scope=marketing_scope,
+            matrix_status=matrix_status,
+            marketing_type=marketing_type,
         )
         if current_user_node:
             current_user_node.last_activation = datetime.now()
             return current_user_node, False
 
         new_node = await self._insert_new_node(
-            current_user_id,
-            sponsor_id,
-            marketing_scope,
+            current_user_id=current_user_id,
+            sponsor_id=sponsor_id,
+            marketing_type=marketing_type,
+            global_marketing_status=global_marketing_status,
+            matrix_status=matrix_status,
+            max_search_level=max_search_level,
         )
         return new_node, True
 
@@ -202,9 +216,17 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             self,
             current_user_id: UUID,
             sponsor_id: UUID,
-            marketing_scope: MatrixMarketingScope,
+            marketing_type: MatrixMarketingType,
+            matrix_status: Optional[DonateStatus] = None,
+            global_marketing_status: Optional[GlobalMarketingDonateStatus] = None,
+            max_search_level: Optional[int] = None
     ) -> MatrixNode:
-        available_node = await self._find_available_node(sponsor_id, marketing_scope)
+        available_node = await self._find_available_node(
+            sponsor_id=sponsor_id,
+            marketing_type=marketing_type,
+            matrix_status=matrix_status,
+            max_search_level=max_search_level,
+        )
         result = await self._repository_matrix_node.reserve_child_slot(
             matrix_node_id=available_node.id
         )
@@ -219,6 +241,8 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             owner_id=current_user_id,
             position=new_position,
             level=available_node.level + 1,
+            marketing_type=marketing_type,
+            global_marketing_status=global_marketing_status,
         )
         return await self._repository_matrix_node.create(
             obj_in=matrix_node_schema.model_dump()

@@ -27,7 +27,6 @@ from app.utils.datetime import to_main_tz
 from app.models.telegram_user import GlobalMarketingDonateStatus
 from app.models.matrix import MatrixMarketingType
 from app.schemas.marketing import MatrixMarketingScope
-from utils.pagination import get_pagination_buttons
 
 
 def get_matrices_statuses_statistic_message(

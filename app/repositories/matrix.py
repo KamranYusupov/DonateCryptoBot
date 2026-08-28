@@ -56,16 +56,16 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
     async def get_parent_matrix(
             self,
             matrix_id: uuid.UUID,
-            marketing_scope: MatrixMarketingScope,
+            status: DonateStatus,
             return_all: bool = False,
             for_update: bool = False,
     ) -> Matrix | list[Matrix]:
-        status_column = getattr(Matrix, marketing_scope.status_orm_attr)
         statement = (
             select(Matrix)
             .where(
-                (status_column == marketing_scope.status)
-                & (Matrix.matrices.has_key(str(matrix_id)))
+                Matrix.status == status,
+                Matrix.marketing_type == MatrixMarketingType.START,
+                Matrix.matrices.has_key(str(matrix_id))
             )
             .order_by(Matrix.created_at)
         )
@@ -80,18 +80,17 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
     async def get_user_matrices(
             self,
             owner_id: uuid.UUID,
-            marketing_scope: MatrixMarketingScope | None = None,
+            status: DonateStatus | None = None,
             for_update: bool = False,
     ) -> list[Matrix]:
-        statement_where_args = (Matrix.owner_id == owner_id, )
+        where_conditions = (Matrix.owner_id == owner_id, )
 
-        if marketing_scope:
-            status_column = getattr(Matrix, marketing_scope.status_orm_attr)
-            statement_where_args += (status_column == marketing_scope.status)
+        if status:
+            where_conditions += (Matrix.status == status)
 
         statement = (
             select(Matrix)
-            .where(*statement_where_args)
+            .where(*where_conditions)
             .order_by(Matrix.created_at)
         )
         if for_update:
@@ -138,11 +137,9 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
     async def get_unique_statuses_by_owner_id(
             self,
             owner_id: uuid.UUID,
-            marketing_scope: MatrixMarketingScope,
     ) -> List[DonateStatus | GlobalMarketingDonateStatus]:
-        status_attr = getattr(Matrix, marketing_scope.status_orm_attr)
         statement = (
-            select(status_attr)
+            select(Matrix.status)
             .where(Matrix.owner_id == owner_id)
             .distinct()
         )
@@ -185,7 +182,7 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
     def _base_node_select(
             self,
             *args,
-            marketing_scope: Optional[MatrixMarketingScope] = None,
+            matrix_status: Optional[DonateStatus] = None,
             for_update: bool = False,
             skip_locked: bool = False,
             **kwargs
@@ -198,16 +195,13 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
                 .with_for_update(skip_locked=skip_locked)
             )
 
-        if marketing_scope is not None:
-            status_column = \
-                getattr(Matrix, marketing_scope.status_orm_attr)
 
+        if matrix_status:
             statement = (
                 statement
                 .join(MatrixNode.matrix)
-                .where(status_column == marketing_scope.status)
+                .where(Matrix.status == matrix_status)
             )
-
 
         return statement
 
@@ -237,7 +231,7 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
     async def get(
             self,
             *args,
-            marketing_scope: Optional[MatrixMarketingScope] = None,
+            matrix_status: Optional[DonateStatus] = None,
             for_update: bool = False,
             skip_locked: bool = False,
             **kwargs
@@ -245,7 +239,7 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
 
         statement = self._base_node_select(
             *args,
-            marketing_scope=marketing_scope,
+            matrix_status=matrix_status,
             for_update=for_update,
             skip_locked=skip_locked,
             **kwargs
@@ -258,10 +252,14 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
             matrix_id: uuid.UUID,
             position: int,
             level: int,
-            max_level: int,
-    ):
-        absolute_max_level = level + max_level
+            max_search_level: Optional[int] = None,
+    ) -> Optional[MatrixNode]:
+        max_level_conditions = []
         power_calc = cast(func.power(2, MatrixNode.level - level), BigInteger)
+
+        if max_search_level is not None:
+            absolute_max_level = level + max_search_level
+            max_level_conditions.append(MatrixNode.level <= absolute_max_level)
 
         statement = (
             select(MatrixNode)
@@ -269,7 +267,7 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
                 MatrixNode.matrix_id == matrix_id,
 
                 MatrixNode.level > level,
-                MatrixNode.level <= absolute_max_level,
+                *max_level_conditions,
 
                 MatrixNode.children_count < 2,
                 MatrixNode.position >= position * power_calc,
@@ -314,13 +312,15 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
             self,
             *args,
             positions: Sequence[int],
-            marketing_scope: Optional[MatrixMarketingScope] = None,
+            marketing_type: MatrixMarketingType,
+            matrix_status: Optional[DonateStatus] = None,
             **kwargs
     ) -> List[MatrixNode]:
         statement = self._base_node_select(
             *args,
             MatrixNode.position.in_(positions),
-            marketing_scope=marketing_scope,
+            marketing_type=marketing_type,
+            matrix_status=matrix_status,
             **kwargs
         )
 
@@ -355,15 +355,9 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
     async def get_unique_statuses_by_owner_id(
             self,
             owner_id: uuid.UUID,
-            marketing_scope: MatrixMarketingScope,
     ) -> List[DonateStatus | GlobalMarketingDonateStatus]:
-        status_attr = getattr(Matrix, marketing_scope.status_orm_attr)
         statement = (
-            select(status_attr)
-            .join(
-                MatrixNode,
-                onclause=MatrixNode.matrix_id == Matrix.id,
-            )
+            select(MatrixNode.global_marketing_status)
             .where(MatrixNode.owner_id == owner_id)
             .distinct()
         )

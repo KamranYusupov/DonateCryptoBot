@@ -8,10 +8,9 @@ from app.services import (
     DonateService,
     MatrixNodeService,
 )
-from app.models import MatrixNode
+from app.models import MatrixNode, TelegramUser
 from app.models.telegram_user import GlobalMarketingDonateStatus
 from app.schemas.transaction import (
-    SponsorTransactionContextSchema,
     SystemTransactionContextSchema,
     MatrixTransactionContextSchema,
     DonateTransactionContextSchema,
@@ -19,8 +18,7 @@ from app.schemas.transaction import (
 )
 from app.repositories import RepositoryTelegramUser
 from app.core.config import settings
-from app.schemas.marketing import GlobalMarketingScope
-from app.utils.status import is_status_higher
+from app.models.matrix import MatrixMarketingType
 
 
 class GlobalMarketingDonateService:
@@ -42,16 +40,17 @@ class GlobalMarketingDonateService:
             matrix_max_length: int = settings.global_marketing.matrix_max_length,
             max_upline_depth: int = settings.global_marketing.matrix_max_level,
     ) -> Tuple[MatrixNode, List[DonateTransactionContextSchema]]:
-        marketing_scope = GlobalMarketingScope(status=status)
-        inserted_node, upline_nodes = await self._matrix_node_service.activate_matrix_node(
+        inserted_node, _ = await self._matrix_node_service.activate_matrix_node(
             current_user_id=current_user_id,
             sponsor_id=first_sponsor_id,
-            marketing_scope=marketing_scope,
+            marketing_type=MatrixMarketingType.GLOBAL,
+            matrix_status=None,
             max_upline_depth=max_upline_depth,
         )
         transactions_data = []
         matrix_transaction = await self._get_transaction_for_matrix(
-            upline_nodes=upline_nodes,
+            matrix_id=inserted_node.matrix_id,
+            position=inserted_node.position,
             status=status,
             matrix_max_length=matrix_max_length,
         )
@@ -59,34 +58,53 @@ class GlobalMarketingDonateService:
 
         return inserted_node, transactions_data
 
-    async def _find_donate_node(
+    async def _find_donate_node_with_receiver(
             self,
-    ): ...
+            inserted_node: MatrixNode,
+            status: GlobalMarketingDonateStatus,
+    ) -> tuple[MatrixNode, TelegramUser, bool]:
+        status_index = status.index
+        allowed_statuses = (
+            s for s in GlobalMarketingDonateStatus
+            if status_index >= s.index
+        )
+
+        next_donate_node_position = inserted_node.position
+        while next_donate_node_position != 1:
+            upline_node_positions = self._matrix_node_service.get_upline_node_positions(
+                position=next_donate_node_position,
+                max_upline_depth=status_index,
+            )
+            next_donate_node_position = upline_node_positions[-1]
+            next_donate_node = await self._matrix_node_service.get_node(
+                marketing_type=MatrixMarketingType.GLOBAL,
+                position=next_donate_node_position,
+            )
+            receiver = await self._repository_telegram_user.get(
+                TelegramUser.global_marketing_status.in_(allowed_statuses),
+                id=next_donate_node.owner_id,
+            )
+            if not receiver:
+                continue
+
+            send_to_system = len(upline_node_positions) <= status.index
+            return next_donate_node, receiver, send_to_system
+
+
+
 
     async def _get_transaction_for_matrix(
             self,
-            upline_nodes: List[MatrixNode],
+            inserted_node: MatrixNode,
             status: GlobalMarketingDonateStatus,
             matrix_max_length: int = settings.global_marketing.matrix_max_length,
             transaction_percent: int | Decimal = \
                     settings.global_marketing.donates_config.matrix_donate_transaction_percent,
-    ): #FIXME: add _find_donate_node realization
-        send_to_system = False
-        try:
-            donate_receiver_node = upline_nodes[status.index]
-        except IndexError:
-            if upline_nodes[-1].position == 1:
-                donate_receiver_node = upline_nodes[-1]
-                send_to_system = True
-
-        receiver = await self._repository_telegram_user.get(
-            id=donate_receiver_node.owner_id
+    ):
+        donate_receiver_node, receiver, send_to_system = await self._find_donate_node_with_receiver(
+            inserted_node=inserted_node,
+            status=status,
         )
-        # if not is_status_higher(
-        #     status,
-        #     receiver.status,
-        #     or_equal=True,
-        # ):
 
         receiver_schema = TransactionReceiverSchema.model_validate(receiver)
         transaction_quantity = (status.amount * transaction_percent / 100)

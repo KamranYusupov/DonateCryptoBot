@@ -41,25 +41,23 @@ MARKETING_SCOPE_BY_TYPE = {
     MatrixMarketingType.GLOBAL: GlobalMarketingScope,
 }
 
-MarketingModel = TelegramUser | Matrix
-
 def create_marketing_scope(
         marketing_type: MatrixMarketingType,
-        marketing_orm_obj: Optional[MarketingModel] = None,
+        telegram_user: Optional[TelegramUser] = None,
         status: Optional[DonateStatus | GlobalMarketingDonateStatus] = None,
 ) -> MatrixMarketingScope:
-    scope_class = MARKETING_SCOPE_BY_TYPE[marketing_type]
 
-    if status is None and marketing_orm_obj is None:
-        raise ValueError("status or marketing_orm_obj must be provided")
+    if status is None and telegram_user is None:
+        raise ValueError("status or telegram_user must be provided")
 
-    if status is not None and marketing_orm_obj is not None:
+    if status is not None and telegram_user is not None:
         raise ValueError(
-            "Only one of status or marketing_orm_obj must be provided"
+            "Only one of status or telegram_user must be provided"
         )
 
+    scope_class = MARKETING_SCOPE_BY_TYPE[marketing_type]
     if status is None:
-        status = getattr(marketing_orm_obj, scope_class.status_orm_attr)
+        status = getattr(telegram_user, scope_class.status_orm_attr)
         return scope_class(status=status)
 
     if not isinstance(status, marketing_type.status_enum):

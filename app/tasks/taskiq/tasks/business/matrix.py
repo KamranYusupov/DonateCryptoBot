@@ -7,7 +7,7 @@ import logging
 
 from app.core.config import settings
 from app.core.taskiq import broker, redis_source
-from app.models.matrix import Matrix, MatrixEngineType, MatrixNode
+from app.models.matrix import Matrix, MatrixEngineType, MatrixNode, MatrixMarketingType
 from app.db.commit_decorator import commit_and_close_session, set_scope_session
 from app.repositories import RepositoryTelegramUser
 from app.services import TelegramBotService
@@ -63,12 +63,12 @@ async def add_bot_to_matrix_task(
 
     if engine_type == MatrixEngineType.JSON:
         result = await donate_service.handle_matrix_activation(
-            bot_user,
-            owner,
-            donate_sum,
-            transactions_data,
-            obj.status,
+            current_user=bot_user,
+            sponsor=owner,
+            transactions_data=transactions_data,
+            status=obj.status,
             found_matrix=obj,
+            matrix_max_length=settings.start_marketing.matrix_max_length
         )
         if not result:
             return
@@ -79,7 +79,8 @@ async def add_bot_to_matrix_task(
         inserted_node, upline_nodes = await matrix_node_service.activate_matrix_node(
             current_user_id=bot_user.id,
             sponsor_id=owner.id,
-            status=status,
+            matrix_status=status,
+            marketing_type=MatrixMarketingType.START,
             max_upline_depth=settings.triumph_matrix_max_level,
         )
         matrix_transactions_data = await donate_service.update_transactions_data_with_nodes(

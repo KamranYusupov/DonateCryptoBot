@@ -292,8 +292,8 @@ class DonateService:
             current_user: TelegramUser,
             sponsor: TelegramUser,
             transactions_data: list,
-            marketing_scope: MatrixMarketingScope,
-            max_matrix_length: int,
+            status: DonateStatus,
+            matrix_max_length: int,
             level_length: int = settings.level_length,
             found_matrix: Matrix | None = None
     ) -> Tuple[Matrix, Optional[Matrix]] | None:
@@ -301,7 +301,7 @@ class DonateService:
             await self._handle_insertion_to_free_matrix(
                 found_matrix,
                 current_user,
-                marketing_scope.status,
+                status,
                 transactions_data,
                 level_length,
             )
@@ -309,7 +309,7 @@ class DonateService:
 
         sponsor_matrices = await self._repository_matrix.get_user_matrices(
             owner_id=sponsor.id,
-            marketing_scope=marketing_scope,
+            status=status,
             for_update=True,
         )
 
@@ -319,36 +319,37 @@ class DonateService:
                 created_matrix = await self._handle_insertion_to_free_matrix(
                     matrix,
                     current_user,
-                    marketing_scope.status,
+                    status,
                     transactions_data,
                     level_length,
-                    max_matrix_length,
+                    matrix_max_length,
                 )
                 return matrix, created_matrix
         else:
             if sponsor.is_admin:
-                matrix_entity = MatrixEntity.from_marketing_scope(
+                matrix_entity = MatrixEntity(
                     owner_id=sponsor.id,
+                    status=status,
                     engine_type=MatrixEngineType.JSON,
-                    marketing_scope=marketing_scope,
                 )
                 matrix = await self._repository_matrix.create(obj_in=matrix_entity)
                 matrix.matrices, matrix.telegram_users = {},  []
                 created_matrix = await self._handle_insertion_to_free_matrix(
                     matrix,
                     current_user,
-                    marketing_scope.status,
+                    status,
                     transactions_data,
                     level_length,
-                    max_matrix_length,
+                    matrix_max_length,
                 )
                 return matrix, created_matrix
 
             return await self._find_free_matrix(
                 user_to_add=current_user,
-                marketing_scope=marketing_scope,
+                status=status,
                 transactions_data=transactions_data,
                 level_length=settings.level_length,
+                matrix_max_length=matrix_max_length,
             )
 
 
@@ -394,9 +395,9 @@ class DonateService:
     async def _find_free_matrix(
             self,
             user_to_add: TelegramUser,
-            donate_sum: Decimal,
-            marketing_scope: MatrixMarketingScope,
+            status: DonateStatus,
             transactions_data: list,
+            matrix_max_length: int,
             level_length: int,
             max_iterations: int = 10000,
     ) -> Tuple[Matrix, Optional[Matrix]] | None:
@@ -409,16 +410,15 @@ class DonateService:
             next_sponsor = await self._repository_telegram_user.get(
                 user_id=user_to_add.sponsor_user_id
             )
-            next_sponsor_status = getattr(next_sponsor, marketing_scope.status_orm_attr)
-            if next_sponsor_status is None or (
-                 next_sponsor_status.index < marketing_scope.status.index
+            if next_sponsor.status is None or (
+                 next_sponsor.status.index < status.index
             ):
                 user_to_add = next_sponsor
                 continue
 
             next_sponsor_matrices = await self._repository_matrix.get_user_matrices(
                 owner_id=next_sponsor.id,
-                marketing_scope=marketing_scope,
+                status=status,
                 for_update=True,
             )
             if not next_sponsor_matrices:
@@ -428,30 +428,30 @@ class DonateService:
             for matrix in next_sponsor_matrices:
                 if len(matrix.telegram_users) < settings.matrix_max_length:
                     created_matrix = await self._handle_insertion_to_free_matrix(
-                        matrix,
-                        current_user,
-                        donate_sum,
-                        marketing_scope.status,
-                        transactions_data,
-                        level_length,
+                        free_matrix=matrix,
+                        current_user=current_user,
+                        status=status,
+                        transactions_data=transactions_data,
+                        level_length=level_length,
+                        matrix_max_length=matrix_max_length,
                     )
                     return matrix, created_matrix
 
             if next_sponsor.is_admin:
-                matrix_entity = MatrixEntity.from_marketing_scope(
+                matrix_entity = MatrixEntity(
                     owner_id=next_sponsor.id,
-                    marketing_scope=marketing_scope,
+                    status=status,
                     engine_type=MatrixEngineType.JSON,
                 )
                 matrix = await self._repository_matrix.create(obj_in=matrix_entity)
                 matrix.matrices, matrix.telegram_users = {}, []
                 created_matrix = await self._handle_insertion_to_free_matrix(
-                    matrix,
-                    current_user,
-                    donate_sum,
-                    marketing_scope.status,
-                    transactions_data,
-                    level_length,
+                    free_matrix=matrix,
+                    current_user=current_user,
+                    status=status,
+                    transactions_data=transactions_data,
+                    level_length=level_length,
+                    matrix_max_length=matrix_max_length,
                 )
                 return matrix, created_matrix
             else:

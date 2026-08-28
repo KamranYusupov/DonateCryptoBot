@@ -4,6 +4,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart, CommandObject, Command
 from dependency_injector.wiring import inject, Provide
+from sqlalchemy import text
 
 from app.core.container import Container
 from app.keyboards.inline import get_confirm_inline_keyboard
@@ -16,7 +17,7 @@ from app.models.telegram_user import DonateStatus
 from app.keyboards.reply import get_reply_keyboard
 from app.keyboards.donate import get_start_inline_keyboard
 from app.utils.bot import get_schema_from_user
-from app.models.matrix import MatrixEngineType
+from app.models.matrix import MatrixEngineType, MatrixMarketingType
 from app.models.telegram_user import GlobalMarketingDonateStatus
 from app.schemas.marketing import StartMarketingScope, GlobalMarketingScope
 from app.filters.marketing_type import MarketingTypeFilter
@@ -168,27 +169,23 @@ async def admin(
         if status is DonateStatus.BRILLIANT:
             await matrix_node_service.create_matrix_with_root_node(
                 owner_id=admin_user.id,
-                marketing_scope=StartMarketingScope(
-                    status=status,
-                )
+                marketing_type=MatrixMarketingType.START,
+                matrix_status=status,
             )
             continue
 
-        matrix_schema = MatrixEntity.from_marketing_scope(
+        matrix_schema = MatrixEntity(
             owner_id=admin_user.id,
             engine_type=MatrixEngineType.JSON,
-            marketing_scope=StartMarketingScope(
-                status=status,
-            ),
+            status=status
         )
         await matrix_service.create_matrix(matrix_schema)
 
     for status in list(GlobalMarketingDonateStatus):
         await matrix_node_service.create_matrix_with_root_node(
             owner_id=admin_user.id,
-            marketing_scope=GlobalMarketingScope(
-                status=status,
-            )
+            marketing_type=MatrixMarketingType.GLOBAL,
+            global_marketing_status=status,
         )
 
     await message.answer("Готово ✅")

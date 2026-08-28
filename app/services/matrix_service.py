@@ -7,12 +7,11 @@ import loguru
 from app.models.telegram_user import DonateStatus, GlobalMarketingDonateStatus
 from app.repositories.matrix import RepositoryMatrix, RepositoryMatrixNode
 from app.models import Matrix
-from app.schemas.matrix import MatrixEntity, MatrixNodeTeamSchema
+from app.schemas.matrix import MatrixEntity
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.services.base.crud_service import CrudServiceMixin
 from app.models.matrix import MatrixMarketingType, MatrixEngineType
-from app.schemas.marketing import MatrixMarketingScope
-from schemas.marketing import create_marketing_scope
+from app.schemas.marketing import MatrixMarketingScope, create_marketing_scope
 
 
 class MatrixService(CrudServiceMixin[RepositoryMatrix]):
@@ -27,7 +26,7 @@ class MatrixService(CrudServiceMixin[RepositoryMatrix]):
         self._repository_matrix_node = repository_matrix_node
         self._repository_telegram_user = repository_telegram_user
 
-    async def get_list(self, *args, order_by_create_at: bool = False,**kwargs) -> list[Matrix]:
+    async def get_list(self, *args, order_by_create_at: bool = False, **kwargs) -> list[Matrix]:
         return await self._repository_matrix.get_list(
             *args,
             order_by_create_at=order_by_create_at,
@@ -88,18 +87,16 @@ class MatrixService(CrudServiceMixin[RepositoryMatrix]):
     async def get_unique_statuses_by_owner_id(
             self,
             owner_id: uuid.UUID,
-            marketing_scope: MatrixMarketingScope,
+            marketing_type: MatrixMarketingType,
     ) -> List[DonateStatus | GlobalMarketingDonateStatus]:
-        match marketing_scope.marketing_type:
+        match marketing_type:
             case MatrixMarketingType.START:
                 return await self._repository_matrix.get_unique_statuses_by_owner_id(
                     owner_id=owner_id,
-                    marketing_scope=marketing_scope,
                 )
             case MatrixMarketingType.GLOBAL:
                 return await self._repository_matrix_node.get_unique_statuses_by_owner_id(
                     owner_id=owner_id,
-                    marketing_scope=marketing_scope,
                 )
             case _:
                 raise ValueError("Not supported marketing type")
@@ -148,17 +145,7 @@ class MatrixService(CrudServiceMixin[RepositoryMatrix]):
                 if not matrix_node:
                     return None, matrix_nodes_count
 
-                matrix_node_team_schema = MatrixNodeTeamSchema.model_validate(matrix_node)
-                if matrix_node:
-                    downline_nodes = await self._repository_matrix_node.get_downline_nodes(
-                        matrix_id=matrix_node.matrix_id,
-                        position=matrix_node.position,
-                        level=matrix_node.level,
-                        max_level=max_downline_nodes_level,
-                    )
-                    matrix_node_team_schema.downline_nodes = downline_nodes
-
-                return matrix_node_team_schema
+                return matrix_node, matrix_nodes_count
 
             case _:
                 raise ValueError("Not supported marketing type")

@@ -298,7 +298,7 @@ class SendDonationsMenuUseCase:
         marketing_type = marketing_scope.marketing_type
         user_statuses = await self.matrix_service.get_unique_statuses_by_owner_id(
             owner_id=current_user.id,
-            marketing_scope=marketing_scope,
+            marketing_type=marketing_scope.marketing_type,
         )
         if triumph_node:
             user_statuses.append(DonateStatus.BRILLIANT)
@@ -353,10 +353,10 @@ class SendDonationsMenuUseCase:
         owners_ids = await self.telegram_user_service.get_ids(is_bot=False)
         matrices = await self.matrix_service.get_list(Matrix.owner_id.in_(owners_ids))  # FIXME
 
-        matrix_statuses_msg = get_matrices_statuses_statistic_message(
-            matrices=matrices,
-            marketing_scope=marketing_scope,
-        )
+        # matrix_statuses_msg = get_matrices_statuses_statistic_message(
+        #     matrices=matrices,
+        #     marketing_scope=marketing_scope,
+        # )
 
         bills_activation_sum = (
             await self.telegram_user_service.get_bills_for_activation_sum()
