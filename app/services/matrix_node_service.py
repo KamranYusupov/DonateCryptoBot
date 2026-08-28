@@ -72,10 +72,17 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             max_iterations: int = 200,
     ) -> Optional[tuple[MatrixNode, int]]:
         for _ in range(max_iterations):
+            if not sponsor_user_id:
+                return None
+
             sponsor = (
                 await self._repository_telegram_user
                 .get_sponsor_data_by_user_id(user_id=sponsor_user_id)
             )
+
+            if not sponsor:
+                return None
+
             target_node = await self._repository_matrix_node.get(
                 owner_id=sponsor.id,
                 marketing_scope=marketing_scope,
@@ -103,10 +110,9 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             return sponsor_node
 
         target_node = sponsor_node
-        available_node = None
         sponsor_user_id = sponsor.sponsor_user_id
 
-        while not available_node:
+        while True:
             if not target_node:
                 target_node_result = await self._find_target_node(
                     sponsor_user_id=sponsor_user_id,
@@ -118,6 +124,9 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
 
                 target_node, sponsor_user_id = target_node_result
 
+                if target_node.children_count < 2:
+                    return target_node
+
             available_node = await self._repository_matrix_node.get_available_node(
                 matrix_id=target_node.matrix_id,
                 level=target_node.level,
@@ -128,16 +137,14 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             if available_node:
                 return available_node
 
-            if sponsor.is_admin:
-                available_node = await self.create_matrix_with_root_node(
-                    owner_id=sponsor.id,
+            target_owner = await self._repository_telegram_user.get(id=target_node.owner_id)
+            if target_owner and target_owner.is_admin:
+                return await self.create_matrix_with_root_node(
+                    owner_id=target_owner.id,
                     marketing_scope=marketing_scope,
                 )
-                break
-            else:
-                target_node = None
 
-        return available_node
+            target_node = None
 
     async def activate_matrix_node(
             self,
