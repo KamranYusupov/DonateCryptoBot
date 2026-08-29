@@ -274,6 +274,7 @@ class Container(containers.DeclarativeContainer):
         donate_service=donate_service,
         matrix_node_service=matrix_node_service,
         repository_telegram_user=repository_telegram_user,
+        repository_matrix_node=repository_matrix_node,
     )
     # endregion
 

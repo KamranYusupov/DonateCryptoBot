@@ -16,7 +16,7 @@ from app.schemas.transaction import (
     DonateTransactionContextSchema,
     TransactionReceiverSchema,
 )
-from app.repositories import RepositoryTelegramUser
+from app.repositories import RepositoryTelegramUser, RepositoryMatrixNode
 from app.core.config import settings
 from app.models.matrix import MatrixMarketingType
 
@@ -26,11 +26,13 @@ class GlobalMarketingDonateService:
             self,
             donate_service: DonateService,
             matrix_node_service: MatrixNodeService,
+            repository_matrix_node: RepositoryMatrixNode,
             repository_telegram_user: RepositoryTelegramUser,
     ) -> None:
         self._donate_service = donate_service
         self._matrix_node_service = matrix_node_service
         self._repository_telegram_user = repository_telegram_user
+        self._repository_matrix_node = repository_matrix_node
 
     async def execute(
             self,
@@ -73,10 +75,10 @@ class GlobalMarketingDonateService:
         while next_donate_node_position != 1:
             upline_node_positions = self._matrix_node_service.get_upline_node_positions(
                 position=next_donate_node_position,
-                max_upline_depth=status_index,
+                max_upline_depth=status_index + 1,
             )
             next_donate_node_position = upline_node_positions[-1]
-            next_donate_node = await self._matrix_node_service.get_node(
+            next_donate_node = await self._repository_matrix_node.get(
                 marketing_type=MatrixMarketingType.GLOBAL,
                 position=next_donate_node_position,
             )

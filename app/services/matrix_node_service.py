@@ -198,6 +198,7 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
         current_user_node = await self._repository_matrix_node.get(
             owner_id=current_user_id,
             matrix_status=matrix_status,
+            global_marketing_status=global_marketing_status,
             marketing_type=marketing_type,
         )
         if current_user_node:
