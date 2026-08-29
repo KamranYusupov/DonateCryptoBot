@@ -347,10 +347,10 @@ async def confirm_donate_handler(
             triumph_bill = current_user.triumph_bill
     elif marketing_scope.marketing_type is MatrixMarketingType.GLOBAL:
         current_user_status = getattr(current_user, marketing_scope.status_orm_attr)
-        if (
-            current_user_status is not None
-            and status.index <= current_user_status.index
-            and status.__class__ is current_user_status.__class__
+        if is_status_higher(
+            status,
+            current_user_status,
+            or_equal=True,
         ):
             await callback.message.edit_text(
                 f"Пакет <b>\"{status.presentation_str}\"</b> уже активирован."

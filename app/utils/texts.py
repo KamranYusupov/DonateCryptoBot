@@ -2,7 +2,7 @@ import copy
 from collections import defaultdict
 from datetime import date, timedelta, datetime
 from decimal import Decimal
-from typing import Any, List, Sequence
+from typing import Any, List, Sequence, Optional
 import uuid
 
 import loguru
@@ -379,13 +379,12 @@ def format_decimal(decimal: Decimal, round_digits: int = 2) -> str:
 
 def get_sponsor_transaction_message_text(
         *,
-        sender_str: str,
-        status: DonateStatus,
+        status: DonateStatus | GlobalMarketingDonateStatus,
         sponsor_depth: int,
         quantity: Decimal,
-        is_public: bool = False,
+        sender_str: Optional[str] = None,
 ) -> str:
-    display_name = "ПАРТНЁР" if is_public else sender_str
+    display_name = "ПАРТНЁР" if not sender_str else sender_str
     template = (
         "<b>👥 {sender_str} АКТИВИРОВАЛ \n"
         "<b>{status_emoji} {status_name}</b>\n"
@@ -423,7 +422,7 @@ def get_matrix_transaction_message_text(
         matrix_length: int,
         matrix_max_length: int,
         triumph: bool = False,
-        is_public: bool = False,
+        display_receiver: bool = False,
 ):
     template = (
         "<b>🤖 БОТ ЗАКРЫЛ МЕСТО {receiver_str}</b>\n"
@@ -434,7 +433,7 @@ def get_matrix_transaction_message_text(
         "🔥 Делитесь <b>KOD💵DENEG</b> — получайте бонусы."
     )
 
-    receiver_str = "" if is_public else receiver_str
+    receiver_str = "" if not display_receiver else receiver_str
     status_str = f"{status_emoji} {status_label.upper()}"
 
     if triumph:

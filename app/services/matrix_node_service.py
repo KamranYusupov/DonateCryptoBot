@@ -153,6 +153,7 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             sponsor_id: UUID,
             marketing_type: MatrixMarketingType,
             max_upline_depth: int,
+            global_marketing_status: Optional[GlobalMarketingDonateStatus] = None,
             matrix_status: Optional[DonateStatus] = None,
             max_search_level: Optional[int] = None
     ) -> Tuple[MatrixNode, List[MatrixNode]]:
@@ -160,6 +161,7 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             current_user_id=current_user_id,
             sponsor_id=sponsor_id,
             marketing_type=marketing_type,
+            global_marketing_status=global_marketing_status,
             matrix_status=matrix_status,
             max_search_level=max_search_level,
         )
@@ -255,7 +257,7 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
     ):
         upline_nodes = []
         level_count = 0
-        while position > 1 and level_count <= max_upline_depth:
+        while position > 1 and level_count < max_upline_depth:
             position = position // 2
             upline_nodes.append(position)
             level_count += 1

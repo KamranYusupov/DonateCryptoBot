@@ -74,7 +74,6 @@ class MatrixActivationNotifierService:
             self,
             context: SponsorTransactionContextSchema,
     ) -> None:
-        loguru.logger.info(context.status.label)
         private_message_text = get_sponsor_transaction_message_text(
             sender_str=context.sender_str,
             status=context.status,
@@ -86,7 +85,6 @@ class MatrixActivationNotifierService:
             status=context.status,
             sponsor_depth=context.sponsor_depth,
             quantity=context.quantity,
-            is_public=True,
         )
         tasks = (
             self._telegram_bot_adapter.send_message(
@@ -117,12 +115,12 @@ class MatrixActivationNotifierService:
             .send_matrix_transaction_message(
                 context,
                 chat_id=settings.private_donates_channel_id,
+                display_receiver=True,
             ),
             self._matrix_notifier_adapter
             .send_matrix_transaction_message(
                 context,
                 chat_id=settings.donates_channel_id,
-                is_public=True,
             )
         )
         await asyncio.gather(*tasks)

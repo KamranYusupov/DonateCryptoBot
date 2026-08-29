@@ -12,6 +12,6 @@ class IMatrixNotifierProtocol(Protocol):
             self,
             context: MatrixTransactionContextSchema,
             chat_id: int,
-            is_public: bool = False,
+            display_receiver: bool = False,
     ): ...
 

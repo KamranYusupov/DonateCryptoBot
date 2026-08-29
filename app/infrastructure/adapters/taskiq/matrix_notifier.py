@@ -11,11 +11,11 @@ class MatrixNotifierTaskIQAdapter:
             self,
             context: MatrixTransactionContextSchema,
             chat_id: int,
-            is_public: bool = False,
+            display_receiver: bool = False,
     ) -> None:
         await send_matrix_transaction_message_task.kiq(
             chat_id=chat_id,
-            is_public=is_public,
+            display_receiver=display_receiver,
             receiver_id=context.receiver.id,
             receiver_str=context.receiver.full_username,
             status_label=context.status.label,

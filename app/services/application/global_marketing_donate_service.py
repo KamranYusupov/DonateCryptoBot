@@ -44,13 +44,13 @@ class GlobalMarketingDonateService:
             current_user_id=current_user_id,
             sponsor_id=first_sponsor_id,
             marketing_type=MatrixMarketingType.GLOBAL,
+            global_marketing_status=status,
             matrix_status=None,
             max_upline_depth=max_upline_depth,
         )
         transactions_data = []
         matrix_transaction = await self._get_transaction_for_matrix(
-            matrix_id=inserted_node.matrix_id,
-            position=inserted_node.position,
+            inserted_node=inserted_node,
             status=status,
             matrix_max_length=matrix_max_length,
         )
@@ -64,10 +64,10 @@ class GlobalMarketingDonateService:
             status: GlobalMarketingDonateStatus,
     ) -> tuple[MatrixNode, TelegramUser, bool]:
         status_index = status.index
-        allowed_statuses = (
+        allowed_statuses = [
             s for s in GlobalMarketingDonateStatus
-            if status_index >= s.index
-        )
+            if status_index <= s.index
+        ]
 
         next_donate_node_position = inserted_node.position
         while next_donate_node_position != 1:
@@ -87,10 +87,8 @@ class GlobalMarketingDonateService:
             if not receiver:
                 continue
 
-            send_to_system = len(upline_node_positions) <= status.index
+            send_to_system = len(upline_node_positions) < status.index
             return next_donate_node, receiver, send_to_system
-
-
 
 
     async def _get_transaction_for_matrix(

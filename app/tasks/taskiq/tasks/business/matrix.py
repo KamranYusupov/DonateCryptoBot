@@ -188,7 +188,7 @@ async def send_matrix_transaction_message_task(
         matrix_max_length: int,
         triumph: bool,
         quantity: Decimal,
-        is_public: bool = False,
+        display_receiver: bool = False,
         *,
         container: ContainerDependency,
 ) -> None:
@@ -221,7 +221,7 @@ async def send_matrix_transaction_message_task(
         triumph=triumph,
         quantity=quantity,
         receiver_donates_sum=donates_sum,
-        is_public=is_public,
+        display_receiver=display_receiver,
     )
 
     await telegram_bot_service.send_message(
