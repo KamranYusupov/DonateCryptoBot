@@ -56,29 +56,24 @@ def get_matrices_statuses_statistic_message(
 def get_matrices_length_statistic_message(
         matrices: list[Matrix],
         triumph_node_downline_count: int | None = None,
-) -> str: # FIXME: Split by marketing type
+) -> str:
     message = ""
-    return message
-    sorted_matrices = get_sorted_matrices(matrices, status_list)
+    sorted_matrices = get_sorted_matrices(matrices, list(DonateStatus))
 
 
     if triumph_node_downline_count is not None:
-        brilliant_status = DonateStatus.BRILLIANT
-        emoji = get(brilliant_status)
-
         message += (
-            f"<b>{emoji} {brilliant_status.label.upper()}</b>: "
-            f"{triumph_node_downline_count}/{settings.triumph_matrix_max_length}\n"
+            f"<b>{DonateStatus.BRILLIANT.emoji} {DonateStatus.BRILLIANT.label.upper()}</b>: "
+            f"{triumph_node_downline_count}/{settings.start_marketing.triumph_matrix_max_length}\n"
         )
 
     for matrix in sorted_matrices[::-1]:
         if matrix.status in (None, DonateStatus.BRILLIANT):
             continue
 
-        emoji = statuses_colors_data.get(matrix.status)
         message += (
-            f"<b>{emoji} {matrix.status.label.upper()}</b>: "
-            f"{len(matrix.telegram_users)}/{settings.matrix_max_length}\n"
+            f"<b>{matrix.status.emoji} {matrix.status.label.upper()}</b>: "
+            f"{len(matrix.telegram_users)}/{settings.start_marketing.matrix_max_length}\n"
         )
 
     return message
@@ -255,7 +250,7 @@ def get_matrix_info_message(
     matrices = copy.deepcopy(matrix.matrices)
 
     matrix_len = len(matrix.telegram_users)
-    while matrix_len != settings.matrix_max_length:
+    while matrix_len != settings.start_marketing.matrix_max_length:
         free_place_path = find_free_place_in_matrix(
             matrices,
             order_map=order_map,
@@ -282,7 +277,7 @@ def get_matrix_info_message(
             lines.append(f"{counter}) {value}")
             counter += 1
 
-    lines.append(f"\nМест занято: <b>{len(matrix.telegram_users)} из {settings.matrix_max_length}\n</b>")
+    lines.append(f"\nМест занято: <b>{len(matrix.telegram_users)} из {settings.start_marketing.matrix_max_length}\n</b>")
 
     return "\n".join(lines)
 

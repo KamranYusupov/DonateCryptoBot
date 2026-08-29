@@ -219,7 +219,7 @@ class SendDonationsMenuUseCase:
             triumph_node_expires_in_days += 1
 
         triumph_node_deadline_str = f"{triumph_node_expires_in_days} дней {triumph_node_deadline_additional_str}"
-        return f"Срок действия площадки <b>🏆 ТРИУМФ</b>: {triumph_node_deadline_str}\n"
+        return f"Срок действия площадки <b>🏆 ТРИУМФ</b>: {triumph_node_deadline_str}\n\n"
 
     async def _get_matrices_length_text(
             self,
@@ -234,21 +234,19 @@ class SendDonationsMenuUseCase:
                 order_by_create_at=True,
                 owner_id=owner_id,
             )
-        else:
-            matrices = await self.matrix_service.get_list(
-                Matrix.marketing_type == marketing_type,
-                order_by_create_at=True,
-                owner_id=owner_id,
-            )
+            main_matrices = get_main_matrices(matrices)
 
-        main_matrices = get_main_matrices(matrices)
+            if not main_matrices:
+                return "не открыты"
 
-        if main_matrices or (marketing_type == MatrixMarketingType.START and triumph_downline_count is not None):
             return "\n" + get_matrices_length_statistic_message(
                 matrices=main_matrices,
                 triumph_node_downline_count=triumph_downline_count,
             )
-        return "не открыты"
+
+
+        if marketing_type == MatrixMarketingType.GLOBAL:
+            return ""
 
     @staticmethod
     def _get_other_marketing_buttons(
