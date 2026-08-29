@@ -130,37 +130,39 @@ def get_triumph_bill_transaction_message(
         f"Дата и время создания: {html.bold(created_at_str)}"
     )
 
+
 async def get_my_team_message(
-        matrix_obj: Matrix | MatrixNode,
-        total_matrix_objects_count: int,
-        status_orm_attr: str,
+        matrices: list[Matrix],
         page_number: int,
         per_page: int = 1,
         callback_data_prefix: str = "team",
         previous_page_number: int | None = None,
+        matrix_node: MatrixNode | None = None,
         downline_nodes: list[MatrixNode] | None = None,
 ):
     downline_nodes = [] if not downline_nodes else downline_nodes
     message = ""
+    sorted_matrices = get_sorted_matrices(matrices, list(DonateStatus))
 
+    if matrix_node:
+        sorted_matrices.append(matrix_node)
+
+    paginator = Paginator(
+        sorted_matrices,
+        page_number=page_number,
+        per_page=per_page
+    )
     buttons = {}
     sizes = (1, 1)
 
-    paginator = OuterPaginator(
-        objects_count=total_matrix_objects_count,
-        per_page=per_page,
-        page_number=page_number,
-    )
-
-    if matrix_obj:
-        if isinstance(matrix_obj, Matrix):
-            message += get_matrix_info_message(
-                matrix=matrix_obj,
-                status_orm_attr=status_orm_attr,
-            )
-        elif isinstance(matrix_obj, MatrixNode):
+    if paginator.get_page():
+        matrix = paginator.get_page()[0]
+        if isinstance(matrix, Matrix):
+            message += get_matrix_info_message(matrix)
+        elif isinstance(matrix, MatrixNode):
+            matrix_node = matrix
             message += get_downline_nodes_message(
-                matrix_obj,
+                matrix_node,
                 status=DonateStatus.BRILLIANT,
                 downline_nodes=downline_nodes,
                 matrix_max_length=settings.triumph_matrix_max_length,
@@ -175,9 +177,9 @@ async def get_my_team_message(
     )
 
     if paginator.has_previous():
-        buttons |= {"◀ Пред.": pagination_button_data.format(page_number=page_number - 1)}
+        buttons |= {"◀️ Пред.": pagination_button_data.format(page_number=page_number - 1)}
     if paginator.has_next():
-        buttons |= {"След. ▶": pagination_button_data.format(page_number=page_number + 1)}
+        buttons |= {"След. ▶️": pagination_button_data.format(page_number=page_number + 1)}
 
     if len(buttons) == 2:
         sizes = (2, 1)
@@ -234,17 +236,18 @@ def get_downline_nodes_message(
 
 def get_matrix_info_message(
         matrix: Matrix,
-        status_orm_attr: str,
         order_map: dict[str, int] | None = None,
         level_length: int = settings.level_length,
 ):
     """
     Выводит бинарное дерево матрицы.
     """
-    matrix_status = getattr(matrix, status_orm_attr)
-    lines = [f"<b>{matrix_status.emoji} {matrix_status.label}: {matrix.id.hex[0:5]}</b>"]
+    lines = [f"<b>{matrix.status.emoji} {matrix.status.label}: {matrix.id.hex[0:5]}</b>"]
     if not matrix.matrices:
-        lines.append(f"\nМест занято: <b>{len(matrix.telegram_users)} из {settings.matrix_max_length}\n</b>")
+        lines.append(
+            f"\nМест занято: <b>{len(matrix.telegram_users)} из "
+            f"{settings.start_marketing.matrix_max_length}\n</b>"
+        )
 
         return "\n".join(lines)
     counter = 1

@@ -135,12 +135,17 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
             marketing_type=marketing_type,
         )
 
-    async def get_all_my_donates_and_transactions(
+    async def get_donates_and_transactions(
             self,
-            telegram_user_id: uuid.UUID,
+            telegram_user_id: uuid.UUID | None = None,
+            marketing_type: MatrixMarketingType | None = None,
     ):
         """Получить все свои отправленные донаты в виде словаря {донат: транзакции доната}"""
-        get_donates_kwargs = {"telegram_user_id": telegram_user_id}
+        get_donates_kwargs = {"marketing_type": marketing_type}
+
+        if telegram_user_id:
+            get_donates_kwargs["telegram_user_id"] = telegram_user_id
+
         donates = await self._repository_donate.get_donates_list(**get_donates_kwargs)
         output_dict = {}
         for donate in donates:
@@ -210,22 +215,6 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
             total_donates_sum_amount=donate_quantity,
             triumph=is_triumph
         )
-
-
-    async def get_all_donates_and_transactions(
-            self,
-    ):
-        """Получить все свои отправленные донаты в виде словаря {донат: транзакции доната}"""
-        get_donates_kwargs = dict()
-
-        donates = await self._repository_donate.get_donates_list(**get_donates_kwargs)
-        output_dict = {}
-        for donate in donates:
-            donate_transactions = await self._repository_donate_transaction.list(
-                donate_id=donate.id
-            )
-            output_dict[donate] = donate_transactions
-        return output_dict
 
     async def get_all_donate_transactions(self):
         return await self._repository_donate_transaction.get_transactions_list()

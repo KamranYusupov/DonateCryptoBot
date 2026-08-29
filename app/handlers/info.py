@@ -26,8 +26,7 @@ from app.utils.texts import (
     kod_deneg_movie_caption,
     kod_mood_movie_caption,
 )
-from app.schemas.marketing import MatrixMarketingScope
-from app.filters.marketing_type import MarketingTypeFilter
+from app.models.matrix import MatrixMarketingType
 
 info_router = Router()
 
@@ -118,17 +117,12 @@ async def kod_mood_movie_handler(
     )
 
 
-@info_router.callback_query(
-    or_f(
-        MarketingTypeFilter("team"),
-        MarketingTypeFilter("archive_team")
-    )
-)
+@info_router.callback_query(F.data.startswith("team_"))
+@info_router.callback_query(F.data.startswith("archive_team_"))
 @inject
 async def team_inline_handler(
         callback: CallbackQuery,
         current_user: TelegramUser,
-        marketing_scope: MatrixMarketingScope,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -162,14 +156,14 @@ async def team_inline_handler(
         back_button_data = f"donations"
         callback_data_prefix = f"team"
         matrix_node = await matrix_node_service.get_node(
-            owner_id=current_user.id
+            owner_id=current_user.id,
+            marketing_type=MatrixMarketingType.START,
         )
         if matrix_node:
             downline_nodes = await matrix_node_service.get_downline_nodes(
                 matrix_id=matrix_node.matrix_id,
                 position=matrix_node.position,
                 level=matrix_node.level,
-                max_level=4
             )
             get_my_team_message_kwargs["downline_nodes"] = downline_nodes
 
@@ -185,7 +179,6 @@ async def team_inline_handler(
     get_my_team_message_kwargs.update(dict(
         matrices=matrices,
         page_number=page_number,
-        status_orm_attr=marketing_scope.status_orm_attr,
         previous_page_number=previous_page_number,
         callback_data_prefix=callback_data_prefix,
     ))
@@ -200,7 +193,7 @@ async def team_inline_handler(
         buttons["АРХИВ УРОВНЕЙ 🗄"] = f"archive_team_1_{page_number}"
 
     if current_user.status is not None and not current_user.is_admin:
-        buttons.update({"Транзакции 💳": f"transactions"})
+        buttons.update({"Транзакции 💳": f"{MatrixMarketingType.START.label}_transactions"})
 
     buttons["🔙 Назад"] = back_button_data
 

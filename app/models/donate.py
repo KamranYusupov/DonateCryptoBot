@@ -42,6 +42,10 @@ class Donate(UUIDMixin, TimestampedMixin, Base):
         "TelegramUser",
         backref="donates",
     )
+    matrix = relationship(
+        "Matrix",
+        backref="donates",
+    )
 
     __table_args__ = {"extend_existing": True}
 

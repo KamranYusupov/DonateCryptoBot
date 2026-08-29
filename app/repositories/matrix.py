@@ -83,14 +83,16 @@ class RepositoryMatrix(RepositoryBase[Matrix]):
             status: DonateStatus | None = None,
             for_update: bool = False,
     ) -> list[Matrix]:
-        where_conditions = (Matrix.owner_id == owner_id, )
+        statement = select(Matrix).where(Matrix.owner_id == owner_id)
 
         if status:
-            where_conditions += (Matrix.status == status)
+            statement = (
+                statement
+                .where(Matrix.status == status)
+            )
 
         statement = (
-            select(Matrix)
-            .where(*where_conditions)
+            statement
             .order_by(Matrix.created_at)
         )
         if for_update:

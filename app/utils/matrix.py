@@ -46,7 +46,7 @@ def get_archived_matrices(
 
     archived_matrices = [
         matrix for matrix in matrices
-        if len(matrix.telegram_users) == settings.matrix_max_length
+        if len(matrix.telegram_users) == settings.start_marketing.matrix_max_length
     ]
 
     return archived_matrices
@@ -58,7 +58,7 @@ def get_active_matrices(
 
     active_matrices = [
         matrix for matrix in matrices
-        if len(matrix.telegram_users) < settings.matrix_max_length
+        if len(matrix.telegram_users) < settings.start_marketing.matrix_max_length
     ]
 
     return active_matrices
@@ -70,7 +70,7 @@ def get_main_matrices(
     added_statuses = set()
 
     for matrix in matrices:
-        if len(matrix.telegram_users) < settings.matrix_max_length \
+        if len(matrix.telegram_users) < settings.start_marketing.matrix_max_length \
             and matrix.status not in added_statuses:
 
             added_statuses.add(matrix.status)

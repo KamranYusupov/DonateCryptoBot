@@ -64,6 +64,7 @@ from app.models.matrix import MatrixMarketingType
 from app.use_cases.donations import SendDonationsMenuUseCase
 from app.schemas.marketing import MatrixMarketingScope, create_marketing_scope
 from app.utils.status import is_status_higher, is_status_triumph
+from app.filters.admin import IsAdminFilter
 
 donate_router = Router()
 
@@ -747,34 +748,6 @@ async def donate_handler(
     ])
 
 
-@donate_router.callback_query(
-    MarketingTypeFilter("transactions")
-)
-@inject
-async def get_transactions_menu(
-        callback: CallbackQuery,
-        current_user: TelegramUser,
-        marketing_type: MatrixMarketingType,
-) -> None:
-    buttons = {
-        "Транзакции мне 📈": f"{marketing_type.label}_transactions_to_me_1",
-        "Транзакции от меня 📉": f"{marketing_type.label}_transactions_from_me_1",
-    }
-    if current_user.is_admin:
-        buttons.update({
-            "Все транзакции 📊": f"{marketing_type.label}_all_transactions_1",
-            "Транзакции в Сейф Триумф": "triumph_bill_transactions_1",
-        })
-
-    buttons["🔙 Назад"] = f"{marketing_type.label}_donations"
-
-    await callback.message.edit_text(
-        "В этом разделе вы можете посмотреть информацию о подтверждении транзакций по подаркам.\n"
-        "Выберете раздел:",
-        reply_markup=get_donate_keyboard(buttons=buttons),
-    )
-
-
 @donate_router.callback_query(MarketingTypeFilter("transactions_to_me"))
 @inject
 async def get_transactions_list_to_me(
@@ -793,6 +766,7 @@ async def get_transactions_list_to_me(
 
     transactions = await donate_confirm_service.get_donate_transaction_by_sponsor_id(
         sponsor_id=current_user.id,
+        marketing_type=marketing_scope.marketing_type,
     )
 
     paginator = Paginator(transactions, page_number=page_number, per_page=5)
@@ -846,7 +820,7 @@ async def get_transactions_list_to_me(
     else:
         message = "У вас нет транзакций"
 
-    buttons["🔙 Назад"] = f"transactions"
+    buttons["🔙 Назад"] = f"{marketing_scope.marketing_type.label}_transactions"
     await callback.message.edit_text(
         message,
         reply_markup=get_donate_keyboard(
@@ -856,19 +830,21 @@ async def get_transactions_list_to_me(
     )
 
 
-@donate_router.callback_query(F.data.startswith("transactions_from_me_"))
+@donate_router.callback_query(MarketingTypeFilter("transactions_from_me"))
 @inject
 async def get_transactions_list_from_me(
         callback: CallbackQuery,
         current_user: TelegramUser,
+        marketing_type: MatrixMarketingType,
         donate_confirm_service: DonateConfirmService = Provide[
             Container.donate_confirm_service
         ],
 ) -> None:
     page_number = int(callback.data.split("_")[-1])
 
-    donates = await donate_confirm_service.get_all_my_donates_and_transactions(
+    donates = await donate_confirm_service.get_donates_and_transactions(
         telegram_user_id=current_user.id,
+        marketing_type=marketing_type,
     )
 
     paginator = Paginator(list(donates.items()), page_number=page_number, per_page=3)
@@ -899,7 +875,7 @@ async def get_transactions_list_from_me(
     if len(buttons) == 2:
         sizes = (2, 1)
 
-    buttons["🔙 Назад"] = f"transactions"
+    buttons["🔙 Назад"] = f"{marketing_type.label}_transactions"
 
     await callback.message.edit_text(
         message,
@@ -908,10 +884,14 @@ async def get_transactions_list_from_me(
     )
 
 
-@donate_router.callback_query(F.data.startswith("all_transactions_"))
+@donate_router.callback_query(
+    MarketingTypeFilter("all_transactions"),
+    IsAdminFilter(),
+)
 @inject
 async def get_all_transactions(
         callback: CallbackQuery,
+        marketing_type: MatrixMarketingType,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -921,7 +901,9 @@ async def get_all_transactions(
 ) -> None:
     page_number = int(callback.data.split("_")[-1])
     donates_and_transactions = (
-        await donate_confirm_service.get_all_donates_and_transactions()
+        await donate_confirm_service.get_donates_and_transactions(
+            marketing_type=marketing_type,
+        )
     )
 
     paginator = Paginator(
@@ -975,7 +957,7 @@ async def get_all_transactions(
 
                     message += "\n"
 
-    buttons["🔙 Назад"] = f"transactions"
+    buttons["🔙 Назад"] = f"{marketing_type}_transactions"
     await callback.message.edit_text(
         message,
         parse_mode="HTML",
@@ -984,4 +966,33 @@ async def get_all_transactions(
             sizes=sizes,
         ),
     )
+
+
+@donate_router.callback_query(
+    MarketingTypeFilter("transactions")
+)
+@inject
+async def get_transactions_menu(
+        callback: CallbackQuery,
+        current_user: TelegramUser,
+        marketing_type: MatrixMarketingType,
+) -> None:
+    buttons = {
+        "Транзакции мне 📈": f"{marketing_type.label}_transactions_to_me_1",
+        "Транзакции от меня 📉": f"{marketing_type.label}_transactions_from_me_1",
+    }
+    if current_user.is_admin:
+        buttons.update({
+            "Все транзакции 📊": f"{marketing_type.label}_all_transactions_1",
+            "Транзакции в Сейф Триумф": "triumph_bill_transactions_1",
+        })
+
+    buttons["🔙 Назад"] = f"{marketing_type.label}_donations"
+
+    await callback.message.edit_text(
+        "В этом разделе вы можете посмотреть информацию о подтверждении транзакций по подаркам.\n"
+        "Выберете раздел:",
+        reply_markup=get_donate_keyboard(buttons=buttons),
+    )
+
 

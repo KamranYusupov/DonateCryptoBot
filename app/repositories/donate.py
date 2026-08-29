@@ -37,11 +37,27 @@ class RepositoryDonate(RepositoryBase[Donate]):
         result = await self._session.execute(statement)
         return result.scalar_one_or_none()
 
-    async def get_donates_list(self, *args, **kwargs):
+    async def get_donates_list(
+            self,
+            *args,
+            marketing_type: MatrixMarketingType | None = None,
+            **kwargs
+    ):
         statement = (
             select(Donate)
             .filter(*args)
             .filter_by(**kwargs)
+        )
+
+        if marketing_type:
+            statement = (
+                statement
+                .join(Donate.matrix)
+                .where(Matrix.marketing_type == marketing_type)
+            )
+
+        statement = (
+            statement
             .order_by(Donate.created_at.desc())
         )
 
@@ -146,23 +162,17 @@ class RepositoryDonateTransaction(RepositoryBase[DonateTransaction]):
     async def get_donate_transaction_by_sponsor_id(
             self,
             sponsor_id: uuid.UUID,
-            marketing_scope: MatrixMarketingScope | None = None,
+            marketing_type: MatrixMarketingType | None = None,
     ):
         statement = select(DonateTransaction)
 
 
-        if marketing_scope is not None:
-            status_attr = getattr(Matrix, marketing_scope.status_orm_attr)
-
+        if marketing_type:
             statement = (
-                select(
-                    DonateTransaction.quantity,
-                    DonateTransaction.type_,
-                    status_attr,
-                )
+                statement
                 .join(DonateTransaction.donate)
                 .join(Donate.matrix)
-                .where(Matrix.marketing_type == marketing_scope.marketing_type)
+                .where(Matrix.marketing_type == marketing_type)
             )
 
         statement = (

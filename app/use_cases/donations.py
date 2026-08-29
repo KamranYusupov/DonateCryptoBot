@@ -324,11 +324,18 @@ class SendDonationsMenuUseCase:
 
         current_user_status = getattr(current_user, marketing_scope.status_orm_attr)
 
-        if current_user_status is not None:
+        if current_user_status is not None and marketing_type is MatrixMarketingType.START:
             inline_buttons.append(
                 InlineKeyboardButton(
                     text="АКТИВНЫЕ ПЛОЩАДКИ",
-                    callback_data=f"f{marketing_type.label}_team_1")
+                    callback_data="team_1")
+            )
+            sizes.append(1)
+        elif current_user_status is not None and marketing_type is MatrixMarketingType.GLOBAL:
+            inline_buttons.append(
+                InlineKeyboardButton(
+                    text="Транзакции 💳",
+                    callback_data=f"{marketing_type.label}_transactions")
             )
             sizes.append(1)
 
@@ -404,7 +411,7 @@ class SendDonationsMenuUseCase:
 
         buttons = {
             "АКТИВНЫЕ ПЛОЩАДКИ": "team_1",
-            "Транзакции 💳".upper(): "transactions",
+            "Транзакции 💳".upper(): f"{marketing_scope.marketing_type.label}_transactions",
             "Скачать базу ⬇️".upper(): "excel_users",
             "Заявки на вывод 💸".upper(): "withdrawal_requests_1",
             "Список забаненных пользователей 📇🅱️".upper(): "banned_users_1",

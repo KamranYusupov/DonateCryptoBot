@@ -14,6 +14,7 @@ from app.utils.datetime import to_main_tz
 from app.utils.pagination import Paginator, get_pagination_buttons, OuterPaginator
 from app.utils.texts import get_triumph_bill_transaction_message, format_decimal
 from app.filters.admin import IsAdminFilter
+from app.models.matrix import MatrixMarketingType
 
 triumph_bill_transaction_router = Router()
 triumph_bill_transactions_list_per_page = 5
@@ -34,7 +35,7 @@ async def triumph_bill_transactions_list_handler(
     base_callback_data = "_".join(callback_data[:-1])
     per_page = triumph_bill_transactions_list_per_page
 
-    default_buttons = {"🔙 Назад": "transactions"}
+    default_buttons = {"🔙 Назад": f"{MatrixMarketingType.START}_transactions"}
     buttons = {}
     sizes = tuple()
     offset = (page_number * per_page) - per_page

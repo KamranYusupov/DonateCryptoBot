@@ -315,7 +315,7 @@ class DonateService:
 
         for matrix in sponsor_matrices:
 
-            if len(matrix.telegram_users) < settings.matrix_max_length:
+            if len(matrix.telegram_users) < settings.start_marketing.matrix_max_length:
                 created_matrix = await self._handle_insertion_to_free_matrix(
                     matrix,
                     current_user,
@@ -373,7 +373,7 @@ class DonateService:
         free_place_level = len(free_place_path) + 1
         parents = await self.get_matrix_parents(
             matrix=free_matrix,
-            count=settings.matrix_max_level - free_place_level
+            count=settings.start_marketing.matrix_max_level - free_place_level
         )
 
         await self._update_transactions_data_with_json_matrix_receivers(
@@ -426,7 +426,7 @@ class DonateService:
                 continue
 
             for matrix in next_sponsor_matrices:
-                if len(matrix.telegram_users) < settings.matrix_max_length:
+                if len(matrix.telegram_users) < settings.start_marketing.matrix_max_length:
                     created_matrix = await self._handle_insertion_to_free_matrix(
                         free_matrix=matrix,
                         current_user=current_user,
