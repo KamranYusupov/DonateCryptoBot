@@ -33,10 +33,6 @@ class MatrixNodeSchema(BaseModel):
     position: int
     children_count: int = 0
     marketing_type: MatrixMarketingType
-    global_marketing_status: GlobalMarketingDonateStatus | None = Field(
-        title="Статус доната Global маркетинга",
-        default=None
-    )
 
 
 class AddBotToMatrixTaskSchema(BaseModel):

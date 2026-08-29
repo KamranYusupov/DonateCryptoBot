@@ -87,19 +87,10 @@ class MatrixService(CrudServiceMixin[RepositoryMatrix]):
     async def get_unique_statuses_by_owner_id(
             self,
             owner_id: uuid.UUID,
-            marketing_type: MatrixMarketingType,
-    ) -> List[DonateStatus | GlobalMarketingDonateStatus]:
-        match marketing_type:
-            case MatrixMarketingType.START:
-                return await self._repository_matrix.get_unique_statuses_by_owner_id(
-                    owner_id=owner_id,
-                )
-            case MatrixMarketingType.GLOBAL:
-                return await self._repository_matrix_node.get_unique_statuses_by_owner_id(
-                    owner_id=owner_id,
-                )
-            case _:
-                raise ValueError("Not supported marketing type")
+    ) -> List[DonateStatus]:
+        return await self._repository_matrix.get_unique_statuses_by_owner_id(
+            owner_id=owner_id,
+        )
 
     async def get_team_matrix_obj_with_count_by_marketing_scope(
             self,

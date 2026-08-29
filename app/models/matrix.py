@@ -158,13 +158,6 @@ class MatrixNode(UUIDMixin, TimestampedMixin, Base):
         index=True,
     )
 
-    global_marketing_status = Column(
-        Enum(GlobalMarketingDonateStatus),
-        index=True,
-        default=None,
-        server_default=text("null"),
-    )
-
     level = Column(
         Integer,
         nullable=False,
@@ -207,12 +200,4 @@ class MatrixNode(UUIDMixin, TimestampedMixin, Base):
         Index("idx_matrix_free", matrix_id, children_count, level, position),
         Index("idx_user_matrix", owner_id, matrix_id),
         UniqueConstraint("matrix_id", "position",),
-        CheckConstraint(
-            """
-            (marketing_type = 'GLOBAL' AND global_marketing_status IS NOT NULL)
-            OR
-            (marketing_type = 'START' AND global_marketing_status IS NULL)
-            """,
-            name="ck_matrix_node_global_status_logic"
-        ),
     )

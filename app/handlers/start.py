@@ -184,7 +184,6 @@ async def admin(
     await matrix_node_service.create_matrix_with_root_node(
         owner_id=admin_user.id,
         marketing_type=MatrixMarketingType.GLOBAL,
-        global_marketing_status=list(GlobalMarketingDonateStatus)[-1]
     )
 
     await message.answer("Готово ✅")

@@ -115,7 +115,8 @@ class SendDonationsMenuUseCase:
 
         triumph_node = await self.matrix_node_service.get_node(
             owner_id=current_user.id,
-            marketing_scope=StartMarketingScope(status=DonateStatus.BRILLIANT)
+            matrix_status=DonateStatus.BRILLIANT,
+            marketing_type=marketing_scope.marketing_type,
         )
 
         matrices_text = await self._get_matrices_length_text(
@@ -296,10 +297,20 @@ class SendDonationsMenuUseCase:
             triumph_node: MatrixNode | None = None,
     ) -> InlineKeyboardMarkup:
         marketing_type = marketing_scope.marketing_type
-        user_statuses = await self.matrix_service.get_unique_statuses_by_owner_id(
-            owner_id=current_user.id,
-            marketing_type=marketing_scope.marketing_type,
-        )
+        if marketing_type is MatrixMarketingType.START:
+            user_statuses = await self.matrix_service.get_unique_statuses_by_owner_id(
+                owner_id=current_user.id,
+            )
+        elif marketing_type is MatrixMarketingType.GLOBAL:
+            user_global_status = getattr(current_user, marketing_scope.status_orm_attr)
+            user_global_status_index = user_global_status.index if user_global_status else None
+            user_statuses = [
+                s for s in marketing_type.status_enum
+                if s.index <= user_global_status_index
+            ] if user_global_status else []
+        else:
+            raise TypeError(f"Unsupported marketing type: {marketing_type}")
+
         if triumph_node:
             user_statuses.append(DonateStatus.BRILLIANT)
 
@@ -376,7 +387,7 @@ class SendDonationsMenuUseCase:
 
         message_text = admin_statistic_message_text_template.format(
             users_count=users_count,
-            matrix_statuses_statistic_message=matrix_statuses_msg,
+            matrix_statuses_statistic_message='',
             users_count_with_not_active_status=not_active_count,
             total_donates_sum=format_decimal(admin_statistic.total_donates_sum),
             system_bill=format_decimal(admin_statistic.system_bill),

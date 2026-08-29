@@ -46,7 +46,6 @@ class GlobalMarketingDonateService:
             current_user_id=current_user_id,
             sponsor_id=first_sponsor_id,
             marketing_type=MatrixMarketingType.GLOBAL,
-            global_marketing_status=status,
             matrix_status=None,
             max_upline_depth=max_upline_depth,
         )
@@ -70,12 +69,13 @@ class GlobalMarketingDonateService:
             s for s in GlobalMarketingDonateStatus
             if status_index <= s.index
         ]
+        status_order_number = status_index + 1
 
         next_donate_node_position = inserted_node.position
         while next_donate_node_position != 1:
             upline_node_positions = self._matrix_node_service.get_upline_node_positions(
                 position=next_donate_node_position,
-                max_upline_depth=status_index + 1,
+                max_upline_depth=status_order_number,
             )
             next_donate_node_position = upline_node_positions[-1]
             next_donate_node = await self._repository_matrix_node.get(
@@ -89,7 +89,7 @@ class GlobalMarketingDonateService:
             if not receiver:
                 continue
 
-            send_to_system = len(upline_node_positions) < status.index
+            send_to_system = len(upline_node_positions) < status_order_number
             return next_donate_node, receiver, send_to_system
 
 

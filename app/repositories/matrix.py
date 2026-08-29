@@ -352,19 +352,6 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
         result = await self._session.execute(statement)
         return result.one()
 
-    async def get_unique_statuses_by_owner_id(
-            self,
-            owner_id: uuid.UUID,
-    ) -> List[DonateStatus | GlobalMarketingDonateStatus]:
-        statement = (
-            select(MatrixNode.global_marketing_status)
-            .where(MatrixNode.owner_id == owner_id)
-            .distinct()
-        )
-
-        result = await self._session.execute(statement)
-        return result.scalars().all()
-
     async def get_count(
             self,
             owner_id: uuid.UUID,
