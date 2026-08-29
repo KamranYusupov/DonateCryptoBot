@@ -33,8 +33,8 @@ class MatrixEngineType(enum.Enum):
     NODES = "nodes"
 
 class MatrixMarketingType(enum.Enum):
-    START = ("start", "Программа «ТРИУМФ»", DonateStatus)
-    GLOBAL = ("global", "Программа «Прайм-Тайм»", GlobalMarketingDonateStatus)
+    START = ("start", "ТРИУМФ", DonateStatus)
+    GLOBAL = ("global", "Прайм-Тайм", GlobalMarketingDonateStatus)
 
     def __init__(
             self,
