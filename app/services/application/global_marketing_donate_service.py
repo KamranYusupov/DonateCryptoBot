@@ -100,7 +100,7 @@ class GlobalMarketingDonateService:
             matrix_max_length: int = settings.global_marketing.matrix_max_length,
             transaction_percent: int | Decimal = \
                     settings.global_marketing.donates_config.matrix_donate_transaction_percent,
-    ):
+    ) -> MatrixTransactionContextSchema | SystemTransactionContextSchema:
         donate_receiver_node, receiver, send_to_system = await self._find_donate_node_with_receiver(
             inserted_node=inserted_node,
             status=status,

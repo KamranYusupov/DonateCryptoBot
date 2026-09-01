@@ -6,7 +6,7 @@ import loguru
 
 from app.core.config import settings
 from app.keyboards.donate import get_donate_keyboard
-from app.models.telegram_user import DonateStatus
+from app.models.telegram_user import DonateStatus, GlobalMarketingDonateStatus
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.utils.concurrency import gather_by_batches
 from app.utils.texts import (
@@ -24,6 +24,7 @@ from app.services.interfaces import (
     ITelegramBotProtocol,
     IMatrixNotifierProtocol,
 )
+from app.models.matrix import MatrixMarketingType
 
 
 class MatrixActivationNotifierService:
@@ -129,7 +130,8 @@ class MatrixActivationNotifierService:
     async def notify_invited_users(
             self,
             sponsor_user_id: int,
-            status: DonateStatus,
+            status: DonateStatus | GlobalMarketingDonateStatus,
+            marketing_type: MatrixMarketingType,
     ) -> None:
         sponsor = await self._repository_telegram_user.get(
             user_id=sponsor_user_id,
@@ -146,7 +148,10 @@ class MatrixActivationNotifierService:
         )
 
         reply_markup = get_donate_keyboard(
-            buttons={"⚡️ Активировать площадку": "donations"}
+            buttons={
+                "⚡️ Активировать площадку":
+                    f"{marketing_type.label}_donations"
+            }
         )
         tasks = (
             self._telegram_bot_adapter.send_message(

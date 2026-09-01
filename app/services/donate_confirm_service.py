@@ -178,6 +178,7 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
     async def update_bills_by_donate_id(
             self,
             donate_id: uuid.UUID,
+            marketing_type: MatrixMarketingType,
             is_triumph: bool = False,
             is_bot: bool = False
     ):
@@ -193,6 +194,17 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
             # FIXME: N+1 проблема с repository_telegram_user.increment_bill
             if transaction.type_ == DonateTransactionType.SYSTEM:
                 system_bill_donate += transaction.quantity
+                continue
+
+            elif (
+                transaction.type_ == DonateTransactionType.MATRIX
+                and marketing_type == MatrixMarketingType.GLOBAL
+            ):
+                await self._repository_telegram_user.increment_global_safe(
+                    telegram_user_id=transaction.sponsor_id,
+                    amount=transaction.quantity,
+                    with_donates_sum=True,
+                )
                 continue
 
             await self._repository_telegram_user.increment_bill(

@@ -142,6 +142,21 @@ class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
             if depth > 10000:
                 return None
 
+    async def get_telegram_user_for_update(self, telegram_user_id: uuid.UUID):
+        return await self._repository_telegram_user.get_for_update(
+            telegram_user_id=telegram_user_id,
+        )
+
+    async def increment_global_safe(
+            self,
+            telegram_user_id: uuid.UUID,
+            amount: Decimal,
+            with_donates_sum: bool = False,
+    ) -> None:
+        return await self._repository_telegram_user.increment_global_safe(
+            telegram_user_id, amount, with_donates_sum
+        )
+
     async def get_count(self, *args, **kwargs) -> int:
         return await self._repository_telegram_user.get_count(*args, **kwargs)
 

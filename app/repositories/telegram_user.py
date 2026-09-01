@@ -36,6 +36,36 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
         result = await self._session.execute(statement)
         return result.scalars().all()
 
+    async def increment_global_safe(
+            self,
+            telegram_user_id: UUID,
+            amount: Decimal,
+            with_donates_sum: bool = False,
+    ) -> None:
+        update_kwargs = {
+            "global_safe": TelegramUser.global_safe + amount,
+        }
+
+        if with_donates_sum:
+            update_kwargs["donates_sum"] = TelegramUser.donates_sum + amount
+
+        statement = (
+            update(TelegramUser)
+            .where(TelegramUser.id == telegram_user_id)
+            .values(**update_kwargs)
+        )
+
+        await self._session.execute(statement)
+
+    async def get_for_update(self, telegram_user_id: UUID) -> TelegramUser:
+        statement = (
+            select(TelegramUser)
+            .where(TelegramUser.id == telegram_user_id)
+            .with_for_update()
+        )
+        result = await self._session.execute(statement)
+        return result.scalars().first()
+
     async def get_ids(self, *args, **kwargs) -> list[UUID]:
         statement = (
             select(TelegramUser.id)

@@ -1,3 +1,4 @@
+import asyncio
 from uuid import UUID
 
 import loguru
@@ -19,9 +20,11 @@ async def send_donations_menu_task(
         marketing_type_name: str,
         status_name: str,
         callback_suffix: str = "donations",
+        delay: int = 0,
         *,
         container: ContainerDependency,
 ) -> None:
+    await asyncio.sleep(delay)
     try:
         marketing_type = MatrixMarketingType[marketing_type_name]
     except KeyError:

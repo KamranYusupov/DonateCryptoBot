@@ -35,7 +35,8 @@ from app.tasks.taskiq.tasks.business.contest import (
     update_sponsors_contest_task,
 )
 from app.tasks.taskiq.tasks.business.donations import send_donations_menu_task
-from app.tasks.taskiq.tasks.business.matrix import apply_bot_matrix_tasks
+from app.tasks.taskiq.tasks.business.matrix import apply_bot_matrix_tasks, \
+    check_is_global_safe_value_enough_for_next_status
 from app.tasks.taskiq.tasks.business.triumph_bill import increase_triumph_bills_task
 from app.utils.pagination import Paginator
 from app.utils.excel import export_users_to_excel
@@ -673,6 +674,7 @@ async def donate_handler(
         await donate_confirm_service.update_bills_by_donate_id(
             donate_id=donate.id,
             is_triumph=is_triumph,
+            marketing_type=marketing_type,
         )
 
         if is_status_higher(
@@ -740,12 +742,26 @@ async def donate_handler(
     await matrix_activation_notifier_service.notify_invited_users(
         sponsor_user_id=current_user.user_id,
         status=status,
+        marketing_type=marketing_type,
     )
-    await asyncio.gather(*[
-        matrix_activation_notifier_service
-        .send_transaction_message(transaction)
-        for transaction in transactions_data
-    ])
+
+    send_transaction_message_coroutines = []
+    check_safe_task_sent_receiver_ids = set()
+    for transaction in transactions_data:
+        send_transaction_message_coroutines.append(
+            matrix_activation_notifier_service
+            .send_transaction_message(transaction)
+        )
+        if (
+            marketing_type is MatrixMarketingType.GLOBAL
+            and transaction.receiver.id not in check_safe_task_sent_receiver_ids
+        ):
+            await check_is_global_safe_value_enough_for_next_status.kiq(
+                telegram_user_id=transaction.receiver.id,
+            )
+            check_safe_task_sent_receiver_ids.add(transaction.receiver.id)
+
+    await asyncio.gather(*send_transaction_message_coroutines)
 
 
 @donate_router.callback_query(MarketingTypeFilter("transactions_to_me"))

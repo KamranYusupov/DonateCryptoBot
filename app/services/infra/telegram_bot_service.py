@@ -28,7 +28,7 @@ class TelegramBotService:
             await asyncio.sleep(settings.mailing_success_delay_seconds)
             return True
         except TelegramRetryAfter as e:
-            delay_seconds = e.retry_after + jitter
+            delay_seconds = e.retry_after + 2
             loguru.logger.warning(
                 f"Flood control for {chat_id}. Retry after {e.retry_after}s"
             )

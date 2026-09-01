@@ -12,7 +12,10 @@ from app.db.commit_decorator import commit_and_close_session, set_scope_session
 from app.repositories import RepositoryTelegramUser
 from app.services import TelegramBotService
 from app.tasks.taskiq.dependencies.container import ContainerDependency
+from app.tasks.taskiq.tasks.business.donations import send_donations_menu_task
 from app.utils.texts import format_decimal, get_matrix_transaction_message_text
+from app.models.telegram_user import GlobalMarketingDonateStatus
+from app.schemas.marketing import create_marketing_scope
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +127,158 @@ async def add_bot_to_matrix_task(
         ])
 
     await asyncio.gather(*coroutines)
+
+
+@broker.task(name="Activate Global matrix by safe value")
+@commit_and_close_session
+async def check_is_global_safe_value_enough_for_next_status(
+        telegram_user_id: uuid.UUID,
+        *,
+        container: ContainerDependency
+):
+    telegram_user_service = await container.telegram_user_service()
+
+    telegram_user = await telegram_user_service.get_telegram_user_for_update(
+        telegram_user_id=telegram_user_id,
+    )
+    global_status_list = list(GlobalMarketingDonateStatus)
+    if telegram_user.global_marketing_status == global_status_list[-1]:
+        return
+    elif telegram_user.global_marketing_status is not None:
+        next_global_status = global_status_list[
+            telegram_user.global_marketing_status.index + 1
+        ]
+    else:
+        next_global_status = global_status_list[0]
+
+    if telegram_user.global_safe >= next_global_status.amount:
+        await activate_global_martix_by_safe_value_task.kiq(
+            telegram_user_id,
+            next_global_status.name,
+        )
+        return
+
+@broker.task(name="Activate Global matrix by safe value")
+@commit_and_close_session
+async def activate_global_martix_by_safe_value_task(
+        telegram_user_id: uuid.UUID,
+        status_name: str,
+        *,
+        container: ContainerDependency
+):
+    try:
+        status = GlobalMarketingDonateStatus[status_name]
+    except KeyError:
+        logger.warning(
+            f'Not valid status "{status_name}" '
+            f'for marketing type "{GlobalMarketingDonateStatus.name}"'
+        )
+        return
+    global_marketing_donate_service = await container.global_marketing_donate_service()
+    telegram_user_service = await container.telegram_user_service()
+    donate_service = await container.donate_service()
+    donate_confirm_service = await container.donate_confirm_service()
+    matrix_activation_notifier_service = await container.matrix_activation_notifier_service()
+    session = await container.session()
+    telegram_bot_service = container.telegram_bot_service()
+
+    current_user = await telegram_user_service.get_telegram_user_for_update(
+        telegram_user_id=telegram_user_id,
+    )
+    if (
+        current_user.global_safe < status.amount
+        or current_user.global_marketing_status == status
+        or current_user.global_marketing_status.index + 1 < status.index
+    ):
+        return
+
+    sponsors = await telegram_user_service.get_sponsors(
+        sponsor_user_id=current_user.sponsor_user_id,
+    )
+    first_sponsor = sponsors[0]
+    marketing_scope = create_marketing_scope(
+        marketing_type=MatrixMarketingType.GLOBAL,
+        telegram_user=current_user,
+    )
+    transactions_data = []
+    sponsors_transactions_data = donate_service.update_transactions_data_with_sponsors(
+        current_user,
+        *sponsors,
+        status=status,
+        marketing_scope=marketing_scope,
+    )
+    transactions_data.extend(sponsors_transactions_data)
+
+    inserted_node, matrix_transactions_data = await global_marketing_donate_service.execute(
+        current_user_id=current_user.id,
+        first_sponsor_id=first_sponsor.id,
+        status=status,
+        max_upline_depth=marketing_scope.config.matrix_max_level
+    )
+    transactions_data.extend(matrix_transactions_data)
+
+    matrix_id = inserted_node.matrix_id
+
+    await donate_service.update_transactions_data_with_system_transaction(
+        transactions_data,
+        donate_sum=status.amount,
+    )
+
+    donate = await donate_confirm_service.create_donate(
+        telegram_user_id=current_user.id,
+        transactions=transactions_data,
+        matrix_id=matrix_id,
+        quantity=status.amount,
+    )
+
+    await telegram_user_service.increment_global_safe(
+        telegram_user_id=current_user.id,
+        amount=-status.amount,
+    )
+    await donate_confirm_service.update_bills_by_donate_id(
+        donate_id=donate.id,
+        marketing_type=marketing_scope.marketing_type,
+    )
+    current_user.global_marketing_status = status
+    await session.commit()
+
+    await telegram_bot_service.send_message(
+        text=(
+            f"<b>Уровень <b>{status.emoji} {status.label.upper()}</b> "
+            f"успешно активирован ✅</b>"
+        ),
+        chat_id=current_user.user_id,
+    )
+    await send_donations_menu_task.kiq(
+        current_user.user_id,
+        marketing_type_name=marketing_scope.marketing_type.name,
+        status_name=status.name,
+        current_user_id=current_user.id,
+       # delay=2,
+    )
+
+    await matrix_activation_notifier_service.notify_invited_users(
+        sponsor_user_id=current_user.user_id,
+        status=status,
+        marketing_type=marketing_scope.marketing_type,
+    )
+    send_transaction_message_coroutines = []
+    check_safe_task_sent_receiver_ids = set()
+    for transaction in transactions_data:
+        send_transaction_message_coroutines.append(
+            matrix_activation_notifier_service
+            .send_transaction_message(transaction)
+        )
+        if (
+            marketing_scope.marketing_type is MatrixMarketingType.GLOBAL
+            and transaction.receiver.id not in check_safe_task_sent_receiver_ids
+        ):
+            await check_is_global_safe_value_enough_for_next_status.kiq(
+                telegram_user_id=transaction.receiver.id,
+            )
+            check_safe_task_sent_receiver_ids.add(transaction.receiver.id)
+
+    await asyncio.gather(*send_transaction_message_coroutines)
 
 
 async def apply_bot_matrix_tasks(

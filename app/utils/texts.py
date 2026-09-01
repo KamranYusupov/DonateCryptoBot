@@ -357,7 +357,7 @@ sponsor_activation_text_template = html.bold(
 
 def get_sponsor_activation_text(
         username: str,
-        status: DonateStatus,
+        status: DonateStatus | GlobalMarketingDonateStatus,
 ) -> str:
     status_str = f"{status.emoji} {status.label.upper()}"
 
