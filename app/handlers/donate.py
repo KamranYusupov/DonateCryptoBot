@@ -398,6 +398,7 @@ async def send_donate_handler(
         callback: CallbackQuery,
         current_user: TelegramUser,
         marketing_type: MatrixMarketingType,
+        marketing_scope: MatrixMarketingScope,
 ) -> None:
     callback_data = callback.data.split("_")
     status_name, bill_type_value = callback_data[-2:]
@@ -406,6 +407,19 @@ async def send_donate_handler(
     except KeyError:
         loguru.logger.warning(f"Unknown status {status_name}")
         await callback.message.delete()
+        return
+
+    if is_status_higher(
+            status,
+            getattr(current_user, marketing_scope.status_orm_attr),
+            or_equal=True,
+    ):
+        await callback.message.edit_text(
+            f"Пакет <b>\"{status.presentation_str}\"</b> уже активирован.",
+            reply_markup=get_donate_keyboard(
+                buttons={"🔙 Назад": f"{marketing_scope.marketing_type.label}_donations"}
+            )
+        )
         return
 
     bill_type = BillType(bill_type_value)
@@ -493,6 +507,21 @@ async def donate_handler(
         marketing_type=marketing_type,
         status=status,
     )
+    current_user_status = getattr(current_user, marketing_scope.status_orm_attr)
+
+    if is_status_higher(
+            status,
+            current_user_status,
+            or_equal=True,
+    ):
+        await callback.message.edit_text(
+            f"Пакет <b>\"{status.presentation_str}\"</b> уже активирован.",
+            reply_markup=get_donate_keyboard(
+                buttons={"🔙 Назад": f"{marketing_scope.marketing_type.label}_donations"}
+            )
+        )
+        return
+
 
     bill_type = BillType(bill_type_value)
     bill = current_user.get_bill_by_type(bill_type)
@@ -527,8 +556,6 @@ async def donate_handler(
     sponsors = await telegram_user_service.get_sponsors(
         sponsor_user_id=current_user.sponsor_user_id,
     )
-
-    current_user_status = getattr(current_user, marketing_scope.status_orm_attr)
 
     exc_user_message = (
         "Непредвиденная ошибка. "
