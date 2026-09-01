@@ -79,13 +79,17 @@ def get_matrices_length_statistic_message(
     return message
 
 def get_global_node_statistic_message(
-        nodes_count_per_level: dict[int, int]
+        nodes_count_per_level: dict[int, int],
+        status: GlobalMarketingDonateStatus
 ) -> str:
     message_text = ""
-    for status in reversed(list(GlobalMarketingDonateStatus)):
+    for status in reversed(
+            list(GlobalMarketingDonateStatus)[:status.index+1]
+    ):
         level_count = status.index + 1
         max_level_length = settings.level_length ** level_count
-        loguru.logger.info(f"{level_count} {settings.level_length} {max_level_length}")
+
+        loguru.logger.info(str(nodes_count_per_level))
 
         level_places_taken = nodes_count_per_level.get(level_count, 0)
         message_text += (

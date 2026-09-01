@@ -337,6 +337,8 @@ async def confirm_donate_handler(
         await callback.message.delete()
         return
 
+    back_button_data = {"🔙 Назад": f"{marketing_scope.marketing_type.label}_donations"}
+
     if marketing_scope.marketing_type is MatrixMarketingType.START:
         supported_statuses_for_triumph_bill = (
             DonateStatus.SILVER,
@@ -349,13 +351,25 @@ async def confirm_donate_handler(
             triumph_bill = current_user.triumph_bill
     elif marketing_scope.marketing_type is MatrixMarketingType.GLOBAL:
         current_user_status = getattr(current_user, marketing_scope.status_orm_attr)
+
+        current_user_status_index = current_user_status.index if current_user_status else 0
+        if current_user_status_index + 1 < status.index:
+            await callback.message.edit_text(
+                "Уровни активируются по порядку.",
+                reply_markup=get_donate_keyboard(
+                    buttons=back_button_data,
+                )
+            )
+            return
+
         if is_status_higher(
             status,
             current_user_status,
             or_equal=True,
         ):
             await callback.message.edit_text(
-                f"Пакет <b>\"{status.presentation_str}\"</b> уже активирован."
+                f"Пакет <b>\"{status.presentation_str}\"</b> уже активирован.",
+                reply_markup=get_donate_keyboard(buttons=back_button_data)
             )
             return
 
@@ -365,7 +379,7 @@ async def confirm_donate_handler(
         callback_prefix=callback_prefix,
         triumph_bill=triumph_bill,
     )
-    buttons["🔙 Назад"] = f"{marketing_scope.marketing_type.label}_donations"
+    buttons.update(back_button_data)
 
     await callback.message.edit_text(
         "Выберите баланс:",

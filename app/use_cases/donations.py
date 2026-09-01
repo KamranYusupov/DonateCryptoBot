@@ -124,7 +124,7 @@ class SendDonationsMenuUseCase:
         )
 
         matrices_text = await self._get_matrices_length_text(
-            current_user.id,
+            current_user,
             MatrixMarketingType.START,
             triumph_node.downline_count if triumph_node else None
         )
@@ -170,7 +170,11 @@ class SendDonationsMenuUseCase:
             )
             return
 
-        matrices_text = await self._get_matrices_length_text(current_user.id, MatrixMarketingType.GLOBAL, None)
+        matrices_text = await self._get_matrices_length_text(
+            current_user,
+            MatrixMarketingType.GLOBAL,
+            None,
+        )
         sponsor = await self.telegram_user_service.get_telegram_user(user_id=current_user.sponsor_user_id)
 
         message_text = global_main_message_text_template.format(
@@ -227,7 +231,7 @@ class SendDonationsMenuUseCase:
 
     async def _get_matrices_length_text(
             self,
-            owner_id: uuid.UUID,
+            current_user: TelegramUser,
             marketing_type: MatrixMarketingType,
             triumph_downline_count: Optional[int]
     ) -> str:
@@ -236,7 +240,7 @@ class SendDonationsMenuUseCase:
                 Matrix.marketing_type == marketing_type,
                 Matrix.status != DonateStatus.BRILLIANT,
                 order_by_create_at=True,
-                owner_id=owner_id,
+                owner_id=current_user.id,
             )
             main_matrices = get_main_matrices(matrices)
 
@@ -251,7 +255,7 @@ class SendDonationsMenuUseCase:
 
         elif marketing_type == MatrixMarketingType.GLOBAL:
             global_marketing_node = await self.matrix_node_service.get_node(
-                owner_id=owner_id,
+                owner_id=current_user.id,
                 marketing_type=marketing_type,
             )
             if not global_marketing_node:
@@ -261,10 +265,13 @@ class SendDonationsMenuUseCase:
                 matrix_id=global_marketing_node.matrix_id,
                 level=global_marketing_node.level,
                 position=global_marketing_node.position,
-                max_level=len(list(GlobalMarketingDonateStatus))
+                max_level=current_user.global_marketing_status.index + 1
             )
 
-            return "\n" + get_global_node_statistic_message(nodes_count_per_level)
+            return "\n" + get_global_node_statistic_message(
+                nodes_count_per_level,
+                current_user.global_marketing_status
+            )
 
         else:
             raise ValueError(f"Unknown marketing type: \"{marketing_type.name}\"")
