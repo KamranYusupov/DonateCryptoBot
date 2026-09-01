@@ -30,6 +30,9 @@ from app.models.telegram_user import TelegramUser
 from app.models.matrix import MatrixMarketingType
 from app.filters.marketing_type import MarketingTypeFilter
 from app.schemas.marketing import MatrixMarketingScope, create_marketing_scope
+from app.tasks.taskiq.tasks.business.matrix import (
+    check_is_global_safe_value_enough_for_next_status,
+)
 
 safe_router = Router()
 
@@ -245,7 +248,9 @@ async def confirm_safe_increment_handler(
         obj_id=current_user.id,
         obj_in=current_user_update_obj_in,
     )
-
+    await check_is_global_safe_value_enough_for_next_status.kiq(
+        telegram_user_id=current_user.id,
+    )
     await delete_message_or_pass(callback.message)
     await callback.message.answer(
         "💸",
