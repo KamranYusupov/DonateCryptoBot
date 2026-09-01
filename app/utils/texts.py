@@ -78,6 +78,23 @@ def get_matrices_length_statistic_message(
 
     return message
 
+def get_global_node_statistic_message(
+        nodes_count_per_level: dict[int, int]
+) -> str:
+    message_text = ""
+    for status in reversed(list(GlobalMarketingDonateStatus)):
+        level_count = status.index + 1
+        max_level_length = settings.level_length ** level_count
+        loguru.logger.info(f"{level_count} {settings.level_length} {max_level_length}")
+
+        level_places_taken = nodes_count_per_level.get(level_count, 0)
+        message_text += (
+            f"<b>{status.emoji} {status.label.upper()}: "
+            f"{level_places_taken} из {max_level_length}</b>\n"
+        )
+
+    return message_text
+
 def get_user_info_message(user: TelegramUser) -> str:
     created_at_str = to_main_tz(user.created_at).strftime("%d.%m.%Y %H:%M")
     message = (
@@ -208,10 +225,8 @@ def get_downline_nodes_message(
     for node in downline_nodes:
         rel_level = node.level - matrix_node.level
 
-        # Вычисляем глобальную позицию самого левого узла на этом уровне
         level_start_position = matrix_node.position * (2 ** rel_level)
 
-        # Вычисляем индекс узла в нашем массиве (от 0 до 2^rel_level - 1)
         index_on_level = node.position - level_start_position
         levels_data[rel_level][index_on_level] = "Занято"
 
@@ -559,7 +574,7 @@ start_main_message_text_template = (
 )
 
 global_main_message_text_template = (
-    "Активные глобальные площадки: {matrices_length_statistic_message}\n"
+    "Активные площадки: {matrices_length_statistic_message}\n"
     "Мой куратор: {sponsor_username}\n"
     "Дата регистрации: <b>{created_at_date_str}</b>\n\n"
     "{base_message_text}"

@@ -256,19 +256,6 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
 
         return upline_nodes
 
-    async def get_active_nodes_by_positions(
-            self,
-            matrix_id: UUID,
-            positions: Sequence[int],
-    ):
-        return await self._repository_matrix_node.get_nodes_by_positions(
-            MatrixNode.last_activation >= (
-                    datetime.now() - timedelta(days=365)
-            ),
-            matrix_id=matrix_id,
-            positions=positions,
-        )
-
     async def get_downline_nodes(
             self,
             matrix_id: UUID,
@@ -278,4 +265,18 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
     ) -> list[MatrixNode]:
         return await self._repository_matrix_node.get_downline_nodes(
             matrix_id, position, level, max_level,
+        )
+
+    async def get_downline_counts_per_level(
+            self,
+            matrix_id: UUID,
+            position: int,
+            level: int,
+            max_level: int = 12
+    ) -> dict[int, int]:
+        return await self._repository_matrix_node.get_downline_counts_per_level(
+            matrix_id=matrix_id,
+            position=position,
+            level=level,
+            max_level=max_level,
         )

@@ -15,6 +15,6 @@ async def on_worker_startup(state):
 
 @broker.on_event(TaskiqEvents.WORKER_SHUTDOWN)
 async def on_worker_startup(state):
-
+    container = state.container
     await container.shutdown_resources()
     loguru.logger.info("Worker is stoping...")

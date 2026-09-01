@@ -391,3 +391,36 @@ class RepositoryMatrixNode(RepositoryBase[MatrixNode]):
 
         result = await self._session.execute(statement)
         return result.scalars().first()
+
+    async def get_downline_counts_per_level(
+            self,
+            matrix_id: uuid.UUID,
+            position: int,
+            level: int,
+            max_level: int = 12
+    ) -> dict[int, int]:
+        relative_level = MatrixNode.level - level
+        power_calc = cast(func.power(2, relative_level), BigInteger)
+
+        statement = (
+            select(
+                relative_level.label("rel_level"),
+                func.count(MatrixNode.id).label("node_count")
+            )
+            .where(
+                MatrixNode.matrix_id == matrix_id,
+                MatrixNode.level > level,
+                MatrixNode.level <= level + max_level,
+                MatrixNode.position >= position * power_calc,
+                MatrixNode.position < (position + 1) * power_calc,
+            )
+            # Группируем результаты по уровню
+            .group_by(MatrixNode.level)
+            .order_by(MatrixNode.level)
+        )
+
+        result = await self._session.execute(statement)
+
+        counts_map = {row.rel_level: row.node_count for row in result.all()}
+
+        return counts_map

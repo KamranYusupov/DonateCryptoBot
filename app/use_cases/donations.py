@@ -12,7 +12,11 @@ from app.keyboards.donate import get_donations_buttons, get_start_marketing_dona
 from app.keyboards.inline import get_inline_buttons_from_dict
 from app.loader import bot
 from app.models import Matrix
-from app.models.telegram_user import DonateStatus, TelegramUser
+from app.models.telegram_user import (
+    DonateStatus,
+    TelegramUser,
+    GlobalMarketingDonateStatus,
+)
 from app.services.matrix_node_service import MatrixNodeService
 from app.services.matrix_service import MatrixService
 from app.services.sponsors_contest_service import SponsorsContestService
@@ -28,7 +32,7 @@ from app.utils.texts import (
     start_main_message_text_template,
     start_base_message_text_template,
     global_main_message_text_template,
-    global_base_message_text_template,
+    global_base_message_text_template, get_global_node_statistic_message,
 )
 from app.utils.texts import get_triumph_bill_increase_statistic_text
 from app.models.matrix import MatrixMarketingType, MatrixNode
@@ -245,8 +249,25 @@ class SendDonationsMenuUseCase:
             )
 
 
-        if marketing_type == MatrixMarketingType.GLOBAL:
-            return ""
+        elif marketing_type == MatrixMarketingType.GLOBAL:
+            global_marketing_node = await self.matrix_node_service.get_node(
+                owner_id=owner_id,
+                marketing_type=marketing_type,
+            )
+            if not global_marketing_node:
+                return "не открыты"
+
+            nodes_count_per_level = await self.matrix_node_service.get_downline_counts_per_level(
+                matrix_id=global_marketing_node.matrix_id,
+                level=global_marketing_node.level,
+                position=global_marketing_node.position,
+                max_level=len(list(GlobalMarketingDonateStatus))
+            )
+
+            return "\n" + get_global_node_statistic_message(nodes_count_per_level)
+
+        else:
+            raise ValueError(f"Unknown marketing type: \"{marketing_type.name}\"")
 
     @staticmethod
     def _get_other_marketing_buttons(
