@@ -4,7 +4,7 @@ import os
 import loguru
 from aiogram import Router, F, html
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import Command
+from aiogram.filters import Command, or_f
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery, FSInputFile, InlineKeyboardMarkup
@@ -28,18 +28,24 @@ from app.utils.bot import delete_message_or_pass
 from app.models.telegram_user import DonateStatus
 from app.models.telegram_user import TelegramUser
 from app.models.matrix import MatrixMarketingType
+from app.filters.marketing_type import MarketingTypeFilter
+from app.schemas.marketing import MatrixMarketingScope, create_marketing_scope
 
-triumph_bill_router = Router()
+safe_router = Router()
 
-class IncrementTriumphBillState(StatesGroup):
+class IncrementSafeBillState(StatesGroup):
     amount = State()
 
-@triumph_bill_router.callback_query(F.data.startswith("start_increment_trumph_bill"))
+
+@safe_router.callback_query(
+    MarketingTypeFilter("start_increment_safe")
+)
 @inject
 async def start_triumph_bill_handler(
         callback: CallbackQuery,
         state: FSMContext,
         current_user: TelegramUser,
+        marketing_scope: MatrixMarketingScope,
 ) -> None:
     bill_type = callback.data.split("_")[-1]
     bill_value = getattr(current_user, f"bill_for_{bill_type}")
@@ -53,22 +59,28 @@ async def start_triumph_bill_handler(
         )
         return
 
-    triumph_bill_limit = DonateStatus.BRILLIANT.amount
-    if current_user.triumph_bill is not None and \
-            current_user.triumph_bill > triumph_bill_limit:
+
+    safe_value = getattr(current_user, marketing_scope.user_safe_orm_attr)
+
+    if (
+        marketing_scope.marketing_type is MatrixMarketingType.START
+        and safe_value >= DonateStatus.BRILLIANT.amount
+    ):
         await callback.message.edit_text(
-            f"Сейф Триумф достиг лимита({triumph_bill_limit} USDT).",
+            f"Сейф Триумф достиг лимита({DonateStatus.BRILLIANT.amount} USDT).",
             reply_markup=get_donate_keyboard(
-                buttons={"🔙 Назад": f"donations"}
+                buttons={"🔙 Назад": f"{marketing_scope.marketing_type.label}_donations"}
             )
         )
         return
 
-    data_to_update = {"bill_type": bill_type}
-    await state.set_state(IncrementTriumphBillState.amount)
+    await state.set_state(IncrementSafeBillState.amount)
 
     message_text = "Напишите сумму USDT для перевода."
-    await state.update_data(**data_to_update),
+    await state.update_data(
+        bill_type=bill_type,
+        marketing_type=marketing_scope.marketing_type,
+    ),
     await callback.message.delete(),
     await callback.message.answer(
         message_text,
@@ -76,7 +88,7 @@ async def start_triumph_bill_handler(
     )
 
 
-@triumph_bill_router.message(F.text, IncrementTriumphBillState.amount)
+@safe_router.message(F.text, IncrementSafeBillState.amount)
 @inject
 async def process_amount(
         message: Message,
@@ -100,15 +112,22 @@ async def process_amount(
 
     state_data = await state.get_data()
     bill_type = state_data["bill_type"]
+    marketing_type = state_data["marketing_type"]
+    marketing_scope = create_marketing_scope(
+        marketing_type,
+        current_user,
+    )
     bill_value = getattr(current_user, f"bill_for_{bill_type}")
+    safe_value = getattr(current_user, marketing_scope.user_safe_orm_attr)
 
-    current_triumph_bill = current_user.triumph_bill if current_user.triumph_bill is not None else 0
-    triumph_bill_limit = DonateStatus.BRILLIANT.amount
-    if current_triumph_bill + amount > triumph_bill_limit:
+    if (
+        marketing_type is MatrixMarketingType.START
+        and safe_value + amount >= DonateStatus.BRILLIANT.amount
+    ):
         await message.answer(
-            f"Сейф Триумф достиг лимита({triumph_bill_limit} USDT).",
+            f"Максимальная сумма Сейфа Триумф {DonateStatus.BRILLIANT.amount} USDT.",
             reply_markup=get_donate_keyboard(
-                buttons={"🔙 Назад": "donations"}
+                buttons={"🔙 Назад": f"{marketing_type.label}_donations"}
             )
         )
         await state.clear()
@@ -130,12 +149,12 @@ async def process_amount(
     await state.update_data(amount=amount)
 
     message_text = html.bold(
-        f"Пополнить 🏦 Сейф Триумф на {amount} USDT.\n\n"
+        f"Пополнить 🏦 Сейф {marketing_type.title} на {amount} USDT.\n\n"
         "Вы уверены?"
     )
 
     reply_markup = get_confirm_inline_keyboard(
-        yes_button_data="confirm_triumph_bill_increment",
+        yes_button_data=f"{marketing_type.label}_confirm_safe_increment",
         no_button_data="cancel",
     )
 
@@ -145,12 +164,18 @@ async def process_amount(
     )
 
 
-@triumph_bill_router.callback_query(F.data == "confirm_triumph_bill_increment")
+@safe_router.callback_query(
+    or_f(
+        F.data == f"{MatrixMarketingType.START.label}_confirm_safe_increment",
+        F.data == f"{MatrixMarketingType.GLOBAL.label}_confirm_safe_increment",
+    )
+)
 @inject
-async def confirm_triumph_bill_increment_handler(
+async def confirm_safe_increment_handler(
         callback: CallbackQuery,
         state: FSMContext,
         current_user: TelegramUser,
+        marketing_scope: MatrixMarketingScope,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
@@ -171,15 +196,18 @@ async def confirm_triumph_bill_increment_handler(
     bill_field_name = f"bill_for_{bill_type}"
     bill_value = getattr(current_user, bill_field_name)
 
-    current_triumph_bill = current_user.triumph_bill if current_user.triumph_bill is not None else 0
-    triumph_bill_limit = DonateStatus.BRILLIANT.amount
-    if current_triumph_bill + amount > triumph_bill_limit:
+    safe_value = getattr(current_user, marketing_scope.user_safe_orm_attr)
+    if (
+        marketing_scope.marketing_type is MatrixMarketingType.START
+        and safe_value + amount >= DonateStatus.BRILLIANT.amount
+    ):
         await callback.message.edit_text(
-            f"Сейф Триумф достиг лимита({triumph_bill_limit} USDT).",
+            f"Максимальная сумма Сейфа Триумф {DonateStatus.BRILLIANT.amount} USDT.",
             reply_markup=get_donate_keyboard(
-                buttons={"🔙 Назад": "donations"}
+                buttons={"🔙 Назад": f"{marketing_scope.marketing_type.label}_donations"}
             )
         )
+        await state.clear()
         return
 
     if not bill_value:
@@ -195,19 +223,27 @@ async def confirm_triumph_bill_increment_handler(
         )
         return
 
-    transaction_schema = CreateTriumphBillTransactionSchema(
-        amount=amount,
-        telegram_user_id=current_user.id,
-        type_=TriumphBillTransactionType.INCREMENT,
-    )
-    await triumph_bill_service.increment_one(
-        user_id=current_user.user_id,
-        amount=amount,
-    )
-    await triumph_bill_transaction_service.create(transaction_schema),
+
+    current_user_update_obj_in = {bill_field_name: bill_value - amount}
+
+    if marketing_scope.marketing_type is MatrixMarketingType.START:
+        transaction_schema = CreateTriumphBillTransactionSchema(
+            amount=amount,
+            telegram_user_id=current_user.id,
+            type_=TriumphBillTransactionType.INCREMENT,
+        )
+        await triumph_bill_service.increment_one(
+            user_id=current_user.user_id,
+            amount=amount,
+        )
+        await triumph_bill_transaction_service.create(transaction_schema),
+    elif marketing_scope.marketing_type is MatrixMarketingType.GLOBAL:
+        current_user_update_obj_in[marketing_scope.user_safe_orm_attr] = \
+            safe_value + amount
+
     await telegram_user_service.update(
-          obj_id=current_user.id,
-        obj_in={bill_field_name: bill_value - amount}
+        obj_id=current_user.id,
+        obj_in=current_user_update_obj_in,
     )
 
     await delete_message_or_pass(callback.message)
@@ -216,14 +252,16 @@ async def confirm_triumph_bill_increment_handler(
         reply_markup=get_reply_keyboard(current_user),
     )
     await callback.message.answer(
-        html.bold(f"🏦 Сейф Триумф успешно пополнен на {amount} USDT ✅")
+        html.bold(
+            f"🏦 Сейф {marketing_scope.marketing_type.title} "
+            f"успешно пополнен на {amount} USDT ✅")
     )
     await send_donations_menu_use_case.execute(
-        marketing_type=MatrixMarketingType.START,
+        marketing_scope=marketing_scope,
         from_user_id=callback.from_user.id,
         current_user_id=current_user.id,
         telegram_method=bot.send_message,
-        callback_suffix=callback.data
+        callback_suffix="donations",
     )
 
     await state.clear()

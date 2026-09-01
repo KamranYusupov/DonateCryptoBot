@@ -18,13 +18,14 @@ from app.utils.texts import format_decimal, get_triumph_bill_increase_statistic_
 from app.models.telegram_user import TelegramUser
 from app.filters.marketing_type import MarketingTypeFilter
 from app.models.matrix import MatrixMarketingType
+from app.schemas.marketing import MatrixMarketingScope
 
 bill_type_router = Router()
 
 @bill_type_router.callback_query(
     or_f(
-        MarketingTypeFilter("start_transfer"),
-        MarketingTypeFilter("increment_trumph_bill"),
+        F.data == "start_transfer",
+        MarketingTypeFilter("increment_safe"),
     )
 )
 @inject
@@ -32,6 +33,7 @@ async def bill_type_handler(
         callback: CallbackQuery,
         current_user: TelegramUser,
         marketing_type: MatrixMarketingType,
+        marketing_scope: MatrixMarketingScope,
         statistic_service: StatisticService = Provide[
             Container.statistic_service
         ],
@@ -42,19 +44,23 @@ async def bill_type_handler(
     if callback.data == "start_transfer":
         callback_prefix = "transfer"
 
-    elif callback.data == "increment_trumph_bill":
-        callback_prefix = "start_increment_trumph_bill"
-        matrix_activation_count = await statistic_service.get_matrix_activations_count()
-        registration_count = await statistic_service.get_registrations_count()
+    elif callback.data.endswith("increment_safe"):
+        callback_prefix = f"{marketing_type.label}_start_increment_safe"
 
-        message_text = get_triumph_bill_increase_statistic_text(
-            matrix_activation_count=matrix_activation_count,
-            registration_count=registration_count,
-        )
+        if marketing_type is MatrixMarketingType.START:
+            matrix_activation_count = await statistic_service.get_matrix_activations_count()
+            registration_count = await statistic_service.get_registrations_count()
+
+            message_text += get_triumph_bill_increase_statistic_text(
+                matrix_activation_count=matrix_activation_count,
+                registration_count=registration_count,
+            )
+
+        safe_value = getattr(current_user, marketing_scope.user_safe_orm_attr)
         message_text += html.bold(
             "\n\n"
-            f"🏦 Сейф Триумф: "
-            f"{format_decimal(current_user.triumph_bill)} USDT.\n\n"
+            f"🏦 Сейф {marketing_type.title}: "
+            f"{format_decimal(safe_value)} USDT.\n\n"
         )
 
     if not callback_prefix:

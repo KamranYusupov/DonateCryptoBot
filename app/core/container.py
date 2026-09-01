@@ -324,7 +324,7 @@ class Container(containers.DeclarativeContainer):
         "app.handlers.bill_type",
         "app.handlers.aggregators",
         "app.handlers.admin",
-        "app.handlers.triumph_bill",
+        "app.handlers.safe",
         "app.handlers.registration_contest",
         "app.handlers.sponsors_contest",
         "app.handlers.triumph_bill_transaction",
