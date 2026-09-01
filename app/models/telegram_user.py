@@ -91,6 +91,7 @@ class TelegramUser(UUIDMixin, TimestampedMixin, AbstractTelegramUser, Base):
         server_default=text("0.0"),
         nullable=False
     )
+    send_donate_to_global_safe = Column(Boolean, default=True, server_default=text("True"))
     is_admin = Column(Boolean, index=True, default=False)
     wallet_address = Column(String, nullable=True)
     depth_level = Column(Integer, default=0)
