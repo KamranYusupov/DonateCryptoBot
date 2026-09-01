@@ -299,11 +299,12 @@ class DonateService:
     ) -> Tuple[Matrix, Optional[Matrix]] | None:
         if found_matrix:
             await self._handle_insertion_to_free_matrix(
-                found_matrix,
-                current_user,
-                status,
-                transactions_data,
-                level_length,
+                free_matrix=found_matrix,
+                current_user=current_user,
+                status=status,
+                transactions_data=transactions_data,
+                level_length=level_length,
+                matrix_max_length=matrix_max_length,
             )
             return found_matrix, None
 
@@ -317,12 +318,12 @@ class DonateService:
 
             if len(matrix.telegram_users) < settings.start_marketing.matrix_max_length:
                 created_matrix = await self._handle_insertion_to_free_matrix(
-                    matrix,
-                    current_user,
-                    status,
-                    transactions_data,
-                    level_length,
-                    matrix_max_length,
+                    free_matrix=matrix,
+                    current_user=current_user,
+                    status=status,
+                    transactions_data=transactions_data,
+                    level_length=level_length,
+                    matrix_max_length=matrix_max_length,
                 )
                 return matrix, created_matrix
         else:
@@ -335,12 +336,12 @@ class DonateService:
                 matrix = await self._repository_matrix.create(obj_in=matrix_entity)
                 matrix.matrices, matrix.telegram_users = {},  []
                 created_matrix = await self._handle_insertion_to_free_matrix(
-                    matrix,
-                    current_user,
-                    status,
-                    transactions_data,
-                    level_length,
-                    matrix_max_length,
+                    free_matrix=matrix,
+                    current_user=current_user,
+                    status=status,
+                    transactions_data=transactions_data,
+                    level_length=level_length,
+                    matrix_max_length=matrix_max_length,
                 )
                 return matrix, created_matrix
 

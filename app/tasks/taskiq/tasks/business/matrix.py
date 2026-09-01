@@ -105,6 +105,7 @@ async def add_bot_to_matrix_task(
     )
     await donate_confirm_service.update_bills_by_donate_id(
         donate_id=donate.id,
+        marketing_type=MatrixMarketingType.START,
         is_bot=True,
     )
 
