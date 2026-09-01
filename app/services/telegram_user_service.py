@@ -1,9 +1,7 @@
 import uuid
 from decimal import Decimal
 from typing import Tuple, Any, List, Optional, Sequence
-from sqlalchemy.exc import IntegrityError
 
-from app.models import TelegramUser
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.repositories.referral_link import RepositoryReferralLink
 from app.models.telegram_user import TelegramUser, DonateStatus
@@ -253,5 +251,17 @@ class TelegramUserService(CrudServiceMixin[RepositoryTelegramUser]):
 
     async def get_user_ids_by_active_triumph_bill(self) -> Sequence[int]:
         return await self._repository_telegram_user.get_user_ids_by_active_triumph_bill()
+
+    async def update_send_donate_to_global_safe(
+            self,
+            telegram_user_id: uuid.UUID,
+            value: bool,
+    ) -> None:
+        return await self._repository_telegram_user.update_send_donate_to_global_safe(
+            telegram_user_id=telegram_user_id,
+            value=value,
+        )
+
+
 
 

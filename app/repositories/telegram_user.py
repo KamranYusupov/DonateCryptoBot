@@ -335,3 +335,16 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
 
         result = await self._session.execute(statement)
         return result.rowcount
+
+    async def update_send_donate_to_global_safe(
+            self,
+            telegram_user_id: uuid.UUID,
+            value: bool,
+    ) -> None:
+        statement = (
+            update(TelegramUser)
+            .where(TelegramUser.id == telegram_user_id)
+            .values(send_donate_to_global_safe=value)
+        )
+
+        await self._session.execute(statement)

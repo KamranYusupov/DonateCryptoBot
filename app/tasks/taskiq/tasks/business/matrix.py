@@ -186,10 +186,14 @@ async def activate_global_martix_by_safe_value_task(
     current_user = await telegram_user_service.get_telegram_user_for_update(
         telegram_user_id=telegram_user_id,
     )
+    current_user_status_index = (
+        current_user.global_marketing_status.index
+        if current_user.global_marketing_status is not None else 0
+    )
     if (
         current_user.global_safe < status.amount
         or current_user.global_marketing_status == status
-        or current_user.global_marketing_status.index + 1 < status.index
+        or current_user_status_index + 1 < status.index
     ):
         return
 
@@ -255,7 +259,6 @@ async def activate_global_martix_by_safe_value_task(
         marketing_type_name=marketing_scope.marketing_type.name,
         status_name=status.name,
         current_user_id=current_user.id,
-       # delay=2,
     )
 
     await matrix_activation_notifier_service.notify_invited_users(
@@ -263,6 +266,7 @@ async def activate_global_martix_by_safe_value_task(
         status=status,
         marketing_type=marketing_scope.marketing_type,
     )
+
     send_transaction_message_coroutines = []
     check_safe_task_sent_receiver_ids = set()
     for transaction in transactions_data:
@@ -280,6 +284,11 @@ async def activate_global_martix_by_safe_value_task(
             check_safe_task_sent_receiver_ids.add(transaction.receiver.id)
 
     await asyncio.gather(*send_transaction_message_coroutines)
+
+    await asyncio.sleep(2)
+    await check_is_global_safe_value_enough_for_next_status.kiq(
+        telegram_user_id=current_user.id,
+    )
 
 
 async def apply_bot_matrix_tasks(

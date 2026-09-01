@@ -12,7 +12,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 from dependency_injector.wiring import inject, Provide
 
 from app.core.container import Container
-from app.keyboards.inline import get_confirm_inline_keyboard
+from app.keyboards.inline import get_confirm_inline_keyboard, get_bill_type_choice_buttons
 from app.keyboards.reply import reply_cancel_keyboard, get_reply_keyboard
 from app.loader import bot
 from app.models import TriumphBillTransactionType
@@ -25,8 +25,11 @@ from app.services.telegram_user_service import TelegramUserService
 from app.keyboards.donate import get_donate_keyboard
 from app.use_cases.donations import SendDonationsMenuUseCase
 from app.utils.bot import delete_message_or_pass
-from app.models.telegram_user import DonateStatus
-from app.models.telegram_user import TelegramUser
+from app.models.telegram_user import (
+    TelegramUser,
+    DonateStatus,
+    GlobalMarketingDonateStatus,
+)
 from app.models.matrix import MatrixMarketingType
 from app.filters.marketing_type import MarketingTypeFilter
 from app.schemas.marketing import MatrixMarketingScope, create_marketing_scope
@@ -270,4 +273,52 @@ async def confirm_safe_increment_handler(
     )
 
     await state.clear()
+
+
+
+@safe_router.callback_query(F.data == "switch_global_safe")
+@inject
+async def switch_global_safe_callback_handler(
+        callback: CallbackQuery,
+        current_user: TelegramUser,
+        telegram_user_service: TelegramUserService = Provide[
+            Container.telegram_user_service
+        ],
+):
+    seventh_global_status = list(GlobalMarketingDonateStatus)[7]
+    if current_user.global_marketing_status is None or current_user.global_marketing_status.index < 7:
+        await callback.message.edit_text(
+            f"Выключение авто-пополнения сейфа доступно "
+            f"по достижению статуса "
+            f"<b>{seventh_global_status.emoji} {seventh_global_status.label.upper()}</b>.",
+            reply_markup=get_donate_keyboard(
+                buttons={"🔙 Назад": f"{MatrixMarketingType.GLOBAL.label}_increment_safe"}
+            )
+        )
+        return
+
+    await telegram_user_service.update_send_donate_to_global_safe(
+        telegram_user_id=current_user.id,
+        value=not current_user.send_donate_to_global_safe,
+    )
+    buttons = get_bill_type_choice_buttons(
+        bill_for_withdraw=current_user.bill_for_withdraw,
+        bill_for_activation=current_user.bill_for_activation,
+        callback_prefix=f"{MatrixMarketingType.GLOBAL.label}_start_increment_safe",
+    )
+    send_donates_to_safe_mode_str = (
+        "вкл ✅" if current_user.send_donate_to_global_safe
+        else "выкл ❌"
+    )
+    buttons[
+        f"Авто-пополнение сейфа: {send_donates_to_safe_mode_str}"
+    ] = "switch_global_safe"
+
+    await callback.message.edit_reply_markup(
+        reply_markup=get_donate_keyboard(
+            buttons=buttons,
+            sizes=(1,) * len(buttons),
+        )
+    )
+
 

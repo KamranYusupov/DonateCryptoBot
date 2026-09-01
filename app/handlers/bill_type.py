@@ -38,6 +38,7 @@ async def bill_type_handler(
             Container.statistic_service
         ],
 ) -> None:
+    additional_buttons = {}
 
     message_text = ''
     callback_prefix = None
@@ -55,6 +56,14 @@ async def bill_type_handler(
                 matrix_activation_count=matrix_activation_count,
                 registration_count=registration_count,
             )
+        elif marketing_type is MatrixMarketingType.GLOBAL:
+            send_donates_to_safe_mode_str = (
+                "вкл ✅" if current_user.send_donate_to_global_safe
+                else "выкл ❌"
+            )
+            additional_buttons[
+                f"Авто-пополнение сейфа: {send_donates_to_safe_mode_str}"
+            ] = "switch_global_safe"
 
         safe_value = getattr(current_user, marketing_scope.user_safe_orm_attr)
         message_text += html.bold(
@@ -71,6 +80,7 @@ async def bill_type_handler(
         bill_for_activation=current_user.bill_for_activation,
         callback_prefix=callback_prefix,
     )
+    buttons.update(additional_buttons)
     buttons["🔙 Назад"] = f"{marketing_type.label}_donations"
     await callback.message.edit_text(
         message_text + "Выберите баланс:",
