@@ -1,3 +1,4 @@
+import loguru
 from aiogram import Router, F
 from aiogram.exceptions import TelegramAPIError
 from aiogram.fsm.context import FSMContext
@@ -20,6 +21,7 @@ from app.utils.pagination import Paginator, get_pagination_buttons
 from app.utils.datetime import to_main_tz
 from app.utils.bot import send_message_or_pass
 from app.models.telegram_user import TelegramUser
+from app.utils.user import parse_user_identifier
 
 transfer_router = Router()
 
@@ -63,9 +65,22 @@ async def process_receiver_username(
             Container.telegram_user_service
         ],
 ) -> None:
-    username = message.text[1:] if message.text[0] == "@" else message.text
+    user_id, username = parse_user_identifier(message.text)
+    user_query_kwargs = {}
 
-    receiver = await telegram_user_service.get_telegram_user(username=username)
+    if user_id:
+        user_query_kwargs["user_id"] = user_id
+        await state.update_data(receiver_user_id=user_id)
+
+    elif username:
+        user_query_kwargs["username"] = username
+        await state.update_data(receiver_username=username)
+
+    else:
+        return
+
+    receiver = await telegram_user_service.get(**user_query_kwargs)
+
     if not receiver:
         await state.clear()
         await message.answer(
@@ -74,7 +89,6 @@ async def process_receiver_username(
         )
         return
 
-    await state.update_data(receiver_username=username)
     await state.set_state(TransferState.amount)
     await message.answer(
         f"Напишите количество USDT для перевода."
@@ -122,10 +136,11 @@ async def process_amount(
         return
 
     state_data = await state.update_data(amount=amount)
-    receiver_username = state_data["receiver_username"]
+    receiver_username = state_data.get("receiver_username", "")
 
-    receiver_username = "@" + receiver_username \
-        if receiver_username[0] != "@" else receiver_username
+    if receiver_username:
+        receiver_username = "@" + receiver_username \
+            if receiver_username[0] != "@" else receiver_username
 
     reply_markup = get_confirm_inline_keyboard(
         yes_button_data="confirm_transfer",
@@ -160,7 +175,19 @@ async def transfer_tokens_handler(
     bill_field = f"bill_for_{bill_type}"
 
     sender = current_user
-    receiver = await telegram_user_service.get_telegram_user(username=state_data["receiver_username"])
+
+    if state_data.get("receiver_username"):
+        receiver = await telegram_user_service.get_telegram_user(
+            username=state_data["receiver_username"]
+        )
+    elif state_data.get("receiver_user_id"):
+        receiver = await telegram_user_service.get_telegram_user(
+            user_id=state_data["receiver_user_id"]
+        )
+    else:
+        await state.clear()
+        await callback.message.delete()
+        return
 
     sender_bill_value = getattr(sender, bill_field)
     await state.clear()
