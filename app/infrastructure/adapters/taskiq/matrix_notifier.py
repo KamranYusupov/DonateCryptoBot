@@ -22,6 +22,7 @@ class MatrixNotifierTaskIQAdapter:
             status_emoji=context.status.emoji,
             matrix_length=context.matrix_length,
             matrix_max_length=context.matrix_max_length,
+            marketing_type_name=context.marketing_type.name,
             triumph=context.triumph,
             quantity=context.quantity,
         )

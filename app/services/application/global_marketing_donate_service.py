@@ -122,6 +122,7 @@ class GlobalMarketingDonateService:
             status=status,
             matrix_length=donate_receiver_node.downline_count,
             matrix_max_length=matrix_max_length,
+            marketing_type=MatrixMarketingType.GLOBAL,
         )
 
         return transaction

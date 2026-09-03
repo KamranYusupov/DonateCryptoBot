@@ -402,7 +402,7 @@ def get_sponsor_transaction_message_text(
         "<b>{status_emoji} {status_name}</b>\n"
         "🎁 Бонус от {sponsor_depth} линии: +{quantity_str}$\n</b>"
         "🤝 Команда растёт\n\n"
-        "🔥 На Шаг ближе к Триумфу!"
+        "🎯 На шаг ближе к Цели!"
     )
     status_name = status.label.upper()
 
@@ -435,12 +435,13 @@ def get_matrix_transaction_message_text(
         matrix_max_length: int,
         triumph: bool = False,
         display_receiver: bool = False,
+        marketing_type: MatrixMarketingType,
 ):
     template = (
         "<b>🤖 БОТ ЗАКРЫЛ МЕСТО {receiver_str}</b>\n"
         "💸 <b>+{quantity_str}$</b> на счёт\n"
         "🎯 Площадка: <b>{status_str}</b> \n"
-        "{statistic_line}\n\n"
+        "{statistic_line}\n"
         "<b>🎁 Всего получено: ${receiver_donates_sum}</b>\n\n"
         "🔥 Делитесь <b>KOD💵DENEG</b> — получайте бонусы."
     )
@@ -452,10 +453,12 @@ def get_matrix_transaction_message_text(
         current_sum_str = format_decimal(quantity * matrix_length)
         statistic_line = (
             f"🏦 Получено: <b>${current_sum_str} "
-            f"из ${settings.triumph_max_donates_sum_from_matrix}</b>"
+            f"из ${settings.triumph_max_donates_sum_from_matrix}</b>\n"
         )
+    elif marketing_type is MatrixMarketingType.START:
+        statistic_line = f"📦 <b>{matrix_length} из {matrix_max_length}</b> мест занято\n"
     else:
-        statistic_line = f"📦 <b>{matrix_length} из {matrix_max_length}</b> мест занято"
+        statistic_line = ""
 
     return template.format(
         receiver_str=receiver_str,

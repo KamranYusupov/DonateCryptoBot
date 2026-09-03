@@ -172,6 +172,7 @@ class DonateService:
                 matrix_max_length=matrix_max_length,
                 status=status,
                 triumph=triumph,
+                marketing_type=MatrixMarketingType.START,
             )
             for receiver in receivers
         ]
@@ -218,6 +219,7 @@ class DonateService:
                 matrix_length=len(path_matrices_ids_map[receiver.id].telegram_users) + 1,
                 status=status,
                 matrix_max_length=matrix_max_length,
+                marketing_type=MatrixMarketingType.START,
             )
             for receiver in donate_receivers
         ])

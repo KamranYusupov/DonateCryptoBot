@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, ConfigDict
 
 from app.models.donate import DonateTransactionType
 from app.models.telegram_user import DonateStatus, GlobalMarketingDonateStatus
-
+from app.models.matrix import MatrixMarketingType
 
 
 class TransactionReceiverSchema(BaseModel):
@@ -41,6 +41,7 @@ class SponsorTransactionContextSchema(BaseTransactionContextSchema):
 class MatrixTransactionContextSchema(BaseTransactionContextSchema):
     type_: Literal[DonateTransactionType.MATRIX] = DonateTransactionType.MATRIX
     status: DonateStatus | GlobalMarketingDonateStatus
+    marketing_type: MatrixMarketingType
     matrix_length: int
     matrix_max_length: int
     triumph: bool = False

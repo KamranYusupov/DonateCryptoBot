@@ -352,6 +352,7 @@ async def send_matrix_transaction_message_task(
         receiver_str: str,
         status_label: str,
         status_emoji: str,
+        marketing_type_name: str,
         matrix_length: int,
         matrix_max_length: int,
         triumph: bool,
@@ -364,6 +365,14 @@ async def send_matrix_transaction_message_task(
         receiver_id = uuid.UUID(receiver_id)
     except ValueError:
         logger.error("Invalid receiver_id. Task accepts only UUID!")
+        return
+
+    try:
+        marketing_type = MatrixMarketingType[marketing_type_name]
+    except KeyError:
+        logger.warning(
+            f'Not valid marketing type name "{marketing_type_name}"'
+        )
         return
 
     repository_telegram_user: RepositoryTelegramUser = \
@@ -390,6 +399,7 @@ async def send_matrix_transaction_message_task(
         quantity=quantity,
         receiver_donates_sum=donates_sum,
         display_receiver=display_receiver,
+        marketing_type=marketing_type,
     )
 
     await telegram_bot_service.send_message(
