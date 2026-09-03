@@ -37,8 +37,12 @@ async def export_users_to_excel(
             "Уровень глубины": user.depth_level,
             "Логин ТГ": user.username,
             "Логин тг пригласителя": user.sponsor,
-            "Статус Триумф": user.status.label if user.status else "не активирован",
-            "Статус Прайм-Тайм": user.global_marketing_status.label if user.status else "не активирован",
+            "Статус Триумф":
+                user.status.label if user.status
+                else "не активирован",
+            "Статус Прайм-Тайм":
+                user.global_marketing_status.label if user.global_marketing_status
+                else "не активирован",
             "Кол-во приглашенных": user.invites_count,
             "Баланс для активации": format_decimal(user.bill_for_activation),
             "Баланс для вывода": format_decimal(user.bill_for_withdraw),
