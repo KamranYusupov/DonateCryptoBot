@@ -153,7 +153,7 @@ async def team_inline_handler(
         title_text = "АКТИВНЫЕ ПЛОЩАДКИ:"
         page_number = int(callback.data.split("_")[-1])
         previous_page_number = None
-        back_button_data = f"donations"
+        back_button_data = f"{MatrixMarketingType.START.label}_donations"
         callback_data_prefix = f"team"
         matrix_node = await matrix_node_service.get_node(
             owner_id=current_user.id,

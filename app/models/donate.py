@@ -88,5 +88,9 @@ class DonateTransaction(UUIDMixin, TimestampedMixin, Base):
         "Donate",
         backref="transactions"
     )
+    sponsor = relationship(
+        "TelegramUser",
+        backref="transactions",
+    )
 
     __table_args__ = {"extend_existing": True}

@@ -1,8 +1,8 @@
 import uuid
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
-from sqlalchemy import select, delete, update, func
+from sqlalchemy import select, delete, update, func, Row
 from sqlalchemy.orm import selectinload
 
 from app.models.telegram_user import TelegramUser, DonateStatus
@@ -128,6 +128,22 @@ class RepositoryDonate(RepositoryBase[Donate]):
 
 class RepositoryDonateTransaction(RepositoryBase[DonateTransaction]):
     """Репозиторий доната"""
+
+    async def get_transactions_with_sponsor_send_donate_to_global_safe_by_donate_id(
+            self,
+            donate_id: uuid.UUID,
+    ) -> Sequence[Row[tuple[DonateTransaction, bool]]]:
+        statement = (
+            select(
+                DonateTransaction,
+                TelegramUser.send_donate_to_global_safe.label("sponsor_send_donate_to_global_safe")
+            )
+            .join(DonateTransaction.sponsor)
+            .where(DonateTransaction.donate_id == donate_id)
+        )
+
+        result = await self._session.execute(statement)
+        return result.all()
 
     async def get_transactions_list(self):
         statement = select(DonateTransaction).order_by(

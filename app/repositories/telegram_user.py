@@ -1,9 +1,9 @@
 import uuid
 from decimal import Decimal
 from uuid import UUID
-from typing import Optional, Sequence
+from typing import Optional, Sequence, List, Dict
 
-from sqlalchemy import select, func, update, Row
+from sqlalchemy import select, func, update, Row, bindparam
 from sqlalchemy.orm import joinedload, aliased
 
 from .base import RepositoryBase
@@ -348,3 +348,37 @@ class RepositoryTelegramUser(RepositoryBase[TelegramUser]):
         )
 
         await self._session.execute(statement)
+
+    async def bulk_increment_global_safe(
+            self,
+            bulk_increment_data: List[Dict],
+    ):
+        statement = (
+            update(TelegramUser.__table__)
+            .where(TelegramUser.id == bindparam("u_id"))
+            .values(
+                global_safe=TelegramUser.global_safe + bindparam("increment_amount"),
+                donates_sum=(
+                    TelegramUser.donates_sum + bindparam("increment_amount")
+                )
+            )
+        )
+        await self._session.execute(statement, bulk_increment_data)
+
+    async def bulk_increment_bill_for_withdraw(
+            self,
+            bulk_increment_data: List[Dict],
+    ):
+        statement = (
+            update(TelegramUser.__table__)
+            .where(TelegramUser.id == bindparam("u_id"))
+            .values(
+                bill_for_withdraw=(
+                    TelegramUser.bill_for_withdraw + bindparam("increment_amount")
+                ),
+                donates_sum=(
+                    TelegramUser.donates_sum + bindparam("increment_amount")
+                )
+            )
+        )
+        await self._session.execute(statement, bulk_increment_data)

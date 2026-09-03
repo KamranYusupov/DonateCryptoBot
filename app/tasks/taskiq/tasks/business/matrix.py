@@ -51,7 +51,10 @@ async def add_bot_to_matrix_task(
         if not obj or obj.children_count == 2:
             return
 
-    status = donate_confirm_service.get_donate_status(donate_sum)
+    status = donate_confirm_service.get_donate_status(
+        donate_sum,
+        MatrixMarketingType.START,
+    )
     if not status:
         return
 

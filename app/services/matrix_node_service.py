@@ -272,7 +272,7 @@ class MatrixNodeService(CrudServiceMixin[RepositoryMatrixNode]):
             matrix_id: UUID,
             position: int,
             level: int,
-            max_level: int = 12
+            max_level: int
     ) -> dict[int, int]:
         return await self._repository_matrix_node.get_downline_counts_per_level(
             matrix_id=matrix_id,

@@ -268,6 +268,7 @@ async def subscription_checker(
 async def donations_menu_handler(
         event: Message | CallbackQuery,
         current_user: TelegramUser,
+        real_user: TelegramUser,
         marketing_scope: MatrixMarketingScope | None = None,
         send_donations_menu_use_case: SendDonationsMenuUseCase = Provide[
             Container.send_donations_menu_use_case
@@ -279,7 +280,7 @@ async def donations_menu_handler(
     if isinstance(event, Message):
         telegram_method = bot.send_message
         marketing_scope = create_marketing_scope(
-            MatrixMarketingType.GLOBAL,
+            MatrixMarketingType.START,
             current_user,
         )
     elif isinstance(event, CallbackQuery):
@@ -293,6 +294,7 @@ async def donations_menu_handler(
         current_user_id=current_user.id,
         telegram_method=telegram_method,
         callback_suffix="donations",
+        real_user=real_user,
     )
 
 
@@ -810,6 +812,7 @@ async def donate_handler(
 async def get_transactions_list_to_me(
         callback: CallbackQuery,
         current_user: TelegramUser,
+        marketing_type: MatrixMarketingType,
         marketing_scope: MatrixMarketingScope,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
@@ -823,7 +826,7 @@ async def get_transactions_list_to_me(
 
     transactions = await donate_confirm_service.get_donate_transaction_by_sponsor_id(
         sponsor_id=current_user.id,
-        marketing_type=marketing_scope.marketing_type,
+        marketing_type=marketing_type,
     )
 
     paginator = Paginator(transactions, page_number=page_number, per_page=5)
@@ -831,9 +834,13 @@ async def get_transactions_list_to_me(
     sizes = (1, 1)
 
     if paginator.has_previous():
-        buttons |= {"◀ Пред.": f"transactions_to_me_{page_number - 1}"}
+        buttons |= {
+            "◀ Пред.": f"{marketing_type.label}_transactions_to_me_{page_number - 1}"
+        }
     if paginator.has_next():
-        buttons |= {"След. ▶": f"transactions_to_me_{page_number + 1}"}
+        buttons |= {
+            "След. ▶": f"{marketing_type.label}_transactions_to_me_{page_number + 1}"
+        }
 
     if len(buttons) == 2:
         sizes = (2, 1)
@@ -869,7 +876,10 @@ async def get_transactions_list_to_me(
                 )
                 message += f"<b>От партнера {sponsor_depth} линии @{sender.username}.</b>\n\n"
             elif transaction.type_ == DonateTransactionType.MATRIX:
-                status = donate_confirm_service.get_donate_status(donate.quantity)
+                status = donate_confirm_service.get_donate_status(
+                    donate.quantity,
+                    marketing_scope.marketing_type,
+                )
                 message += f"<b>Площадка {status.label}.</b>\n\n"
 
             else:
@@ -925,9 +935,9 @@ async def get_transactions_list_from_me(
         message = "У Вас нет подарков"
 
     if paginator.has_previous():
-        buttons |= {"◀ Пред.": f"transactions_from_me_{page_number - 1}"}
+        buttons |= {"◀ Пред.": f"{marketing_type.label}_transactions_from_me_{page_number - 1}"}
     if paginator.has_next():
-        buttons |= {"След. ▶": f"transactions_from_me_{page_number + 1}"}
+        buttons |= {"След. ▶": f"{marketing_type.label}_transactions_from_me_{page_number + 1}"}
 
     if len(buttons) == 2:
         sizes = (2, 1)
@@ -972,9 +982,9 @@ async def get_all_transactions(
     donates_and_transactions = paginator.get_page()
 
     if paginator.has_previous():
-        buttons |= {"◀ Пред.": f"all_transactions_{page_number - 1}"}
+        buttons |= {"◀ Пред.": f"{marketing_type.label}_all_transactions_{page_number - 1}"}
     if paginator.has_next():
-        buttons |= {"След. ▶": f"all_transactions_{page_number + 1}"}
+        buttons |= {"След. ▶": f"{marketing_type.label}_all_transactions_{page_number + 1}"}
 
     if len(buttons) == 2:
         sizes = (2, 1)

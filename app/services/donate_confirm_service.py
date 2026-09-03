@@ -9,7 +9,7 @@ from app.exceptions.donate import InvalidDonateAmountError, DonateNotFoundError
 from app.repositories.admin_statistic import RepositoryAdminStatistic
 from app.repositories.telegram_user import RepositoryTelegramUser
 from app.repositories.donate import RepositoryDonate, RepositoryDonateTransaction
-from app.models.telegram_user import TelegramUser, DonateStatus
+from app.models.telegram_user import GlobalMarketingDonateStatus, DonateStatus
 from app.schemas.donate import (
     DonateEntity,
     CreateDonateTransactionSchema,
@@ -40,27 +40,18 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
 
     @staticmethod
     def get_donate_status(
-            donate_sum: int | Decimal,
-    ) -> DonateStatus | None:
-        return DonateStatus.TEST # FIXME
-        if donate_sum == 10:
-            return DonateStatus.TEST
-        elif donate_sum == 25:
-            return DonateStatus.BASE
-        elif donate_sum == 50:
-            return DonateStatus.BRONZE
-        elif donate_sum == 100:
-            return DonateStatus.SILVER
-        elif donate_sum == 250:
-            return DonateStatus.GOLD
-        elif donate_sum == 500:
-            return DonateStatus.PLATINUM
-        elif donate_sum == 1000:
-            return DonateStatus.BRILLIANT
-        else:
-            raise InvalidDonateAmountError(
-                f"DonateStatus not found for donate quantity: {donate_sum}"
-            )
+            amount: int | Decimal,
+            marketing_type: MatrixMarketingType,
+    ) -> DonateStatus | GlobalMarketingDonateStatus:
+
+        for status in list(marketing_type.status_enum):
+            if amount == status.amount:
+                return status
+
+        raise InvalidDonateAmountError(
+            "Donate status not found for donate quantity "
+            f"{amount} and marketing type: {marketing_type.label}"
+        )
 
     async def create_donate(
         self,
@@ -186,35 +177,49 @@ class DonateConfirmService(CrudServiceMixin[RepositoryDonate]):
         if donate_quantity is None:
             raise DonateNotFoundError(f"Donate with id: {donate_id} not found.")
 
-        transactions = await self._repository_donate_transaction.list(
-            donate_id=donate_id,
+        transaction_rows = (
+            await self._repository_donate_transaction
+            .get_transactions_with_sponsor_send_donate_to_global_safe_by_donate_id(
+                donate_id=donate_id,
+            )
         )
         system_bill_donate = 0
-        for transaction in transactions:
-            # FIXME: N+1 проблема с repository_telegram_user.increment_bill
-            if transaction.type_ == DonateTransactionType.SYSTEM:
+
+        bill_for_withdraw_bulk_update_data = []
+        global_safe_bulk_update_data = []
+
+        for transaction, send_donate_to_global_safe in transaction_rows:
+            if transaction.type_ in (DonateTransactionType.MATRIX, DonateTransactionType.SPONSOR):
+                increment_data = {
+                    "u_id": transaction.sponsor_id,
+                    "increment_amount": transaction.quantity,
+                }
+                if (
+                    marketing_type == MatrixMarketingType.GLOBAL
+                    and transaction.type_ == DonateTransactionType.MATRIX
+                    and send_donate_to_global_safe
+                ):
+                    global_safe_bulk_update_data.append(increment_data)
+                    continue
+
+                bill_for_withdraw_bulk_update_data.append(increment_data)
+                if is_bot:
+                    system_bill_donate -= transaction.quantity
+
+
+            elif transaction.type_ == DonateTransactionType.SYSTEM:
                 system_bill_donate += transaction.quantity
                 continue
 
-            elif (
-                transaction.type_ == DonateTransactionType.MATRIX
-                and marketing_type == MatrixMarketingType.GLOBAL
-            ):
-                await self._repository_telegram_user.increment_global_safe(
-                    telegram_user_id=transaction.sponsor_id,
-                    amount=transaction.quantity,
-                    with_donates_sum=True,
-                )
-                continue
-
-            await self._repository_telegram_user.increment_bill(
-                telegram_user_id=transaction.sponsor_id,
-                bill_type=BillType.WITHDRAW,
-                amount=transaction.quantity,
-                with_donates_sum=True,
+        if global_safe_bulk_update_data:
+            await self._repository_telegram_user.bulk_increment_global_safe(
+                global_safe_bulk_update_data,
             )
-            if is_bot:
-                system_bill_donate -= transaction.quantity
+
+        if bill_for_withdraw_bulk_update_data:
+            await self._repository_telegram_user.bulk_increment_bill_for_withdraw(
+                bill_for_withdraw_bulk_update_data,
+            )
 
         if not system_bill_donate:
             await self._repository_admin_statistic.increment_total_donates_sum(
