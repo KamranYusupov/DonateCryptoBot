@@ -537,8 +537,8 @@ triumph_bill_increase_statistic_text = (
 
 admin_statistic_message_text_template = (
     "Регистраций в KOD💵DENEG: <b>{users_count}</b>\n\n"
-    "{matrix_statuses_statistic_message}"
-    "🆓: {users_count_with_not_active_status}\n\n"
+    "{matrix_statuses_statistic_message}\n"
+    #"🆓: {users_count_with_not_active_status}\n\n"
     "Всего подарили: <b>${total_donates_sum}</b>\n"
     "Системный баланс: <b>${system_bill}</b>\n"
     "Системный баланс Триумф: <b>${triumph_system_bill}</b>\n"

@@ -421,6 +421,10 @@ class SendDonationsMenuUseCase:
         #     matrices=matrices,
         #     marketing_scope=marketing_scope,
         # )
+        matrices_text = await self._get_matrices_length_text(
+            current_user,
+            MatrixMarketingType.GLOBAL,
+        )
 
         bills_activation_sum = (
             await self.telegram_user_service.get_bills_for_activation_sum()
@@ -440,7 +444,7 @@ class SendDonationsMenuUseCase:
 
         message_text = admin_statistic_message_text_template.format(
             users_count=users_count,
-            matrix_statuses_statistic_message='',
+            matrix_statuses_statistic_message=matrices_text,
             users_count_with_not_active_status=not_active_count,
             total_donates_sum=format_decimal(admin_statistic.total_donates_sum),
             system_bill=format_decimal(admin_statistic.system_bill),
