@@ -268,7 +268,6 @@ async def subscription_checker(
 async def donations_menu_handler(
         event: Message | CallbackQuery,
         current_user: TelegramUser,
-        real_user: TelegramUser,
         marketing_scope: MatrixMarketingScope | None = None,
         send_donations_menu_use_case: SendDonationsMenuUseCase = Provide[
             Container.send_donations_menu_use_case
@@ -280,7 +279,7 @@ async def donations_menu_handler(
     if isinstance(event, Message):
         telegram_method = bot.send_message
         marketing_scope = create_marketing_scope(
-            MatrixMarketingType.START,
+            MatrixMarketingType.GLOBAL,
             current_user,
         )
     elif isinstance(event, CallbackQuery):
@@ -294,7 +293,6 @@ async def donations_menu_handler(
         current_user_id=current_user.id,
         telegram_method=telegram_method,
         callback_suffix="donations",
-        real_user=real_user,
     )
 
 

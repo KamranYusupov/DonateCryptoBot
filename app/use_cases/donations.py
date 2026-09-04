@@ -66,7 +66,6 @@ class SendDonationsMenuUseCase:
             current_user_id: uuid.UUID,
             telegram_method,
             callback_suffix: str,
-            real_user: TelegramUser | None = None,
     ) -> None:
         if not isinstance(current_user_id, uuid.UUID):
             return None
@@ -81,7 +80,6 @@ class SendDonationsMenuUseCase:
             "current_user": current_user,
             "telegram_method": telegram_method,
             "callback_suffix": callback_suffix,
-            "real_user": real_user,
         }
 
         match marketing_scope.marketing_type:
@@ -100,7 +98,6 @@ class SendDonationsMenuUseCase:
             current_user: TelegramUser,
             telegram_method,
             callback_suffix: str,
-            real_user: TelegramUser | None = None,
     ) -> None:
         contest_place_text = await self._get_contest_place_text(current_user)
         base_message_text = start_base_message_text_template.format(
@@ -146,7 +143,6 @@ class SendDonationsMenuUseCase:
             current_user=current_user,
             callback_suffix=callback_suffix,
             marketing_scope=marketing_scope,
-            real_user=real_user,
         )
         await self._send(telegram_method, from_user_id, message_text, keyboard)
 
@@ -157,7 +153,6 @@ class SendDonationsMenuUseCase:
             current_user: TelegramUser,
             telegram_method,
             callback_suffix: str,
-            real_user: TelegramUser | None = None,
     ) -> None:
         base_message_text = global_base_message_text_template.format(
             invites_count=current_user.invites_count,
@@ -194,7 +189,6 @@ class SendDonationsMenuUseCase:
             current_user=current_user,
             callback_suffix=callback_suffix,
             marketing_scope=marketing_scope,
-            real_user=real_user,
         )
         await self._send(telegram_method, from_user_id, message_text, keyboard)
 
@@ -339,7 +333,6 @@ class SendDonationsMenuUseCase:
             callback_suffix: str,
             marketing_scope: MatrixMarketingScope,
             triumph_node: MatrixNode | None = None,
-            real_user: TelegramUser | None = None,
     ) -> InlineKeyboardMarkup:
         marketing_type = marketing_scope.marketing_type
         if marketing_type is MatrixMarketingType.START:
@@ -388,10 +381,9 @@ class SendDonationsMenuUseCase:
         inline_buttons.extend(bill_action_buttons)
         sizes.extend(bill_action_buttons_sizes)
 
-        if real_user and real_user.is_admin:
-            other_marketing_buttons = self._get_other_marketing_buttons(callback_suffix, marketing_type)
-            inline_buttons.extend(other_marketing_buttons)
-            sizes += [1] * len(other_marketing_buttons)
+        other_marketing_buttons = self._get_other_marketing_buttons(callback_suffix, marketing_type)
+        inline_buttons.extend(other_marketing_buttons)
+        sizes += [1] * len(other_marketing_buttons)
 
         keyboard = InlineKeyboardBuilder()
         keyboard.add(*inline_buttons)
