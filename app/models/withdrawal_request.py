@@ -19,7 +19,7 @@ from app.models.mixins import TimestampedMixin, UUIDMixin
 
 
 class CryptoNetworkType(enum.Enum):
-    TON = "GRAM"
+    TON = "TON"
     BEP20 = "BEP20"
     SOLANA = "SOLANA"
 
