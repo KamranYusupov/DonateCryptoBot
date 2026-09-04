@@ -534,7 +534,7 @@ async def donate_handler(
             reply_markup=get_donate_keyboard(
                 buttons={
                     "Преобрести 💳": f"buy_tokens_{need_to_buy_tokens}",
-                    "🔙 Назад": f"donations",
+                    "🔙 Назад": f"{marketing_type.label}_donations",
                 },
                 sizes=(1, 1),
             ),

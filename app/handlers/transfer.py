@@ -22,6 +22,7 @@ from app.utils.datetime import to_main_tz
 from app.utils.bot import send_message_or_pass
 from app.models.telegram_user import TelegramUser
 from app.utils.user import parse_user_identifier
+from app.models.matrix import MatrixMarketingType
 
 transfer_router = Router()
 
@@ -237,7 +238,7 @@ async def transfer_list_handler(
     callback_data = callback.data.split("_")
     base_callback_data = "_".join(callback_data[0:-1])
     page_number = int(callback_data[-1])
-    default_buttons = {"🔙 Назад": "donations",}
+    default_buttons = {"🔙 Назад": f"{MatrixMarketingType.GLOBAL.label}_donations",}
     buttons = {}
     sizes = tuple()
 

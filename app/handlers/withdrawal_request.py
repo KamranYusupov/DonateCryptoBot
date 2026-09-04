@@ -31,6 +31,7 @@ from app.validators.crypto_wallets import ValidateWalletAddress
 from app.models.withdrawal_request import CryptoNetworkType
 from app.utils.bot import send_message_or_pass
 from app.models.telegram_user import TelegramUser
+from app.models.matrix import MatrixMarketingType
 
 withdrawal_requests_router = Router()
 
@@ -229,7 +230,7 @@ async def get_withdrawal_requests_message(
     else:
         is_paid = False
         order_by.append(WithdrawalRequest.created_at)
-        back_button_data = "donations"
+        back_button_data = f"{MatrixMarketingType.GLOBAL.label}_donations"
         default_buttons["АРХИВ"] = f"archive_{callback.data}_1"
         sizes = (1, )
 
@@ -335,7 +336,10 @@ async def confirm_withdrawal_callback_handler(
         id=withdrawal_request_id
     )
     reply_markup = get_donate_keyboard(
-        buttons={"🔙 Назад": f"withdrawal_requests_{page_number}"}
+        buttons={
+            "🔙 Назад":
+                f"{MatrixMarketingType.GLOBAL.label}_withdrawal_requests_{page_number}"
+        }
     )
 
     if withdrawal_request.is_paid:
