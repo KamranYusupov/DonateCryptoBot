@@ -338,7 +338,7 @@ async def confirm_withdrawal_callback_handler(
     reply_markup = get_donate_keyboard(
         buttons={
             "🔙 Назад":
-                f"{MatrixMarketingType.GLOBAL.label}_withdrawal_requests_{page_number}"
+                f"withdrawal_requests_{page_number}"
         }
     )
 
