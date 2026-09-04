@@ -17,8 +17,6 @@ RUN chmod +x /entrypoint.sh
 
 COPY . .
 
-WORKDIR /app
-
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/
 
 ENTRYPOINT ["/entrypoint.sh"]
