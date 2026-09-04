@@ -47,15 +47,16 @@ def create_marketing_scope(
         status: Optional[DonateStatus | GlobalMarketingDonateStatus] = None,
 ) -> MatrixMarketingScope:
 
-    if status is None and telegram_user is None:
-        raise ValueError("status or telegram_user must be provided")
-
     if status is not None and telegram_user is not None:
         raise ValueError(
             "Only one of status or telegram_user must be provided"
         )
 
     scope_class = MARKETING_SCOPE_BY_TYPE[marketing_type]
+
+    if status is None and telegram_user is None:
+        return scope_class(status=status)
+
     if status is None:
         status = getattr(telegram_user, scope_class.status_orm_attr)
         return scope_class(status=status)

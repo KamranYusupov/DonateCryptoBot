@@ -79,11 +79,17 @@ class CryptoBotPaymentOrchestrator:
             reply_markup=get_reply_keyboard(None) # FIXME
         )
 
+        if telegram_user.global_marketing_status:
+            status_name = telegram_user.global_marketing_status.name
+        else:
+            status_name = None
+
         await send_donations_menu_task.kiq(
             chat_id=telegram_user.user_id,
             current_user_id=telegram_user.id,
             marketing_type_name=MatrixMarketingType.GLOBAL.name,
-            status_name=telegram_user.global_marketing_status.name,
+            status_name=status_name,
+            delay=1,
         )
 
 

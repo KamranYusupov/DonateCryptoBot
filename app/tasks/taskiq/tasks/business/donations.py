@@ -18,7 +18,7 @@ async def send_donations_menu_task(
         chat_id: int,
         current_user_id: str,
         marketing_type_name: str,
-        status_name: str,
+        status_name: str | None,
         callback_suffix: str = "donations",
         delay: int = 0,
         *,
@@ -33,14 +33,17 @@ async def send_donations_menu_task(
         )
         return
 
-    try:
-        status = marketing_type.status_enum[status_name]
-    except KeyError:
-        loguru.logger.warning(
-            f'Not valid status "{status_name}" '
-            f'for marketing type "{marketing_type_name}"'
-        )
-        return
+    if status_name:
+        try:
+            status = marketing_type.status_enum[status_name]
+        except KeyError:
+            loguru.logger.warning(
+                f'Not valid status "{status_name}" '
+                f'for marketing type "{marketing_type_name}"'
+            )
+            return
+    else:
+        status = None
 
     send_donations_menu_use_case: SendDonationsMenuUseCase = (
         await container.send_donations_menu_use_case()
