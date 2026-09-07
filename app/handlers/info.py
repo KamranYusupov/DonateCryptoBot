@@ -268,7 +268,7 @@ async def referral_handler(
 
         message_text += (
             f"{count}. @{user.username}: "
-            f"{user_status_order_emoji} | {user_global_status_order_emoji}\n"
+            f"{user_global_status_order_emoji} | {user_status_order_emoji}\n"
         )
         count += 1
 
