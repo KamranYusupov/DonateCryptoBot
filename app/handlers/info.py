@@ -20,7 +20,8 @@ from app.use_cases.file import SendFileFromLoadedFileIDOrSaveUseCase
 from app.utils.pagination import Paginator
 from app.utils.matrix import get_active_matrices, get_archived_matrices
 from app.models.telegram_user import DonateStatus
-from app.utils.texts import get_my_team_message, get_matrix_info_message, get_downline_nodes_message
+from app.utils.texts import get_my_team_message, \
+    get_order_emoji_by_number
 from app.models.telegram_user import TelegramUser
 from app.utils.texts import (
     kod_deneg_movie_caption,
@@ -254,11 +255,22 @@ async def referral_handler(
     buttons.update(default_buttons)
 
 
-    start_count = per_page * page_number - per_page + 1
-    for order, user in enumerate(paginator.get_page(), start=1):
-        user_status_order_emoji = f"{order}️⃣"  if user.status else "🆓"
-        message_text += f"{start_count}. @{user.username}: {user_status_order_emoji}\n"
-        start_count += 1
+    count = per_page * page_number - per_page + 1
+    for user in paginator.get_page():
+        user_status_order_emoji = (
+            get_order_emoji_by_number(user.status.index+1)
+            if user.status else "🆓"
+        )
+        user_global_status_order_emoji = (
+            get_order_emoji_by_number(user.global_marketing_status.index+1)
+            if user.global_marketing_status else "🆓"
+        )
+
+        message_text += (
+            f"{count}. @{user.username}: "
+            f"{user_status_order_emoji} | {user_global_status_order_emoji}\n"
+        )
+        count += 1
 
     reply_markup = get_donate_keyboard(
         buttons=buttons,

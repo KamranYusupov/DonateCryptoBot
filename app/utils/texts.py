@@ -2,7 +2,7 @@ import copy
 from collections import defaultdict
 from datetime import date, timedelta, datetime
 from decimal import Decimal
-from typing import Any, List, Sequence, Optional
+from typing import Any, List, Sequence, Optional, TypeVar
 import uuid
 
 import loguru
@@ -27,6 +27,7 @@ from app.utils.datetime import to_main_tz
 from app.models.telegram_user import GlobalMarketingDonateStatus
 from app.models.matrix import MatrixMarketingType
 from app.schemas.marketing import MatrixMarketingScope
+from app.models.mixins import AbstractStatusEnum
 
 
 def get_matrices_statuses_statistic_message(
@@ -611,3 +612,7 @@ def get_triumph_bill_increase_statistic_text(
         matrix_activation_step_str=matrix_activation_step_str,
         registration_step_str=registration_step_str,
     )
+
+
+def get_order_emoji_by_number(n: int) -> str:
+    return ''.join([f"{i}️⃣" for i in str(n)])
