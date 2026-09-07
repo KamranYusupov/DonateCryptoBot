@@ -32,10 +32,13 @@ async def command_start(
         message: Message,
         command: CommandObject,
         current_user: TelegramUser,
+        state: FSMContext,
         telegram_user_service: TelegramUserService = Provide[
             Container.telegram_user_service
         ],
 ) -> None:
+    await state.clear()
+
     if current_user:
         await message.answer(
             f"👋 Приветствую, {current_user.first_name}!\n\n",
