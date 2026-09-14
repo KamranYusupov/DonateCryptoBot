@@ -26,10 +26,13 @@ class BaseUserEntity(BaseModel):
         title="Статус маркетинга Global", default=None,
     )
     invites_count: int = Field(title="Число приглашений", default=0)
-    donates_sum: Decimal = Field(title="Сумма донатов", default=0)
+    donates_sum: Decimal = Field(title="Сумма донатов", default=Decimal("0"))
 
-    bill_for_activation: Decimal = Field(title="Счет для активации", default=0)
-    bill_for_withdraw: Decimal = Field(title="Счет для вывода", default=0)
+    bill_for_activation: Decimal = Field(
+        title="Счет для активации",
+        default=Decimal("0")
+    )
+    bill_for_withdraw: Decimal = Field(title="Счет для вывода", default=Decimal("0"))
     triumph_bill: Decimal = Field(title="Сейф Триумф", default=Decimal("0"))
     global_safe: Decimal = Field(title="Сейф Прайм Тайм", default=Decimal("0"))
 
