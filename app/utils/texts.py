@@ -382,13 +382,15 @@ def get_sponsor_activation_text(
     )
 
 
-def format_decimal(decimal: Decimal, round_digits: int = 2) -> str:
-    s = f"{round(decimal, round_digits):f}"
+def format_decimal(
+        decimal: Decimal,
+        round_digits: int = 2,
+        use_comma: bool = True,
+) -> str:
+    separator = "," if use_comma else ""
 
-    if '.' in s:
-        s = s.rstrip('0').rstrip('.')
-
-    return s
+    s = f"{decimal:{separator}.{round_digits}f}"
+    return s.rstrip("0").rstrip(".")
 
 def get_sponsor_transaction_message_text(
         *,
