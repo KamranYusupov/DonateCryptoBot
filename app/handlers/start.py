@@ -79,16 +79,15 @@ async def command_start(
         await message.answer("Неправильная ссылка")
         return
 
+    reply_markup = get_confirm_inline_keyboard(
+        yes_button_data=f"yes_{sponsor.user_id}",
+        no_button_data="delete_msg",
+        sizes=(2, )
+    )
     await message.answer(
         f"Вы регистрируетесь по рекомендации {sponsor.full_name} "
         f"- Продолжить регистрацию?",
-        reply_markup=get_donate_keyboard(
-            buttons={
-                "Да": f"yes_{sponsor.user_id}",
-                "Нет": "delete_msg",
-            },
-            sizes=(2, 1),
-        ),
+        reply_markup=reply_markup,
     )
 
 
