@@ -40,7 +40,7 @@ async def about_handler(
     presentation_keyboard = InlineKeyboardBuilder()
     presentation_keyboard.add(
         InlineKeyboardButton(
-            text="🎬 Фильм «KOD 💵 DENEG»",
+            text="🎬 Фильм «KOD💵DENEG»",
             callback_data="kod_deneg_movie"
         ),
         InlineKeyboardButton(

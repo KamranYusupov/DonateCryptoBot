@@ -92,16 +92,16 @@ def get_start_inline_keyboard():
     keyboard = InlineKeyboardBuilder()
     keyboard.add(
         InlineKeyboardButton(
-            text="🎬 Фильм «KOD 💵 DENEG»",
+            text="🎬 Фильм «KOD💵DENEG»",
             url="https://t.me/kod_deneg_film/15"
         ),
         InlineKeyboardButton(
             text="👨‍💻 Полная презентация",
-            url="https://t.me/kod_deneg_chat/2902"
+            url="https://t.me/kod_deneg_chat/4063"
         ),
         InlineKeyboardButton(
             text="🤖 Обзор функций бота",
-            url="https://t.me/kod_deneg_chat/2926"
+            url="https://t.me/kod_deneg_chat/4083"
         ),
     )
 
