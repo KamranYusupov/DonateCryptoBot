@@ -133,6 +133,10 @@ async def send_captcha(
 async def captcha_handler(
         callback: CallbackQuery,
         state: FSMContext,
+        telegram_user_service: TelegramUserService = Provide[
+            Container.telegram_user_service
+        ],
+        session: AsyncSession = Provide[Container.session],
 ) -> None:
     await state.clear()
     if not callback.from_user.username:
@@ -146,12 +150,52 @@ async def captcha_handler(
         return
 
     sponsor_user_id = int(callback.data.split("_")[-1])
-    await send_captcha(
-        callback=callback,
-        state=state,
+    if settings.use_math_captcha:
+        await send_captcha(
+            callback=callback,
+            state=state,
+            sponsor_user_id=sponsor_user_id,
+        )
+        await state.set_state(CaptchaState.option)
+        return
+
+    sponsor = await telegram_user_service.get_telegram_user(
+        user_id=sponsor_user_id
+    )
+    user_schema = get_schema_from_user(
+        callback.from_user,
+        depth_level=sponsor.depth_level + 1,
         sponsor_user_id=sponsor_user_id,
     )
-    await state.set_state(CaptchaState.option)
+
+    await delete_message_or_pass(callback.message)
+    await state.clear()
+
+    try:
+        current_user = await telegram_user_service.create_telegram_user(
+            user=user_schema,
+            sponsor=sponsor,
+        )
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
+    finally:
+        await session.close()
+
+    await send_subscription_menu(callback, sponsor_user_id)
+    await send_message_or_pass(
+        bot=callback.bot,
+        chat_id=sponsor_user_id,
+        text=(
+            f"🎉 Поздравляем! По вашей ссылке зарегистрировался {current_user.full_username}\n\n"
+            "👥 Свяжитесь с ним, узнайте, всё ли понятно, и при необходимости окажите поддержку.\n\n"
+            "🔥 Ваше внимание = его быстрый старт\n\n"
+            "🌀 Состояние → Действие → Результат"
+        )
+    )
+
+
 
 
 @donate_router.callback_query(F.data.startswith("register_"), CaptchaState.option)

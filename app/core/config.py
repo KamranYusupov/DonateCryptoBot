@@ -136,6 +136,7 @@ class Settings(BaseSettings):
     )
 
     # region Настройки Captcha
+    use_math_captcha: bool = Field(title="Использовать математическую каптчу", default=False)
     captcha_seconds_interval: int = Field(title="Время на решение каптчи", default=60)
     math_captcha_options_count: int = Field(default=6)
     math_captcha_max_attempts_count: int = Field(default=2)
