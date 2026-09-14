@@ -135,6 +135,12 @@ class Settings(BaseSettings):
         title="Секретный ключ", default_factory=lambda: secrets.token_hex(16)
     )
 
+    # region Настройки Captcha
+    captcha_seconds_interval: int = Field(title="Время на решение каптчи", default=60)
+    math_captcha_options_count: int = Field(default=6)
+    math_captcha_max_attempts_count: int = Field(default=2)
+    # endregion
+
     # region Настройки БД
     postgres_user: str = Field(title="Пользователь БД")
     postgres_password: str = Field(title="Пароль БД")

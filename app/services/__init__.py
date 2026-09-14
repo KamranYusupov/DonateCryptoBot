@@ -21,6 +21,8 @@ from app.services.admin_impersonation_service import AdminImpersonationService
 from app.services.application import (
     GlobalMarketingDonateService,
 )
+from app.services.infra import CaptchaService
+
 
 __all__ = (
     "TelegramUserService",
@@ -41,4 +43,5 @@ __all__ = (
     "TriumphBillTransactionService",
     "AdminImpersonationService",
     "GlobalMarketingDonateService",
+    "CaptchaService",
 )

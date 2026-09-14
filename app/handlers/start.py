@@ -46,6 +46,7 @@ async def command_start(
         )
         if current_user.is_admin:
             return
+
         sponsor = await telegram_user_service.get_telegram_user(
             user_id=current_user.sponsor_user_id,
         )
@@ -61,6 +62,8 @@ async def command_start(
         )
         return
 
+
+
     if not command.args:
         await message.answer(
             "Регистрация в боте происходит "
@@ -68,43 +71,22 @@ async def command_start(
         )
         return
 
-    if command.args.isdigit():
-        sponsor_user_id = int(command.args)
-        sponsor = await telegram_user_service.get_telegram_user(
-            user_id=sponsor_user_id,
-        )
-        if sponsor:
-            await message.answer(
-                "🔗 Реферальная ссылка устарела\n\n"
-                f"✅ Напишите {sponsor.full_username} — запросите новую"
-            )
-            return
-
-    referral_link = await telegram_user_service.get_link_by_code(
-        code=command.args,
+    sponsor = await telegram_user_service.get_telegram_user(
+        user_id=int(command.args),
     )
 
-    if not referral_link:
+    if not sponsor:
         await message.answer("Неправильная ссылка")
         return
 
-    sponsor = await telegram_user_service.get_telegram_user(
-        id=referral_link.telegram_user_id,
-    )
-
-    if not referral_link.is_active:
-        await message.answer(
-            "🔗 Реферальная ссылка устарела\n\n"
-            f"✅ Напишите {sponsor.full_username} — запросите новую"
-        )
-        return
-
     await message.answer(
-        f"Вы регистрируетесь по рекомендации {sponsor.full_name}"
-        f" - Продолжить регистрацию?",
-        reply_markup=get_confirm_inline_keyboard(
-            yes_button_data=f"yes_{referral_link.code}",
-            no_button_data="delete_msg",
+        f"Вы регистрируетесь по рекомендации {sponsor.full_name} "
+        f"- Продолжить регистрацию?",
+        reply_markup=get_donate_keyboard(
+            buttons={
+                "Да": f"yes_{sponsor.user_id}",
+                "Нет": "delete_msg",
+            },
             sizes=(2, 1),
         ),
     )
@@ -189,4 +171,8 @@ async def admin(
         marketing_type=MatrixMarketingType.GLOBAL,
     )
 
-    await message.answer("Готово ✅")
+    await message.answer(
+        "Готово ✅\n"
+         f"{admin_user.referral_url}",
+    )
+

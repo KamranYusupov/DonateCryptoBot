@@ -1,17 +1,12 @@
 from aiogram import Router, F
-from aiogram.types import Message, FSInputFile, CallbackQuery
-from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
-from dependency_injector.wiring import inject, Provide
+from aiogram.types import Message, FSInputFile
+from dependency_injector.wiring import inject
 
-from app.core.container import Container
 from app.loader import bot
-from app.services.telegram_user_service import TelegramUserService
-from app.keyboards.donate import get_donate_keyboard
 from app.core.config import settings
 from app.use_cases.file import SendFileFromLoadedFileIDOrSaveUseCase
 from app.models.telegram_user import TelegramUser
 from app.filters.user import UserExistsFilter
-from app.exceptions.referral_link import ActiveLinkAlreadyExistsError
 
 referral_link_router = Router()
 
@@ -25,9 +20,6 @@ referral_link_router = Router()
 async def referral_message_handler(
         message: Message,
         current_user: TelegramUser,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
 ):
     await message.answer_photo(
         photo=FSInputFile("app/media/base_photo.jpg"),
@@ -49,48 +41,7 @@ async def referral_message_handler(
         height=1920,
     )
 
-    referral_link = await telegram_user_service.get_active_referral_link(
-        current_user.id,
-    )
-    if referral_link:
-        await message.answer(
-            f"Ваша реферальная ссылка: {referral_link.url}",
-        )
-        return
-
     await message.answer(
-        "Нет активной ссылки.",
-        reply_markup=get_donate_keyboard(
-            buttons={"🧬 СОЗДАТЬ ССЫЛКУ 🧬": "generate_referral_link"}
-        )
+        f"Ваша реферальная ссылка: {current_user.referral_url}",
     )
 
-
-@referral_link_router.callback_query(
-    F.data == "generate_referral_link",
-    UserExistsFilter()
-)
-@inject
-async def referral_message_handler(
-        callback: CallbackQuery,
-        current_user: TelegramUser,
-        telegram_user_service: TelegramUserService = Provide[
-            Container.telegram_user_service
-        ],
-):
-    referral_link = await telegram_user_service.get_active_referral_link(
-        current_user.id,
-    )
-    if not referral_link:
-        try:
-            referral_link = await telegram_user_service.generate_referral_link(
-                current_user.id,
-            )
-        except ActiveLinkAlreadyExistsError:
-            await callback.message.edit_text("Реферальная ссылка уже сгенерирована.")
-            return
-
-    await callback.message.edit_text(
-        f"Ваша реферальная ссылка: {referral_link.url}",
-    )
-    return

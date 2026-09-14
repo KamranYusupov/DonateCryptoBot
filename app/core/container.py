@@ -23,7 +23,6 @@ from app.models import (
     ProcessedCryptoBotPaymentWebhook,
     RegistrationStatistic,
     TriumphBillTransaction,
-    ReferralLink,
 )
 from app.orchestrators.crypto_bot_payment import CryptoBotPaymentOrchestrator
 from app.repositories import (
@@ -44,7 +43,6 @@ from app.repositories import (
     RepositoryMatrixStatistic,
     RepositoryRegistrationStatistic,
     RepositoryTriumphBillTransaction,
-    RepositoryReferralLink,
 )
 from app.services import (
     TelegramUserService,
@@ -65,6 +63,7 @@ from app.services import (
     TriumphBillTransactionService,
     AdminImpersonationService,
     GlobalMarketingDonateService,
+    CaptchaService,
 )
 from app.infrastructure.adapters import (
     TelegramBotTaskIQAdapter,
@@ -156,14 +155,9 @@ class Container(containers.DeclarativeContainer):
         model=TriumphBillTransaction,
         session=session,
     )
-    repository_referral_link = providers.Factory(
-        RepositoryReferralLink,
-        model=ReferralLink,
-        session=session,
-    )
     # endregion
 
-    # region infra adapters
+    # region adapters
     telegram_bot_taskiq_adapter = providers.Factory(
         TelegramBotTaskIQAdapter
     )
@@ -182,13 +176,13 @@ class Container(containers.DeclarativeContainer):
         base_url=settings.provided.crypto_bot_api_base_url,
         api_token=settings.provided.crypto_bot_api_token,
     )
+    captcha_service = providers.Factory(CaptchaService)
     # endregion
 
     # region services
     telegram_user_service = providers.Factory(
         TelegramUserService,
         repository_telegram_user=repository_telegram_user,
-        repository_referral_link=repository_referral_link,
     )
 
     matrix_service = providers.Factory(
