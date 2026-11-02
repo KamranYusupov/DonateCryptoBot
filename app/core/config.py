@@ -161,6 +161,7 @@ class Settings(BaseSettings):
     # region Настройки Redis
     redis_host: str = Field(title="Хост redis", default="redis")
     redis_port: int | str = Field(title="Порт redis", default=6379)
+    redis_password: str = Field(title="Пароль redis")
     redis_decode_responses: bool = Field(default=True)
     redis_health_check_interval: int = Field(default=30)
     # endregion
@@ -344,7 +345,7 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def redis_url(self) -> str:
-        return f"redis://{self.redis_host}:{self.redis_port}/"
+        return f"redis://:{self.redis_password}@{self.redis_host}:{self.redis_port}/"
 
     @computed_field
     @property
