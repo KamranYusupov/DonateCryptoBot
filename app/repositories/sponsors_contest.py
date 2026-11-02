@@ -28,7 +28,7 @@ class RepositorySponsorsContestPoint(
                 SponsorsContestPoint.user_id,
                 func.sum(SponsorsContestPoint.count).label("points")
             )
-            .filter_by(contest_id=contest_id)
+            .where(SponsorsContestPoint.contest_id == contest_id)
             .group_by(SponsorsContestPoint.user_id)
             .order_by(
                 func.sum(SponsorsContestPoint.count).desc(),

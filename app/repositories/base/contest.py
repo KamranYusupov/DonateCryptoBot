@@ -85,7 +85,7 @@ class RepositoryContestPointBase(
 
         statement = (
             select(self._model.user_id, func.count(self._model.id).label("points"))
-            .filter_by(contest_id=contest_id)
+            .where(self._model.contest_id == contest_id)
             .group_by(self._model.user_id)
             .order_by(
                 func.count(self._model.id).desc(),
